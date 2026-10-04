@@ -10,6 +10,26 @@ your OS file from your own official one.
 > **Unofficial and unsupported. Not affiliated with, endorsed by or supported by the hardware's manufacturer.
 > Flashing modified firmware is at your own risk.** Read [DISCLAIMER.md](DISCLAIMER.md) and [RISKS.md](RISKS.md) first.
 
+## At a glance
+
+- **Digi Mono**: six synth machines in the FUNC+SRC list (sine, noise, saw, pulse, an ensemble, a formant
+  voice), each with its own icon and its own SRC page, values in their units.
+- **Digi Matrix**: any track's LFO to any parameter of any track, 8 slots, per pattern.
+- **Digi Utilities**: waveform, spectrum and X-Y scope, a tuner and track activity, on a held "...".
+- **Digi EQ**: a 4-band master EQ on every output, main outs, headphones and USB.
+- **digichain**: SOPHIE, NEIGHBOR, DIGISLICER and Digi Mono in one build.
+- **Ready to use:** the `.elemod` files are in [elemods/](elemods/), built with the latest elekloader: add them
+  in elekloader with your own official OS 1.53 file and build.
+
+<table>
+<tr><td align="center"><img src="docs/img/digimono_list.png" width="384" alt="FUNC+SRC list with the Digi Mono machines and their icons"><br><sub>Digi Mono: the machines, with their icons</sub></td>
+<td align="center"><img src="docs/img/digimono_vo.png" width="384" alt="MONO VO SRC page"><br><sub>MONO VO: vowel AH, consonant K, 40 ms</sub></td></tr>
+<tr><td align="center"><img src="docs/img/digimono_ens.png" width="384" alt="MONO ENS SRC page"><br><sub>MONO ENS: oscillator 2 at +5 semitones</sub></td>
+<td align="center"><img src="docs/img/digimatrix_page.png" width="384" alt="MOD MATRIX page"><br><sub>Digi Matrix: two LFO routings</sub></td></tr>
+<tr><td align="center"><img src="docs/img/scope.png" width="384" alt="scope page"><br><sub>Digi Utilities: the scope, tuner and track activity</sub></td>
+<td align="center"><img src="docs/img/digieq_page.png" width="384" alt="Master EQ page"><br><sub>Digi EQ: four bands and the response curve</sub></td></tr>
+</table>
+
 ## The mods
 
 | mod | what it adds | version | hardware |
@@ -27,8 +47,9 @@ DIGISLICER, DigiFilter): every pair, checked by `tools/dev.sh elemods`. **Digi P
 2.0a**: it patches a place core 2.1 now owns, so it goes in a build with core 2.0a, digihealth, Digi Matrix
 and Digi EQ, not with the core 2.1 mods, until it is ported.
 
-**Getting them:** `tools/dev.sh mods` fetches elekloader and the other mods and builds every mod as an
-`.elemod` from your own official file; on macOS the elekloader app (`tools/macos/install_app.sh`) does it from
+**Getting them:** download them from [elemods/](elemods/) and add them in elekloader (it brings the core
+mod). Or build them yourself: `tools/dev.sh mods` fetches elekloader and the other mods and builds every mod
+as an `.elemod` from your own official file (`tools/dev.sh publish` refreshes elemods/); on macOS the elekloader app (`tools/macos/install_app.sh`) does it from
 a double-click and checks for updates. Steps: [docs/DEVELOPING.md](docs/DEVELOPING.md). Full controls:
 [docs/USAGE.md](docs/USAGE.md). Version history: [CHANGELOG.md](CHANGELOG.md).
 
@@ -57,7 +78,7 @@ pattern is renamed "DEMO". Only screenshots are published here - no firmware, an
 - A clean-room engine: no Monomachine code or data. Checked in emulation on the real firmware, bit for bit
   (tests/digiemu_mono.py); **not yet on a unit**. Details: [mods/digimono/DESIGN.md](mods/digimono/DESIGN.md).
 
-<table><tr><td align="center"><img src="docs/img/digimono_list.png" width="384" alt="machine list with the Digi Mono machines"><br><sub>FUNC+SRC: the Digi Mono machines, with their icons</sub></td><td align="center"><img src="docs/img/digimono_src.png" width="384" alt="MONO SAW SRC page"><br><sub>A MONO SAW track's SRC page</sub></td></tr></table>
+<table><tr><td align="center"><img src="docs/img/digimono_vo.png" width="384" alt="MONO VO SRC page"><br><sub>A MONO VO track's SRC page: each knob shows its value in place, the top bar its full name</sub></td><td align="center"><img src="docs/img/digimono_ens.png" width="384" alt="MONO ENS SRC page"><br><sub>MONO ENS: PCH2 at +5 semitones, CHRL at 5</sub></td></tr></table>
 
 ## Digi Matrix
 
@@ -205,7 +226,7 @@ python3 tools/build_elemods.py --stock <official OS 1.53 .syx> --elekloader <ele
 Then add them in elekloader's window (with its core mod), or on the command line:
 `python -m elekloader.patch --stock <official .syx> --mod core-2.0a.elemod --mod digipoly-1.0f.elemod --mod digimatrix-1.0b.elemod --mod digieq-1.0b.elemod --out custom.syx --version 2.0d`.
 Add `--mod digiutils-1.9a.elemod` for the "..." utility pages.
-The mods need m68k binutils to build; the `.elemod` files are built from your official file and are not stored here.
+The mods need m68k binutils to build. This repo's own `.elemod` files are also in [elemods/](elemods/) (`tools/dev.sh publish`): they hold the mods' code, and refer to your own official file for anything from the firmware.
 
 The master EQ is in the elekloader build only; since 1.0a it is its own mod, `digieq`
 ([docs/USAGE.md](docs/USAGE.md)).
@@ -235,6 +256,7 @@ instruction later because FAST AUDIO owns the output-write call (see docs/TECHNI
 | `bin/` | the assembled hooks (committed; `make` rebuilds them) |
 | `tools/build.py` | official .syx -> patched .syx, fully verified |
 | `tools/patch_section3.py` | applies all patches to the MAIN OS section |
+| `elemods/` | this repo's mods as ready-made `.elemod` files, for elekloader |
 | `mods/`, `tools/build_elemods.py` | the elekloader mods (mod.json + mod-only sources; shared code from `src/`) |
 | `tests/` | emulator tests: the real firmware code runs under unicorn with the patches (`tests/run_tests.sh <official s3> <patched s3> scope|spectrum`) |
 | `docs/` | install/revert, usage, technical notes (reverse-engineering log) |

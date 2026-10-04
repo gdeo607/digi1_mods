@@ -16,6 +16,8 @@
 #   tools/dev.sh update                    pull the latest of every mod and tool (instead of the pinned ones)
 #   tools/dev.sh elemods                   every mod as an .elemod in out/dev/elemods, for the elekloader app,
 #                                          with COMPATIBILITY.txt: which pairs combine
+#   tools/dev.sh publish                   `mods`, then this repo's own .elemod files into elemods/ (committed:
+#                                          they hold no firmware bytes), with elemods/README.md
 #
 # Mods for build/all: digimono, digiutils, digimatrix, digieq (this repo); digisophie, digislicer,
 # digifilter, digineighbor, digihealth (fetched by setup). digipoly needs core 2.0a and is not built here.
@@ -345,6 +347,46 @@ cmd_elemods() {   # every mod as an .elemod, in one folder, with which pairs com
     say "done: tools/dev.sh loader opens elekloader with them (or add them to the elekloader app; it has core built in)"
 }
 
+# this repo's own mods, published in elemods/ (the others come from their authors' repositories)
+PUBLISHED=(digimono digichain digiutils digimatrix digieq)
+
+cmd_publish() {   # the latest elekloader and mods, then ours into elemods/ with a README
+    cmd_mods
+    local dst=$ROOT/elemods m f ver core elk
+    mkdir -p "$dst"
+    rm -f "$dst"/*.elemod
+    for m in "${PUBLISHED[@]}"; do
+        f=$(ls "$DEV/elemods/$m"-*.elemod 2>/dev/null | head -1) || true
+        [[ -n $f ]] || die "$m was not built (see $LOG)"
+        cp "$f" "$dst/"
+    done
+    core=$(basename "$(ls "$DEV/elemods"/core-*.elemod)" .elemod)
+    elk=$(git -C "$TOOLS/elekloader" log -1 --format='%h, %cs')
+    {
+        echo "# The mods as .elemod files"
+        echo
+        echo "Ready to add to [elekloader](https://github.com/irpina/elekloader): open it, choose your own official"
+        echo "Digitakt mk1 **OS 1.53** file, **Install** these, tick the ones you want and build. elekloader"
+        echo "brings the core mod (\`${core}\`); Digi Mono ticks digichain with it."
+        echo
+        echo "| file | sha256 |"
+        echo "|---|---|"
+        for f in "$dst"/*.elemod; do
+            echo "| \`$(basename "$f")\` | \`$(sha256sum "$f" | cut -c1-16)\` |"
+        done
+        echo
+        echo "Built with elekloader $elk (core \`${core#core-}\`) by \`tools/dev.sh publish\`. Every pair combines with"
+        echo "core (\`elekloader --check\`); so do they with the mods kept up to date by \`tools/dev.sh mods\`: digihealth,"
+        echo "DigiFilter and the \`-chain\` builds of SOPHIE, NEIGHBOR and DIGISLICER. An \`.elemod\` holds the mod's own"
+        echo "code: where it repeats firmware bytes, elekloader stores a reference to your own file instead, and the few"
+        echo "original bytes at each place it patches are there only to check your file. No firmware is stored here."
+        echo
+        echo "Digi Poly 1.0f is not here: it is built for core 2.0a, which current elekloader no longer brings."
+    } > "$dst/README.md"
+    say "published to $dst:"
+    ls "$dst"
+}
+
 cmd_play() {
     cd "$TOOLS/digiemu" && exec .venv/bin/python -m emu.portable
 }
@@ -367,6 +409,7 @@ case ${1:-} in
     elemods) shift; cmd_elemods "$@" ;;
     mods) shift; cmd_mods "$@" ;;
     loader) shift; cmd_loader "$@" ;;
+    publish) shift; cmd_publish "$@" ;;
     all) shift; cmd_all "$@" ;;
-    *) sed -n "2,32p" "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+    *) sed -n "2,34p" "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac

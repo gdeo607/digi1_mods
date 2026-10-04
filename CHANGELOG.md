@@ -3,6 +3,13 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Ready-made .elemod files, README at a glance
+- **elemods/**: this repo's mods (Digi Mono 0.11, digichain 1.3, Digi Utilities 1.9a, Digi Matrix 1.0b, Digi
+  EQ 1.0b) as `.elemod` files built with the latest elekloader (core 2.1), with a README of their hashes.
+  `tools/dev.sh publish` rebuilds them. Each was checked to hold no 16-byte run of the firmware; elekloader
+  refers to the user's own file for anything from it.
+- README: a summary and six screenshots at the top; new Digi Mono screenshots (VO and ENS pages with values).
+
 ## README: a section per mod (docs)
 - The front page lists every mod in a table, then has a section each: Digi Mono, Digi Matrix, Digi Utilities,
   Digi EQ, Digi Poly, digichain, and the other mods kept up to date. Digi Poly 1.0f is marked as built for core
