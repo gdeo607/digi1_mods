@@ -32,6 +32,8 @@ ap.add_argument("--set", default="", help="track:slot:value words written into t
 ap.add_argument("--settle", type=int, default=0, help="steps to wait on each SRC page before its screenshot")
 ap.add_argument("--blocks-at", default="0x40077fc0", help="where --blocks reads the voice blocks (default: right"
                 " after the render step at 0x40077fba; 0x40078142: before the mixer, every track stage done)")
+ap.add_argument("--os", default="1.53", help="the build's OS release (1.53, 1.54): the firmware addresses here are"
+                " 1.53's, moved by tools/os154.json")
 ap.add_argument("--out", required=True)
 a = ap.parse_args()
 
@@ -61,7 +63,11 @@ for _n in ("ttk", "messagebox", "filedialog", "font"):
 import emu.gui as G
 from unicorn import UC_HOOK_CODE
 import json
-AFTER_INJECT = int(a.blocks_at, 0)                  # 0x40077fc0: the instruction after the site at 0x40077fba
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
+from port_os import fw as _fw
+def fw(x):
+    return _fw(x, a.os)
+AFTER_INJECT = fw(int(a.blocks_at, 0))                 # 0x40077fc0: the instruction after the site at 0x40077fba
 BLOCK_TRACKS = [int(x) for x in filter(None, a.blocks.split(","))]
 BLOCKS = {t_: [] for t_ in BLOCK_TRACKS}
 
@@ -157,7 +163,7 @@ def spin(m, pc, *args, **kw):
         elif act[0] == "snap":
             png(os.path.join(OUT, act[1] + ".png"), E.fb)
         elif act[0] == "machines":
-            kit = struct.unpack(">I", m.uc.mem_read(0x4199dc44, 4))[0]
+            kit = struct.unpack(">I", m.uc.mem_read(fw(0x4199dc44), 4))[0]
             for w in filter(None, a.set.split(",")):
                 tr, sl, val = (int(x, 0) for x in w.split(":"))
                 m.uc.mem_write(kit + 0x20 + 0xa2 * (tr - 1) + 0x14 + 2 * sl, struct.pack(">H", val))

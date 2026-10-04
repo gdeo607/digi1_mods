@@ -46,7 +46,7 @@ Checked in digiemu (`tests/digiemu_chain.py`): NEIGHBOR's page and value texts a
 shifter (from a C4 saw: 262 Hz at TUNE 0, 368 at +6, 522 at +12, 127 at -12); a new NEIGHBOR track on track 2
 takes track 1 and plays with nothing set; SLOT stops at 8; Digi Mono's defaults after the menu passes it.
 
-Digi Mono (machines 20..25, 1.1) gets its page's layout, knob graphics, UI records and knob values through
+POLY (Digi Poly 2.0, machine 6, 1.4) gets ONESHOT's page layout through it. Digi Mono (machines 20..25, 1.1) gets its page's layout, knob graphics, UI records and knob values through
 it too; Digi Mono requires digichain.
 
 The handlers are the mods' own code, unchanged. `tools/chain_patch.py` moves their sites for those

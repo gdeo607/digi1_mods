@@ -7,12 +7,21 @@
  * still 0, SLOT becomes the track on its left (track 2 for track 1). If the track then leaves NEIGHBOR with
  * SLOT still as set here, SLOT goes back to 0, so the next machine sees the value a switch leaves (Digi
  * Mono's defaults look for it). Only with NEIGHBOR in the build (its nb_layout is a weak import). */
+
+/* ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ---- */
+#ifdef OS154
+#define F_4199dc44 0x4199ec44
+#else
+#define F_4199dc44 0x4199dc44
+#endif
+/* ---- end of the moved addresses ---- */
+
 #include <stdint.h>
 
 extern char core_zero[];
 extern char nb_layout[];
 
-#define UI_KIT      (*(uint8_t *volatile const *)0x4199dc44)   /* the UI kit: sounds at + 0x20 + 0xa2 t */
+#define UI_KIT      (*(uint8_t *volatile const *)F_4199dc44)   /* the UI kit: sounds at + 0x20 + 0xa2 t */
 #define M_NBR       4
 #define SLOT_SRC    21                         /* knob E */
 #define SETTLE      15                         /* ticks (30 Hz): half a second */

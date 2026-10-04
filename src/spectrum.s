@@ -7,8 +7,31 @@
 |             (columns >= CSPLIT) and FFT 512 of the tuner's 3 kHz ring (columns < CSPLIT), column heights
 |             0..63 (60 dB log), falling peaks; then request the next capture. Draw 128 columns of bars.
 
-    .set NEWOP,   0x400d4180
-    .set VLINE,   0x400c1040
+| ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ----
+        .ifdef  OS154
+        .equ    .LF_400ae28c, 0x400ae4b4
+        .equ    .LF_400aeaa8, 0x400aecd0
+        .equ    .LF_400aeab4, 0x400aecdc
+        .equ    .LF_400aead0, 0x400aecf8
+        .equ    .LF_400aeed0, 0x400af0f8
+        .equ    .LF_400aeee8, 0x400af110
+        .equ    .LF_400c1040, 0x400c1268
+        .equ    .LF_400d4180, 0x400d43a8
+        .else
+        .equ    .LF_400ae28c, 0x400ae28c
+        .equ    .LF_400aeaa8, 0x400aeaa8
+        .equ    .LF_400aeab4, 0x400aeab4
+        .equ    .LF_400aead0, 0x400aead0
+        .equ    .LF_400aeed0, 0x400aeed0
+        .equ    .LF_400aeee8, 0x400aeee8
+        .equ    .LF_400c1040, 0x400c1040
+        .equ    .LF_400d4180, 0x400d4180
+        .endif
+| ---- end of the moved addresses ----
+
+
+    .set NEWOP,   .LF_400d4180
+    .set VLINE,   .LF_400c1040
 .ifdef ELK
 | elekloader build (mods/digiutils): data in mods/digiutils/osc_data.s, same layout
     .set TRING,   digiutils_tring
@@ -18,11 +41,11 @@
     .set SREQ,    digiutils_sreq
     .set SINT,    digiutils_sint
 .else
-    .set TRING,   0x400aead0        | tuner 3 kHz ring, 512 x int16
-    .set TIDX,    0x400aeab4
-    .set FULLA,   0x400ae28c
-    .set PYMAX,   0x400aeaa8
-    .set SREQ,    0x400aeed0        | spectrum data (reclaimed song-popup space, after the tuner ring)
+    .set TRING,   .LF_400aead0        | tuner 3 kHz ring, 512 x int16
+    .set TIDX,    .LF_400aeab4
+    .set FULLA,   .LF_400ae28c
+    .set PYMAX,   .LF_400aeaa8
+    .set SREQ,    .LF_400aeed0        | spectrum data (reclaimed song-popup space, after the tuner ring)
 .endif
     .set SRDY,    SREQ+4
     .set SCNT,    SREQ+8
@@ -31,7 +54,7 @@
 .ifdef ELK
     .set COLH,    digiutils_sreq+0x18
 .else
-    .set COLH,    0x400aeee8        | 128 x byte, 0..63
+    .set COLH,    .LF_400aeee8        | 128 x byte, 0..63
 .endif
     .set PK,      COLH+128
     .set NCOL,    128

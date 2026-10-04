@@ -15,8 +15,22 @@
 | (0x400657cc), as the mods themselves assume. Which machine a parameter range is for: the sound's,
 | found from the object as the mods find it.
 
+| ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ----
+        .ifdef  OS154
+        .equ    .LF_4017eb58, 0x4017ee58
+        .equ    .LF_40181330, 0x40181630
+        .equ    .LF_4199e444, 0x4199f444
+        .else
+        .equ    .LF_4017eb58, 0x4017eb58
+        .equ    .LF_40181330, 0x40181330
+        .equ    .LF_4199e444, 0x4199e444
+        .endif
+| ---- end of the moved addresses ----
+
+
         .equ    M_NBR, 4                | NEIGHBOR
         .equ    M_DSL, 5                | DIGISLICER
+        .equ    M_POLY, 6               | POLY (digipoly 2.0): ONESHOT's page
         .equ    M_SOPH, 7               | SOPHIE
         .equ    M_MONO, 20              | Digi Mono: 20..29 (26 POLY SIN; room for its next machines)
         .equ    M_MONO_LAST, 29
@@ -96,6 +110,7 @@ digichain_layout:
         move.l  %d0, digichain_page_m
         ROUTE   M_SOPH, ds_layout
         ROUTE   M_NBR, nb_layout
+        ROUTE   M_POLY, digipoly_layout
         ROUTE_IN M_MONO, M_MONO_LAST, digimono_layout
         move.l  4(%sp), %d0
         moveq   #3, %d1
@@ -179,7 +194,7 @@ digichain_inject:
         jsr     (%a0)
 2:      move.l  (%sp)+, %d0
         movea.l (%sp)+, %a0
-        lea     0x4199e444, %a4
+        lea     .LF_4199e444, %a4
         rts
 
 | The parameter range lookup 0x40078f0c, from four callers: 0x4000ff20, 0x400100c4 and 0x4000f534
@@ -231,11 +246,11 @@ digichain_rmach:
         cmpi.l  #0x86, %d0
         beq.s   9f
         move.l  (%a1), %d0              | the object -> its sound, as the mods find it
-        cmpi.l  #0x4017eb58, %d0
+        cmpi.l  #.LF_4017eb58, %d0
         bne.s   9f
         movea.l 16(%a1), %a1
         move.l  (%a1), %d0
-        cmpi.l  #0x40181330, %d0
+        cmpi.l  #.LF_40181330, %d0
         bne.s   9f
         movea.l 16(%a1), %a1
         move.b  126(%a1), %d1           | its machine

@@ -13,6 +13,11 @@ All builds change only the MAIN OS section; bootloader, updater, I/O firmware an
   - Its own icon, SRC page names and values, and LFO DEST names ("PSIN:Note 2").
 - Checked: tests/mono_signal.py (pitches, levels, purity, the envelope both ways), the ColdFire build bit for
   bit against the PC's, and tests/digiemu_mono.py in the firmware. About 3,000 instructions a block.
+- **OS 1.53 and 1.54:** 0.12's LFO name sites and 0.13's ported with tools/port_os.py (the list's two sites
+  moved, 0x400a4374 -> 0x400a44d0 and 0x400a43f0 -> 0x400a454c; the DEST box's did not; ONESHOT's parameter
+  ids 0x6c..0x73 are the same in both). tests/digiemu_mono.py passes for all seven machines on both, and the
+  LFO page shows POLY SIN's names on both. digichain 1.5 is 1.4 (Digi Poly's route) with Digi Mono's
+  machines 20..29.
 
 ## Digi Mono 0.12 (HW: not yet)
 - The LFO page's DEST names a Digi Mono track's SRC knobs as its SRC page does: the list reads
@@ -29,6 +34,35 @@ All builds change only the MAIN OS section; bootloader, updater, I/O firmware an
 - tests/digiemu_mono_fx.py drops the pattern's p-locks on track 1, checks FREQ above 1 kHz (a C4's
   centroid cannot fall below its fundamental), VOL 0 as silence, PAN with the sends off, and the envelope
   and the LFO on the voice itself. All seven checks pass.
+
+## OS 1.54 (HW: not yet)
+- **Every mod here builds for OS 1.54 too**: Digi Mono 0.11, digichain 1.4, Digi Poly 2.0, Digi Utilities
+  1.9a, Digi Matrix 1.0b and Digi EQ 1.0b. elemods/ has both sets (`-os1.54` for 1.54). Their 1.53 builds are
+  the same as before, byte for byte.
+- **How:** `tools/port_os.py` found the 1.54 place of each of the 140 firmware addresses the mods and tests name (most
+  code did not move or moved by a few hundred bytes; RAM moved by 0x1000), each by its bytes, by the code
+  that uses it or from its table's start, five checked by hand (tools/os154.json says how each was found).
+  The addresses that moved are named once at the top of each source file for both releases, and each
+  mod.json has a "1.54" port with every site's stock bytes read from 1.54.
+- **Checked on 1.54 in digiemu:** Digi Mono (VO and ENS bit for bit, the SRC page, icons), Digi Poly (all of
+  tests/digiemu_poly.py), Digi Matrix, Digi EQ, Digi Utilities' page on a held "..." (a missed address of its
+  vtable, written 0x401b3748u, was found this way and fixed), NEIGHBOR through digichain playing a Digi Mono
+  track. Every pair of the 1.54 mods combines. The tests take the OS from the stock file (or `--os`).
+- tools/chain_patch.py moves the chained mods' 1.54 sites too; SOPHIE and DigiFilter have no 1.54 port yet.
+
+## Digi Poly 2.0, digichain 1.4 (HW: not yet)
+- **Digi Poly runs on core 2.1**, so it shares a build with every other mod: Digi Mono, Digi Utilities,
+  Digi Matrix, Digi EQ, digihealth, SOPHIE, NEIGHBOR, DIGISLICER, DigiFilter (every pair checked; all but
+  DIGISLICER fit in one build, 17 KB spare). Core 2.1's machine table now lists POLY (with a new three-note
+  icon), plays it as ONESHOT and gives it ONESHOT's parameters: 19 of its 29 patches are gone. Its SRC page is
+  ONESHOT's, through digichain 1.4. The chord, voice-borrowing, TRIG page, preview and recording code is
+  unchanged.
+- **POLY is machine 6** (it was 4; core 2.1 gives 4 to NEIGHBOR). A POLY track saved with 1.0f loads as
+  NEIGHBOR or ONESHOT: choose POLY again.
+- Checked: tests/emu_poly.py (unicorn) and tests/digiemu_poly.py (the firmware, with Digi Mono, Digi
+  Utilities, Digi Matrix, Digi EQ and digihealth in the build): the TRIG page, the key's chord, chords from
+  the sequencer on four voices, knobs and level on every voice, per-pattern pools, recording.
+- In elemods/ and in `tools/dev.sh mods`.
 
 ## Ready-made .elemod files, README at a glance
 - **elemods/**: this repo's mods (Digi Mono 0.11, digichain 1.3, Digi Utilities 1.9a, Digi Matrix 1.0b, Digi

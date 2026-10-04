@@ -17,10 +17,11 @@
 #   tools/dev.sh elemods                   every mod as an .elemod in out/dev/elemods, for the elekloader app,
 #                                          with COMPATIBILITY.txt: which pairs combine
 #   tools/dev.sh publish                   `mods`, then this repo's own .elemod files into elemods/ (committed:
-#                                          they hold no firmware bytes), with elemods/README.md
+#                                          they hold no firmware bytes), with elemods/README.md; with
+#                                          STOCK154=your OS 1.54 file, the -os1.54 ones too
 #
-# Mods for build/all: digimono, digiutils, digimatrix, digieq (this repo); digisophie, digislicer,
-# digifilter, digineighbor, digihealth (fetched by setup). digipoly needs core 2.0a and is not built here.
+# Mods for build/all: digimono, digipoly, digiutils, digimatrix, digieq (this repo); digisophie, digislicer,
+# digifilter, digineighbor, digihealth (fetched by setup).
 # digisophie, digineighbor and digislicer are built for digichain (tools/chain_patch.py; CHAIN=0 builds
 # them as they are), so they combine with each other; digichain is added to a build that needs it.
 # Without it digisophie clashes with digislicer and with digineighbor (elekloader says
@@ -173,7 +174,7 @@ cmd_build() {
             digifilter) files+=("$(build_one digifilter "$TOOLS/digifilter")") ;;
             digineighbor) files+=("$(build_one digineighbor "$TOOLS/digineighbor")") ;;
             digihealth) files+=("$(build_one digihealth "$TOOLS/digihealth")") ;;
-            digiutils|digimatrix|digieq)
+            digiutils|digimatrix|digieq|digipoly)
                 PYTHONPATH=$TOOLS/elekloader python3 "$ROOT/tools/build_elemods.py" --stock "$STOCK" \
                     --elekloader "$TOOLS/elekloader" --out "$BUILD/mods" --mods "$m" > "$LOG/build-$m.log" 2>&1 \
                     || die "$m failed to build: $LOG/build-$m.log"
@@ -181,7 +182,7 @@ cmd_build() {
             *) die "unknown mod: $m" ;;
         esac
     done
-    if printf '%s\n' "${files[@]}" | grep -qE -- '(-chain|/digimono-[^/]*)\.elemod$' && ! printf '%s\n' "${mods[@]}" | grep -qx digichain; then
+    if printf '%s\n' "${files[@]}" | grep -qE -- '(-chain(-os[0-9.]+)?|/digimono-[^/]*|/digipoly-[^/]*)\.elemod$' && ! printf '%s\n' "${mods[@]}" | grep -qx digichain; then
         files+=("$(build_one digichain "$ROOT/mods/digichain")")   # what the chained builds need
     fi
     for f in "${files[@]}"; do echo "  $(basename "$f")"; done
@@ -239,7 +240,7 @@ cmd_emutest() {
     say "every machine passed; recordings in $LOG/MONO_*.wav, screens in $LOG/png_*"
 }
 
-ELEMOD_ALL=(digimono digichain digiutils digimatrix digieq digisophie digislicer digifilter digineighbor digihealth)
+ELEMOD_ALL=(digimono digichain digiutils digimatrix digieq digipoly digisophie digislicer digifilter digineighbor digihealth)
 
 FETCHED=(elekloader digiemu digisophie digislicer digifilter digineighbor digihealth)
 
@@ -309,7 +310,7 @@ cmd_elemods() {   # every mod as an .elemod, in one folder, with which pairs com
         case $m in
             digimono|digichain) f=$(build_one "$m" "$ROOT/mods/$m") \
                 || { echo "  $m: FAILED (see $LOG/build-$m.log)"; continue; } ;;
-            digiutils|digimatrix|digieq)
+            digiutils|digimatrix|digieq|digipoly)
                 PYTHONPATH=$TOOLS/elekloader python3 "$ROOT/tools/build_elemods.py" --stock "$STOCK" \
                     --elekloader "$TOOLS/elekloader" --out "$BUILD/mods" --mods "$m" > "$LOG/build-$m.log" 2>&1 \
                     || { echo "  $m: FAILED (see $LOG/build-$m.log)"; continue; }
@@ -328,7 +329,7 @@ cmd_elemods() {   # every mod as an .elemod, in one folder, with which pairs com
         for ((j = i + 1; j < ${#ok[@]}; j++)); do
             a=${ok[i]}; b=${ok[j]}
             with=(--mod "$core")
-            if [[ -n $chain && ( $a$b == *-chain.elemod* || $a$b == */digimono-* ) && $a != "$chain" && $b != "$chain" ]]; then
+            if [[ -n $chain && ( $a$b == *-chain.elemod* || $a$b == *-chain-os* || $a$b == */digimono-* || $a$b == */digipoly-* ) && $a != "$chain" && $b != "$chain" ]]; then
                 with+=(--mod "$chain")
             fi
             if PYTHONPATH=$TOOLS/elekloader python3 -m elekloader.patch --stock "$STOCK" "${with[@]}" \
@@ -348,7 +349,7 @@ cmd_elemods() {   # every mod as an .elemod, in one folder, with which pairs com
 }
 
 # this repo's own mods, published in elemods/ (the others come from their authors' repositories)
-PUBLISHED=(digimono digichain digiutils digimatrix digieq)
+PUBLISHED=(digimono digichain digiutils digimatrix digieq digipoly)
 
 cmd_publish() {   # the latest elekloader and mods, then ours into elemods/ with a README
     cmd_mods
@@ -360,14 +361,26 @@ cmd_publish() {   # the latest elekloader and mods, then ours into elemods/ with
         [[ -n $f ]] || die "$m was not built (see $LOG)"
         cp "$f" "$dst/"
     done
+    if [[ -n ${STOCK154:-} ]]; then           # the same mods for OS 1.54 (their mod.json "ports")
+        say "and for OS 1.54"
+        local d154=$DEV/os1.54
+        mkdir -p "$d154"; ln -sfn "$TOOLS" "$d154/tools"
+        (DEV=$d154 STOCK=$STOCK154 "$0" elemods) | grep -E 'elemod|CLASH|TOO BIG|every pair' || true
+        for m in "${PUBLISHED[@]}"; do
+            f=$(ls "$d154/elemods/$m"-*-os1.54.elemod 2>/dev/null | head -1) || true
+            [[ -n $f ]] || die "$m was not built for 1.54 (see $d154/log)"
+            cp "$f" "$dst/"
+        done
+    fi
     core=$(basename "$(ls "$DEV/elemods"/core-*.elemod)" .elemod)
     elk=$(git -C "$TOOLS/elekloader" log -1 --format='%h, %cs')
     {
         echo "# The mods as .elemod files"
         echo
         echo "Ready to add to [elekloader](https://github.com/irpina/elekloader): open it, choose your own official"
-        echo "Digitakt mk1 **OS 1.53** file, **Install** these, tick the ones you want and build. elekloader"
-        echo "brings the core mod (\`${core}\`); Digi Mono ticks digichain with it."
+        echo "Digitakt mk1 **OS 1.53** or **OS 1.54** file, **Install** these, tick the ones you want and build. Files"
+        echo "ending \`-os1.54\` are for OS 1.54, the others for 1.53: elekloader lists the ones that fit your file."
+        echo "It brings the core mod (\`${core}\`); Digi Mono and Digi Poly tick digichain with them."
         echo
         echo "| file | sha256 |"
         echo "|---|---|"
@@ -381,7 +394,6 @@ cmd_publish() {   # the latest elekloader and mods, then ours into elemods/ with
         echo "code: where it repeats firmware bytes, elekloader stores a reference to your own file instead, and the few"
         echo "original bytes at each place it patches are there only to check your file. No firmware is stored here."
         echo
-        echo "Digi Poly 1.0f is not here: it is built for core 2.0a, which current elekloader no longer brings."
     } > "$dst/README.md"
     say "published to $dst:"
     ls "$dst"

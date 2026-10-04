@@ -1,6 +1,17 @@
 | Digi Matrix: the two hooks around the engine's LFO stage, and the SETTINGS row.
 | The logic is in matrix.c. Firmware addresses are OS 1.53's.
 
+| ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ----
+        .ifdef  OS154
+        .equ    .LF_4017ac20, 0x4017af20
+        .equ    .LF_4020db60, 0x4020df10
+        .else
+        .equ    .LF_4017ac20, 0x4017ac20
+        .equ    .LF_4020db60, 0x4020db60
+        .endif
+| ---- end of the moved addresses ----
+
+
         .text
 
 | ---------------- render: between the smoothing and the LFO stage (0x40077ea2) ---------------------
@@ -17,7 +28,7 @@ digimatrix_prehook:
         addq.l  #4, %sp
         move.l  (%sp)+, %d0
         movea.l (%sp)+, %a1                     | our return address
-        move.l  0x4020db60, -(%sp)              | the push this replaced
+        move.l  .LF_4020db60, -(%sp)              | the push this replaced
         jmp     (%a1)
 
 | ---------------- render: after the LFO stage (0x40077eb2) ---------------------------------------
@@ -53,7 +64,7 @@ row_label:
         pea     str_row
         move.l  %a0, %d2
         move.l  %a0, -(%sp)
-        jsr     0x4017ac20                      | std::string(this, const char*, alloc&)
+        jsr     .LF_4017ac20                      | std::string(this, const char*, alloc&)
         lea     12(%sp), %sp
         move.l  %d2, %d0
         move.l  -8(%a6), %d2

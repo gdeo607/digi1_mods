@@ -26,6 +26,11 @@ sys.path.insert(0, a.elekloader)
 from elekloader import syx as _syx, devices as _dev, elemod as _em, link as _link
 _st = _syx.Syx.load(a.stock)
 _d, _r = _dev.identify(_st.sha256)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
+from port_os import fw as _fw
+OS = _r.version                                    # the firmware addresses here are 1.53's; fw() moves them
+def fw(x):
+    return _fw(x, OS)
 LINKED = _link.link([_em.load_any(p) for p in a.mods], _st.section(_d.main_section))
 MAP = LINKED.map
 
@@ -57,7 +62,7 @@ WATCH = ["digiutils_draw", "digiutils_tick", "digiutils_key", "digiutils_tap", "
          "dt8poly_getter", "dt8poly_rawget", "dt8poly_icon", "dt8poly_rotate", "dt8poly_lock", "dt8poly_cable"]
 WATCH = [w for w in WATCH if w in MAP]
 counts = collections.Counter()
-FA_OUT = 0x80003360 + (0x40071c20 - 0x400716c0)       # FAST AUDIO's SRAM copy of the output writer
+FA_OUT = 0x80003360 + (fw(0x40071c20) - fw(0x400716c0))       # FAST AUDIO's SRAM copy of the output writer
 os.makedirs(a.png, exist_ok=True)
 log = []
 
@@ -229,7 +234,7 @@ def spin(m, pc, *args, **kw):
         uc.hook_add(UC_HOOK_CODE, lambda u, ad, s, d: counts.__setitem__("fastaudio_out", counts["fastaudio_out"] + 1),
                     begin=FA_OUT, end=FA_OUT)
         uc.hook_add(UC_HOOK_CODE, lambda u, ad, s, d: counts.__setitem__("stock_out", counts["stock_out"] + 1),
-                    begin=0x40071c20, end=0x40071c20)
+                    begin=fw(0x40071c20), end=fw(0x40071c20))
     for when, act in PLAN:
         if when == n:
             if act[0] in ("press", "release"):
@@ -280,7 +285,7 @@ def spin(m, pc, *args, **kw):
                            % ([(trig1[i] - trig0[i]) & 0xff for i in range(8)],
                               counts["dt8poly_rotate"] - c0.get("dt8poly_rotate", 0)))
                 kit = struct.unpack(">I", uc.mem_read(0x800019ac, 4))[0]
-                q = struct.unpack(">I", uc.mem_read(0x4199dc44, 4))[0]
+                q = struct.unpack(">I", uc.mem_read(fw(0x4199dc44), 4))[0]
                 mach = [uc.mem_read(q + 0x20 + tr * 0xa2 + 0x7e, 1)[0] for tr in range(8)] if q else None
                 log.append("machine bytes per track (sequencer kit): %s" % mach)
                 if "digiutils_adopt" in MAP:
