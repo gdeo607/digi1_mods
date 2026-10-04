@@ -3,6 +3,12 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Digi Mono 0.11 (HW: not yet)
+- **MONO ENS 20 % lighter at its defaults** (estimated ColdFire cycles a voice a block: ~3,550, was
+  ~4,450; ~2,100 with the chorus off, was ~2,950; the heaviest, WAVE and chorus on, ~5,620, was ~5,710).
+  One copy of its sample loop for each of WAVE and the chorus on or off, and less work per block. The
+  same samples as 0.10, bit for bit; tests/emu_mono.py and tests/mono_signal.py pass.
+
 ## Digi Mono 0.10 (HW: not yet)
 - **MONO VO 16-19 % lighter** (estimated ColdFire cycles a voice a block: a vowel ~3,280, was ~3,900;
   while a consonant sounds ~5,500-6,300, was ~6,700-7,800). Its formant resonators run one at a time over

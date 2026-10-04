@@ -217,6 +217,22 @@ and after (`divide 35, multiply 4, load 2, store 1, branch 2, other 1`, tests/em
 | while SH sounds | 6,680 | 5,490 (-18 %) |
 | while S sounds (48 kHz) | 7,800 | 6,300 (-19 %) |
 
+**0.11, ENS.** Its sample loop checked WAVE and the chorus on every sample and, with both in one loop,
+kept its values on the stack. Now there is one copy of the loop for each of WAVE on / off and chorus on /
+off (one inline function, its two flags constant at each call), so each copy holds only its own work; the
+two buffers WAVE needs are cleared only when it is on; without WAVE the level is a shift (its scale is
+1 then); a block's chorus glide step is a shift, and the semitone interval's octave (u / 12) a multiply.
+The output is the same as 0.10's, bit for bit. Estimated cycles a voice a block, the same model:
+
+| ENS (0.11) | 0.10 | 0.11 |
+|---|---|---|
+| defaults (chorus on, WAVE off) | 4,450 | 3,550 (-20 %) |
+| chorus off, WAVE off | 2,950 | 2,100 (-29 %) |
+| WAVE and chorus on (heaviest) | 5,710 | 5,620 (-2 %) |
+
+The heaviest case keeps its five multiplies a sample (the second ramp's level, the scale, the chorus's
+interpolation, level and mix) and the oscillators' wrap search.
+
 A table for the resonators' 1 / Q (instead of three divides a block) was tried and left out: it saved
 about 30 cycles and moved the bandwidth up to 9 % between vowels. Running the loops from on-chip SRAM
 (`.fast`) was left out too: it needs digihealth in the build, and the VO voices render one after another,

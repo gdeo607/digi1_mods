@@ -61,7 +61,7 @@ uint32_t mono_pitch_inc(int32_t pitch)
 /* inc moved by s semitones, -36..+36: inc * 2^(semi/12) * 2^(oct - 3), with s + 36 = 12 oct + semi */
 static uint32_t interval(uint32_t inc, int32_t s)
 {
-    int32_t u = s + 36, oct = u / 12;
+    int32_t u = s + 36, oct = (u * 43) >> 9;                /* u / 12, exact for 0..72 */
     inc = scale_up(inc, MONO_SEMI_UP[u - oct * 12]) >> 3;
     if (inc > (MONO_INC_MAX >> oct))
         return MONO_INC_MAX;
@@ -383,6 +383,41 @@ static void render_puls(struct mono_voice *v, const uint8_t *p, uint32_t inc, in
     }
 }
 
+/* ENS's sample loop over c samples: the summed ramps (and with WAVE, the ramps a duty later), the
+ * level, the chorus. has_k and has_c are constants at each call, so each copy has only its own work. */
+static inline __attribute__((always_inline)) void ens_loop(struct mono_voice *v, int16_t *out, int c,
+        uint16_t *wrp, int32_t *d0p, int32_t dd, uint32_t r1, uint32_t s1, const int32_t *d1, const int32_t *f1,
+        uint32_t r2, uint32_t s2, const int32_t *d2, const int32_t *f2, int32_t k, int32_t nw, int32_t gc,
+        int32_t nc, const int has_k, const int has_c)
+{
+    uint16_t wr = *wrp;
+    int32_t d0 = *d0p, j;
+    for (j = 0; j < c; j++) {
+        int32_t x, dry;
+        r1 += s1 + (uint32_t)d1[j];
+        x = (int32_t)(r1 >> 12) - 4 * 32768 + f1[j];
+        if (has_k) {
+            r2 += s2 + (uint32_t)d2[j];
+            x -= ((((int32_t)(r2 >> 12) - 4 * 32768) + f2[j]) * (k >> 2)) >> 13;   /* 4 saws: 2^17 */
+            dry = ((x >> 2) * (nw >> 1)) >> 14;
+        } else {
+            dry = x >> 2;                           /* nw = 2^15 without WAVE */
+        }
+        v->dl[wr] = sat16(dry);
+        if (has_c) {
+            int32_t di = d0 >> 8, fr = d0 & 255;
+            int32_t sa = v->dl[(wr - di) & CHO_MASK], sb = v->dl[(wr - di - 1) & CHO_MASK];
+            int32_t wet = sa + (((sb - sa) * fr) >> 8);
+            dry = ((dry + ((wet * gc) >> 15)) * (nc >> 1)) >> 14;
+        }
+        out[j] = sat16(dry);
+        wr = (wr + 1) & CHO_MASK;
+        d0 += dd;
+    }
+    *wrp = wr;
+    *d0p = d0;
+}
+
 /* one ENS oscillator, saw - k * (saw a duty later), added into acc */
 static void render_ens(struct mono_voice *v, const uint8_t *p, uint32_t inc, int16_t *out, int n)
 {
@@ -407,7 +442,7 @@ static void render_ens(struct mono_voice *v, const uint8_t *p, uint32_t inc, int
     d0 = CHO_BASE + ((((tri(v->lfo) << 1) - 32767) * sw) >> 15);
     v->lfo += CHO_RATE * (uint32_t)n;
     d1 = CHO_BASE + ((((tri(v->lfo) << 1) - 32767) * sw) >> 15);
-    dd = (d1 - d0) / n;
+    dd = n == 32 ? (d1 - d0) / 32 : (d1 - d0) / n;  /* the usual block: a shift */
     /* The four saws (and, with WAVE, the four a duty later) are each summed as one ramp: the sum of
      * the phases (>> 4, so four fit in 30 bits) steps by the sum of the increments a sample and drops
      * by a cycle where one wraps (d), with the blep of the samples beside a wrap (f) added in. Within
@@ -417,7 +452,10 @@ static void render_ens(struct mono_voice *v, const uint8_t *p, uint32_t inc, int
         int32_t d1[CHUNK], f1[CHUNK], d2[CHUNK], f2[CHUNK];
         uint32_t r1 = 0, r2 = 0, s1 = 0, s2 = 0;
         for (j = 0; j < c; j++)
-            d1[j] = f1[j] = d2[j] = f2[j] = 0;
+            d1[j] = f1[j] = 0;
+        if (k)
+            for (j = 0; j < c; j++)
+                d2[j] = f2[j] = 0;
         for (i = 0; i < 4; i++) {
             uint32_t q = v->ph[i];
             r1 += q >> 4;
@@ -432,26 +470,19 @@ static void render_ens(struct mono_voice *v, const uint8_t *p, uint32_t inc, int
         }
         r1 -= s1;                                   /* the loop steps first */
         r2 -= s2;
-        for (j = 0; j < c; j++) {
-            int32_t x, dry;
-            r1 += s1 + (uint32_t)d1[j];
-            x = (int32_t)(r1 >> 12) - 4 * 32768 + f1[j];
-            if (k) {
-                r2 += s2 + (uint32_t)d2[j];
-                x -= ((((int32_t)(r2 >> 12) - 4 * 32768) + f2[j]) * (k >> 2)) >> 13;   /* 4 saws: 2^17 */
-            }
-            dry = ((x >> 2) * (nw >> 1)) >> 14;
-            v->dl[wr] = sat16(dry);
-            if (gc) {
-                int32_t di = d0 >> 8, fr = d0 & 255;
-                int32_t sa = v->dl[(wr - di) & CHO_MASK], sb = v->dl[(wr - di - 1) & CHO_MASK];
-                int32_t wet = sa + (((sb - sa) * fr) >> 8);
-                dry = ((dry + ((wet * gc) >> 15)) * (nc >> 1)) >> 14;
-            }
-            *out++ = sat16(dry);
-            wr = (wr + 1) & CHO_MASK;
-            d0 += dd;
+        /* one copy of the sample loop for each of WAVE on / off and chorus on / off */
+        if (k) {
+            if (gc)
+                ens_loop(v, out, c, &wr, &d0, dd, r1, s1, d1, f1, r2, s2, d2, f2, k, nw, gc, nc, 1, 1);
+            else
+                ens_loop(v, out, c, &wr, &d0, dd, r1, s1, d1, f1, r2, s2, d2, f2, k, nw, gc, nc, 1, 0);
+        } else {
+            if (gc)
+                ens_loop(v, out, c, &wr, &d0, dd, r1, s1, d1, f1, r2, s2, d2, f2, k, nw, gc, nc, 0, 1);
+            else
+                ens_loop(v, out, c, &wr, &d0, dd, r1, s1, d1, f1, r2, s2, d2, f2, k, nw, gc, nc, 0, 0);
         }
+        out += c;
         n -= c;
     }
     v->wr = wr;
