@@ -3,9 +3,17 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## README: a section per mod (docs)
+- The front page lists every mod in a table, then has a section each: Digi Mono, Digi Matrix, Digi Utilities,
+  Digi EQ, Digi Poly, digichain, and the other mods kept up to date. Digi Poly 1.0f is marked as built for core
+  2.0a: it patches a place core 2.1 owns, so it does not share a build with the core 2.1 mods yet.
+- Corrected: MONO ENS starts with its chorus off (CHRL 0) and MONO VO without a consonant (CONS 0); the cost
+  tables and the load test in docs/USAGE.md now say so.
+
 ## Digi Mono 0.11 (HW: not yet)
-- **MONO ENS 20 % lighter at its defaults** (estimated ColdFire cycles a voice a block: ~3,550, was
-  ~4,450; ~2,100 with the chorus off, was ~2,950; the heaviest, WAVE and chorus on, ~5,620, was ~5,710).
+- **MONO ENS 29 % lighter at its defaults** (estimated ColdFire cycles a voice a block: ~2,100, was
+  ~2,950; the chorus is off there, CHRL 0; with the chorus on ~3,550, was ~4,450; the heaviest, WAVE and
+  chorus on, ~5,620, was ~5,710).
   One copy of its sample loop for each of WAVE and the chorus on or off, and less work per block. The
   same samples as 0.10, bit for bit; tests/emu_mono.py and tests/mono_signal.py pass.
 

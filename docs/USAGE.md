@@ -177,8 +177,9 @@ One page, one band per column (bands 1-4 = knobs A/E, B/F, C/G, D/H):
   1. Build core, digichain, Digi Mono and digihealth only (FAST AUDIO on, as it is by default), and turn
      SETTINGS > SYSTEM INFO on: the top bar shows DSP, now and its peak over the last second.
   2. In an empty pattern, note DSP with nothing playing.
-  3. Track 1: the machine to test at its defaults (MONO VO's start with the SH consonant: the heavy case at
-     each note), trigs on steps 1, 5, 9 and 13, a long AMP decay. Play; note DSP and its peak.
+  3. Track 1: the machine to test, trigs on steps 1, 5, 9 and 13, a long AMP decay. Play; note DSP and its
+     peak. Its defaults are the light case; for the heavy one turn on what costs most: on MONO VO a
+     consonant (F, CONS: S or SH), on MONO ENS the chorus (G, CHRL) and WAVE (F).
   4. Copy the track to the next one and play again; note DSP, its peak, and whether the screen and knobs
      still answer at once. Repeat, one track at a time, until they don't (usually as the peak nears 100 %).
   5. Once with every track's trigs on the same steps (the worst case), once shifted by a step a track.

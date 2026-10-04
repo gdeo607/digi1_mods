@@ -226,8 +226,8 @@ The output is the same as 0.10's, bit for bit. Estimated cycles a voice a block,
 
 | ENS (0.11) | 0.10 | 0.11 |
 |---|---|---|
-| defaults (chorus on, WAVE off) | 4,450 | 3,550 (-20 %) |
-| chorus off, WAVE off | 2,950 | 2,100 (-29 %) |
+| defaults (WAVE and the chorus off: CHRL 0) | 2,950 | 2,100 (-29 %) |
+| the chorus on (CHRL 127), WAVE off | 4,450 | 3,550 (-20 %) |
 | WAVE and chorus on (heaviest) | 5,710 | 5,620 (-2 %) |
 
 The heaviest case keeps its five multiplies a sample (the second ramp's level, the scale, the chorus's

@@ -2,31 +2,116 @@
 
 *(formerly DT1_8_POLY_OSC)*
 
-Unofficial, community-made patch set for the 8-track MK1 sampler groovebox ("DT1"), based on **OS 1.53**.
-**POLY** (polyphony across the 8 audio tracks) is the core. The "..." (three dots) key gets a
-**utility page** that you choose when building: **Scope** or **Spectrum**. Both include a tuner and track activity.
+Unofficial, community-made mods for the 8-track MK1 sampler groovebox ("DT1"), **OS 1.53**: synth machines, an
+LFO modulation matrix, scope / spectrum / tuner pages, a master EQ and polyphony. Each is an
+[elekloader](https://github.com/irpina/elekloader) mod: you tick the ones you want in elekloader and it builds
+your OS file from your own official one.
 
 > **Unofficial and unsupported. Not affiliated with, endorsed by or supported by the hardware's manufacturer.
 > Flashing modified firmware is at your own risk.** Read [DISCLAIMER.md](DISCLAIMER.md) and [RISKS.md](RISKS.md) first.
 
+## The mods
+
+| mod | what it adds | version | hardware |
+|---|---|---|---|
+| [Digi Mono](#digi-mono) (`digimono`) | six synth machines: MONO SIN, NOISE, SAW, PULSE, ENS, VO | 0.11 | not yet tested |
+| [Digi Matrix](#digi-matrix) (`digimatrix`) | an LFO modulation matrix, 8 cross-track slots | 1.0b | not yet tested |
+| [Digi Utilities](#digi-utilities) (`digiutils`) | waveform, spectrum and X-Y pages, tuner, track activity | 1.9a | stand-alone 1.5d confirmed |
+| [Digi EQ](#digi-eq) (`digieq`) | a 4-band master EQ on every output | 1.0b | not yet tested |
+| [Digi Poly](#digi-poly) (`digipoly`) | POLY: chords from a track's own trigs, borrowing other tracks' voices | 1.0f (core 2.0a) | not yet tested |
+| [digichain](#digichain) (`digichain`) | lets SOPHIE, NEIGHBOR, DIGISLICER and Digi Mono share a build; menu icons | 1.3 | not yet tested |
+
+Digi Mono, Digi Matrix, Digi Utilities, Digi EQ and digichain need core 2.1 and combine with each other and
+with the [other mods kept up to date](#other-mods-kept-up-to-date) here (digihealth, SOPHIE, NEIGHBOR,
+DIGISLICER, DigiFilter): every pair, checked by `tools/dev.sh elemods`. **Digi Poly 1.0f is built for core
+2.0a**: it patches a place core 2.1 now owns, so it goes in a build with core 2.0a, digihealth, Digi Matrix
+and Digi EQ, not with the core 2.1 mods, until it is ported.
+
+**Getting them:** `tools/dev.sh mods` fetches elekloader and the other mods and builds every mod as an
+`.elemod` from your own official file; on macOS the elekloader app (`tools/macos/install_app.sh`) does it from
+a double-click and checks for updates. Steps: [docs/DEVELOPING.md](docs/DEVELOPING.md). Full controls:
+[docs/USAGE.md](docs/USAGE.md). Version history: [CHANGELOG.md](CHANGELOG.md).
+
+<sub>Screens are the unit's 128 x 64 display, captured in an emulator running the mods and scaled 4x; the
+pattern is renamed "DEMO". Only screenshots are published here - no firmware, and nothing derived from it.</sub>
+
+## Digi Mono
+
+**Digi Mono** (elekloader mod `digimono`, 0.11, needs core 2.1 and digichain) - six synth machines after the Monomachine
+- **Six new machines in the FUNC+SRC list**, each with its own icon: **MONO SIN**, **MONO NOISE** (sample and
+  hold, red noise), **MONO SAW** (unison, two sub-oscillators), **MONO PULSE** (PWM, unison, subs), **MONO ENS**
+  (four oscillators at set intervals, saw to pulse, chorus) and **MONO VO** (a formant voice: vowel to vowel,
+  consonants). They need no sample; the track's filter, amp, LFOs, sends and p-locks work on them as on a
+  sample.
+- **Their own SRC page**: knobs B-H are the machine's parameters, named and shown in their own units
+  (semitones, %, ms, vowels, consonants). A stays TUNE; D is a parameter too (no sample list), and the
+  volume is the track's LEVEL and AMP page.
+- **Tick it in elekloader** and digichain is ticked with it; it combines with every other mod here and with
+  digisophie, digineighbor and digislicer (their `-chain` builds), but not with Digi Poly 1.0f (both change
+  the machine list).
+- **Light enough for a few tracks at once**: 0.10 and 0.11 made VO 16-19 % and ENS 20-29 % lighter (ENS starts with its chorus
+  off, CHRL 0: the chorus is its costliest part). On a unit
+  the stock render already takes about 80 % of each block, so keep to a few playing Digi Mono tracks
+  (VO, ENS and PULSE cost the most) and check with digihealth's SYSTEM INFO; [docs/USAGE.md](docs/USAGE.md)
+  has the knobs and a load test.
+- A clean-room engine: no Monomachine code or data. Checked in emulation on the real firmware, bit for bit
+  (tests/digiemu_mono.py); **not yet on a unit**. Details: [mods/digimono/DESIGN.md](mods/digimono/DESIGN.md).
+
+<table><tr><td align="center"><img src="docs/img/digimono_list.png" width="384" alt="machine list with the Digi Mono machines"><br><sub>FUNC+SRC: the Digi Mono machines, with their icons</sub></td><td align="center"><img src="docs/img/digimono_src.png" width="384" alt="MONO SAW SRC page"><br><sub>A MONO SAW track's SRC page</sub></td></tr></table>
+
+## Digi Matrix
+
+**Digi Matrix** (elekloader mod `digimatrix`, 1.0b) - a modulation matrix for the LFOs
+- **SETTINGS > MOD MATRIX** opens a page with **8 routing slots**. Each one sends **any track's LFO1 or LFO2**
+  to **any parameter of any track**, with **its own depth** (-64..+64) - so one LFO can drive several
+  parameters across several tracks, each by a different amount, while its own DEP keeps controlling only its
+  own track.
+- Per slot, **OWN** says whether that LFO still modulates its own track's DEST as well, or only what the
+  matrix routes it to.
+- UP/DOWN choose a slot, **YES** turns it on and off, **NO** leaves; knobs A-F edit the slot under the cursor
+  (source track, source LFO, destination track, destination parameter, depth, OWN).
+- The matrix lives in the pattern's kit, so **each pattern has its own**; it is saved with the project and
+  (since 2.0d) survives a power cycle.
+
+<table><tr><td align="center"><img src="docs/img/digimatrix_page.png" width="384" alt="MOD MATRIX page"><br><sub>SETTINGS &gt; MOD MATRIX: two slots routed, the second under the cursor</sub></td></tr></table>
+
+## Digi Utilities
+
+**Digi Utilities** (elekloader mod `digiutils`, 1.9a) - the utility page, on a **held "..."** (three dots) key:
+waveform -> spectrum -> X-Y; Song mode is kept.
+
 ![scope](docs/img/scope.png)
 
-## Builds
+- *Scope*: live waveform. *Spectrum*: 30 Hz..20 kHz analyser (128 log columns, 60 dB, falling peaks;
+  bass from a 170 ms window, highs from a 21 ms window).
+- Both pages:
+  - main view -> X-Y (stereo goniometer) -> close, with the same key. **YES** = fullscreen, **NO** = close.
+  - bottom-right: activity boxes for all 8 audio tracks (flash on trig; POLY voices stay lit while held).
+  - bottom-left: **tuner** (note + cents, ~12 Hz..3 kHz).
+  - the top bar (pattern, name, tempo), mutes, pattern/bank change, page keys and **knobs** all keep working
+    while the page is open, so you can tweak a sound and watch it change.
 
-| page on the "..." key | release | unit shows | hardware |
-|---|---|---|---|
-| Scope (waveform) | v3p | 1.5b | not yet tested |
-| Spectrum | v3q-spectrum | 1.5c | not yet tested |
-| All three views (waveform, spectrum, X-Y) | v3r-all | 1.5d | **confirmed** |
+## Digi EQ
 
-Current elekloader build (you link it yourself from your official file, see below): core + digihealth +
-**Digi Poly 1.0f + Digi Matrix 1.0b + Digi EQ 1.0b**, unit shows **2.0d** - checked in emulation, hardware not
-yet tested. The synth machines, **Digi Mono 0.11** (with digichain 1.3), go in a build without Digi Poly:
-`tools/dev.sh mods` builds every mod as an `.elemod` for elekloader ([docs/DEVELOPING.md](docs/DEVELOPING.md)).
+**Digi EQ** (elekloader mod `digieq`, 1.0b) - a 4-band master EQ, on **every output**
+- A master page (FUNC+LFO, after Compressor): 4 bands, each with level/Q (knobs A-D, press to switch) and
+  frequency/type (knobs E-H, press to switch: HP, low shelf, bell, notch, band pass, high shelf, LP), with the
+  response curve drawn above the knobs.
+- It runs on the **master mix**, before the render hands it to the analog outputs and to the USB stream, so
+  main outs, headphones and USB audio all carry it - as the compressor does. (Up to 1.8a it sat on the
+  codec's transmit buffer, which is the analog path only, so USB audio came out unequalized.)
+- **Per pattern**: the settings live in the pattern's kit, so every pattern has its own EQ, saved with the
+  project and kept over a power-off.
+- **SETTINGS > GLOBAL FX/MIX > MASTER EQ**, beside the firmware's own entries: with it on, the EQ you can hear
+  overrides every pattern's own; with it off, each pattern goes back to its own.
 
-## Features
+<table><tr><td align="center"><img src="docs/img/digieq_page.png" width="384" alt="Master EQ page"><br><sub>The master EQ page: four bands and the response curve</sub></td><td align="center"><img src="docs/img/digieq_global.png" width="384" alt="GLOBAL FX/MIX with MASTER EQ"><br><sub>SETTINGS &gt; GLOBAL FX/MIX: the MASTER EQ entry, on</sub></td></tr></table>
 
-**Digi Poly** (elekloader mod `digipoly`, 1.0f) - the POLY machine, redesigned
+## Digi Poly
+
+**Digi Poly** (elekloader mod `digipoly`, 1.0f, core 2.0a) - the POLY machine, redesigned. Built by hand
+(see [below](#building-as-elekloader-mods-by-hand)), with core 2.0a: it does not combine with core 2.1, which
+the other mods here need.
 - Any audio track set to POLY plays **chords from its own trigs**: its TRIG page becomes the MIDI tracks' page
   (NOT1-NOT4 piano roll, VEL, LEN, PROB, LFO.T, with the track's LEV fader); SRC, FLTR, AMP and LFO are as usual.
 - Each extra note **borrows the voice of another track** (the one idle longest; never a muted track, a track
@@ -43,7 +128,8 @@ yet tested. The synth machines, **Digi Mono 0.11** (with digichain 1.3), go in a
 
 <table><tr><td align="center"><img src="docs/img/digipoly_trig.png" width="384" alt="POLY track TRIG page"><br><sub>A POLY track's TRIG page: NOT1-NOT4 piano roll and the LEV fader</sub></td><td align="center"><img src="docs/img/digipoly_pool.png" width="384" alt="SETTINGS > POLY"><br><sub>SETTINGS &gt; POLY: track 2 taken out of this pattern's voice pool</sub></td></tr></table>
 
-**POLY in the stand-alone builds** (and the earlier `dt8poly` mod) - a 5th sample machine in the FUNC+SRC list
+**POLY in the stand-alone builds** (and the earlier `dt8poly` mod, built only on request) - a 5th sample machine
+in the FUNC+SRC list
 - Tracks set to POLY share one voice pool; the lowest POLY track is the *control* track (its sound is used).
 - Sequencer trigs on the control track rotate across the POLY tracks.
 - *MIDI cable*: notes and chords from a MIDI track (e.g. recorded from an external sequencer) play the POLY
@@ -51,76 +137,38 @@ yet tested. The synth machines, **Digi Mono 0.11** (with digichain 1.3), go in a
 - CCs from that MIDI track reach the POLY tracks (filter/amp sequencing); SRC TUNE and LFOs stay per voice.
 - POLY survives kit/project reload.
 
-**Utility page** - opens with the "..." (three dots) key; one per build: `--page scope` or `--page spectrum`
-- *Scope*: live waveform. *Spectrum*: 30 Hz..20 kHz analyser (128 log columns, 60 dB, falling peaks;
-  bass from a 170 ms window, highs from a 21 ms window).
-- Both pages:
-  - main view -> X-Y (stereo goniometer) -> close, with the same key. **YES** = fullscreen, **NO** = close.
-  - bottom-right: activity boxes for all 8 audio tracks (flash on trig; POLY voices stay lit while held).
-  - bottom-left: **tuner** (note + cents, ~12 Hz..3 kHz).
-  - the top bar (pattern, name, tempo), mutes, pattern/bank change, page keys and **knobs** all keep working
-    while the page is open, so you can tweak a sound and watch it change.
+## digichain
 
-**Song mode** is disabled in the stand-alone builds (its code space is reused); chains still work. The elekloader
-build (Digi utilities 1.7a+) keeps Song mode: the page opens on a held "..." instead.
+**digichain** (elekloader mod `digichain`, 1.3, needs core 2.1) - one build for the SRC machine mods
+- SOPHIE (digisophie), NEIGHBOR (digineighbor) and DIGISLICER (digislicer) each patch the same places in the
+  SRC page and the render; digichain owns those places once and passes each call to the machine it is for, so
+  they combine with each other and with Digi Mono. `tools/dev.sh` builds their `-chain` versions for it.
+- Every added machine gets its own icon in the FUNC+SRC list (the firmware drew only the first).
+- A new NEIGHBOR track takes the track on its left as its source, and its SLOT runs 0-8.
+- Ticked automatically with Digi Mono or a `-chain` mod. Details: [mods/digichain/README.md](mods/digichain/README.md).
 
-**Digi Matrix** (elekloader mod `digimatrix`, 1.0b) - a modulation matrix for the LFOs
-- **SETTINGS > MOD MATRIX** opens a page with **8 routing slots**. Each one sends **any track's LFO1 or LFO2**
-  to **any parameter of any track**, with **its own depth** (-64..+64) - so one LFO can drive several
-  parameters across several tracks, each by a different amount, while its own DEP keeps controlling only its
-  own track.
-- Per slot, **OWN** says whether that LFO still modulates its own track's DEST as well, or only what the
-  matrix routes it to.
-- UP/DOWN choose a slot, **YES** turns it on and off, **NO** leaves; knobs A-F edit the slot under the cursor
-  (source track, source LFO, destination track, destination parameter, depth, OWN).
-- The matrix lives in the pattern's kit, so **each pattern has its own**; it is saved with the project and
-  (since 2.0d) survives a power cycle.
+## Other mods kept up to date
 
-<table><tr><td align="center"><img src="docs/img/digimatrix_page.png" width="384" alt="MOD MATRIX page"><br><sub>SETTINGS &gt; MOD MATRIX: two slots routed, the second under the cursor</sub></td></tr></table>
+`tools/dev.sh mods` (and the elekloader app's update button) also fetches and builds these, by other authors,
+from their own repositories, so one update brings everything: **digihealth** (FAST AUDIO, SYSTEM INFO CPU/DSP
+readout), **SOPHIE** (digisophie), **NEIGHBOR** (digineighbor), **DIGISLICER** (digislicer) and **DigiFilter**.
+`COMPATIBILITY.txt`, written next to the `.elemod` files, says which pairs combine.
 
-**Digi EQ** (elekloader mod `digieq`, 1.0b) - a 4-band master EQ, on **every output**
-- A master page (FUNC+LFO, after Compressor): 4 bands, each with level/Q (knobs A-D, press to switch) and
-  frequency/type (knobs E-H, press to switch: HP, low shelf, bell, notch, band pass, high shelf, LP), with the
-  response curve drawn above the knobs.
-- It runs on the **master mix**, before the render hands it to the analog outputs and to the USB stream, so
-  main outs, headphones and USB audio all carry it - as the compressor does. (Up to 1.8a it sat on the
-  codec's transmit buffer, which is the analog path only, so USB audio came out unequalized.)
-- **Per pattern**: the settings live in the pattern's kit, so every pattern has its own EQ, saved with the
-  project and kept over a power-off.
-- **SETTINGS > GLOBAL FX/MIX > MASTER EQ**, beside the firmware's own entries: with it on, the EQ you can hear
-  overrides every pattern's own; with it off, each pattern goes back to its own.
+## Stand-alone builds
 
-<table><tr><td align="center"><img src="docs/img/digieq_page.png" width="384" alt="Master EQ page"><br><sub>The master EQ page: four bands and the response curve</sub></td><td align="center"><img src="docs/img/digieq_global.png" width="384" alt="GLOBAL FX/MIX with MASTER EQ"><br><sub>SETTINGS &gt; GLOBAL FX/MIX: the MASTER EQ entry, on</sub></td></tr></table>
+Before elekloader, this project was a patch set built straight onto the official file, POLY with one utility
+page per build:
 
-**Digi Mono** (elekloader mod `digimono`, 0.11, needs core 2.1 and digichain) - six synth machines after the Monomachine
-- **Six new machines in the FUNC+SRC list**, each with its own icon: **MONO SIN**, **MONO NOISE** (sample and
-  hold, red noise), **MONO SAW** (unison, two sub-oscillators), **MONO PULSE** (PWM, unison, subs), **MONO ENS**
-  (four oscillators at set intervals, saw to pulse, chorus) and **MONO VO** (a formant voice: vowel to vowel,
-  consonants). They need no sample; the track's filter, amp, LFOs, sends and p-locks work on them as on a
-  sample.
-- **Their own SRC page**: knobs B-H are the machine's parameters, named and shown in their own units
-  (semitones, %, ms, vowels, consonants). A stays TUNE; D is a parameter too (no sample list), and the
-  volume is the track's LEVEL and AMP page.
-- **Tick it in elekloader** and digichain is ticked with it; it combines with every other mod here and with
-  digisophie, digineighbor and digislicer (their `-chain` builds), but not with Digi Poly 1.0f (both change
-  the machine list).
-- **Light enough for a few tracks at once**: 0.10 and 0.11 made VO 16-19 % and ENS 20 % lighter. On a unit
-  the stock render already takes about 80 % of each block, so keep to a few playing Digi Mono tracks
-  (VO, ENS and PULSE cost the most) and check with digihealth's SYSTEM INFO; [docs/USAGE.md](docs/USAGE.md)
-  has the knobs and a load test.
-- A clean-room engine: no Monomachine code or data. Checked in emulation on the real firmware, bit for bit
-  (tests/digiemu_mono.py); **not yet on a unit**. Details: [mods/digimono/DESIGN.md](mods/digimono/DESIGN.md).
+| page on the "..." key | release | unit shows | hardware |
+|---|---|---|---|
+| Scope (waveform) | v3p | 1.5b | not yet tested |
+| Spectrum | v3q-spectrum | 1.5c | not yet tested |
+| All three views (waveform, spectrum, X-Y) | v3r-all | 1.5d | **confirmed** |
 
-<table><tr><td align="center"><img src="docs/img/digimono_list.png" width="384" alt="machine list with the Digi Mono machines"><br><sub>FUNC+SRC: the Digi Mono machines, with their icons</sub></td><td align="center"><img src="docs/img/digimono_src.png" width="384" alt="MONO SAW SRC page"><br><sub>A MONO SAW track's SRC page</sub></td></tr></table>
+**Song mode** is disabled in the stand-alone builds (its code space is reused); chains still work. Digi
+Utilities keeps Song mode: the page opens on a held "..." instead.
 
-<sub>Screens are the unit's 128 x 64 display, captured in an emulator running the mods and scaled 4x; the
-pattern is renamed "DEMO". Only screenshots are published here - no firmware, and nothing derived from it.</sub>
-
-Full controls: [docs/USAGE.md](docs/USAGE.md). Version history: [CHANGELOG.md](CHANGELOG.md).
-
-## Getting it
-
-- **Build it yourself** from your own copy of the official OS 1.53 file (recommended; identical result):
+**Build it yourself** from your own copy of the official OS 1.53 file (recommended; identical result):
 
 ```sh
 # get the MIT-licensed .syx container tool by mischa85 (GitHub) and build it with `make`, then:
@@ -145,20 +193,9 @@ Flashing and **reverting**: [docs/INSTALL.md](docs/INSTALL.md).
 
 Steps, per operating system: [docs/DEVELOPING.md](docs/DEVELOPING.md).
 
-## Building as elekloader mods
+## Building as elekloader mods (by hand)
 
-The code also builds as linkable mods for [elekloader](https://github.com/irpina/elekloader), so it can
-run next to other mods for this OS (for example digihealth's FAST AUDIO / SYSTEM INFO and digislicer):
-
-| mod | contents |
-|---|---|
-| `digipoly` | **Digi Poly**: the POLY machine; chords from a POLY track's own trigs (MIDI-style TRIG page with a working LEVEL knob and LEV fader), voice borrowing (borrowed voices follow the POLY track's knobs and level), chord preview on the track's key, polyphonic MIDI in on the track's channel that records as a chord, per-pattern SETTINGS > POLY pool that survives a power cycle (1.0f) |
-| `digiutils` | **Digi utilities**: the utility page on a **held "..."** (waveform -> spectrum -> X-Y), tuner, activity boxes, **Song mode kept** (1.9a) |
-| `digieq` | **Digi EQ**: the 4-band master EQ as a FUNC+LFO master page, on the master mix so every output carries it, kept per pattern in the kit and over a power cycle, with a MASTER EQ entry in SETTINGS > GLOBAL FX/MIX (1.0b) |
-| `digimatrix` | **Digi Matrix**: the LFO modulation matrix; 8 cross-track routing slots with their own depth, on a SETTINGS > MOD MATRIX page, kept per pattern in the kit and over a power cycle (1.0b) |
-| `digimono` | **Digi Mono**: synth machines MONO SIN / NOISE / SAW / PULSE / ENS / VO after the Monomachine's GND, SWAVE and VO-6 machines, with their own SRC page knobs, named and in their units (0.11; needs core 2.1 and digichain, which also shows its menu icons; combines with digisophie, digineighbor and digislicer, not with digipoly 1.0f) |
-| `digichain` | **digichain**: lets SOPHIE (digisophie), NEIGHBOR (digineighbor) and DIGISLICER (digislicer) share a build: one owner for the SRC-page and render places they each patched; also Digi Mono's SRC page, every added machine's menu icon and NEIGHBOR's source (1.3; needs core 2.1; with their `-chain` builds, which `tools/dev.sh` makes; mods/digichain/README.md) |
-| `dt8poly` | the earlier POLY mod (control track rotation, internal MIDI and CC cable, per-voice TUNE/LFO); superseded by `digipoly`, built only on request (`--mods dt8poly`) |
+`tools/dev.sh mods` is the easy path. By hand:
 
 ```sh
 python3 tools/build_elemods.py --stock <official OS 1.53 .syx> --elekloader <elekloader checkout>
