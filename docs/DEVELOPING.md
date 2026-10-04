@@ -107,7 +107,8 @@ Checks that are not in `all` yet:
 
 - **FLTR / AMP / LFO pages:** `out/dev/tools/digiemu/.venv/bin/python tests/digiemu_mono_fx.py --digiemu
   out/dev/tools/digiemu --fw <folder>` runs those cases, the digiemu folder being what `tools/dev.sh emu`
-  printed. Two of its checks (FREQ, VOL) fail until the open issue in mods/digimono/DESIGN.md is fixed.
+  printed. All seven checks pass (about 7 minutes). It plays pattern A16 of digiemu's factory project,
+  which already has trigs and p-locks on track 1; the test drops those locks (mods/digimono/DESIGN.md).
 - **CPU on a real unit:** that needs digihealth's SYSTEM INFO on hardware (step 5).
 
 ## 4. All the mods as .elemod files, for the elekloader app

@@ -10,16 +10,22 @@ and 13, the page settings of the case, then PLAY for about 8 s. It records the o
 voice 0's block before the filter stage (0x80001a18), and compares each case with the baseline run. "The output" is what the firmware sends to the audio codec
 (digiemu's recording of the SSI stream: the main outputs):
 
-  filter   FLTR E (FREQ) all the way down: the output's spectral centroid falls
+  filter   FLTR E (FREQ) all the way down: the output's content above 1 kHz falls by more than 30 dB
            FLTR F (RESO) up, FREQ half-way: a resonant peak stands out of the saw's harmonics
-  amp      AMP B (HOLD) and C (DEC) down: every note dies within a fraction of a step
-           AMP H (VOL) down by 40: the master level drops
-           AMP G (PAN) full left: the right channel goes quiet
-  LFO      LFO1 -> FREQ (slot 26), full depth: the master's brightness moves with the LFO
+  amp      AMP B (HOLD) and C (DEC) down: every note of the voice dies within a fraction of a step
+           AMP H (VOL) down by 40: the master level drops; at VOL 0 the output is silent (60 dB down)
+           AMP G (PAN) full left, DEL and REV sends off: the right channel goes quiet
+  LFO      LFO1 -> FREQ (slot 26), full depth: the voice's FREQ, as its filter reads it, swings with the LFO
            LFO1 -> a Digi Mono knob (PULSE: PW, slot 22), full depth: the pulse width of the voice's
            own block (before the filter) moves with the LFO: LFOs reach the synth's parameters
 Knob turns go through the panel (FLTR = key 21, AMP = 22; knobs A..H = encoders 1..8). The LFO cases set
 the LFO's DEST, DEP and SPD in the kit and in the engine's parameter copy, as a knob or MIDI CC would.
+
+The patterns of digiemu's project are not empty: A16 already has trigs on track 1, and some carry p-locks
+(one locks VOL, FREQ, DEL, REV and seven more for several steps). A p-lock overrides the knob a case turns,
+so those steps sounded as if FREQ and VOL did not reach the voice. Every case therefore plays track 1
+without the pattern's p-locks: where the render applies a trig's lock list to voice 0 (0x400778c2 and
+0x40077bd4, both reading the list at message + 68), the list is dropped. The trigs still play.
 """
 import argparse, json, math, os, struct, subprocess, sys, time, types, wave
 
@@ -43,7 +49,7 @@ CASES = {
     "fltr_reso": ("SAW",  [(21, 4, -45), (21, 5, +80)], {}),         # FREQ half-way, RESO up
     "amp_short": ("SAW",  [(22, 1, -80), (22, 2, -80)], {}),         # HOLD and DEC down
     "amp_vol":   ("SAW",  [(22, 7, -40)], {}),                       # VOL down
-    "amp_pan":   ("SAW",  [(22, 6, -80)], {}),                       # PAN full left
+    "amp_pan":   ("SAW",  [(22, 4, -80), (22, 5, -80), (22, 6, -80)], {}),   # sends off, PAN full left
     "dry_vol":   ("SAW",  [(22, 4, -80), (22, 5, -80), (22, 7, -40)], {}),   # sends off, VOL down
     "fltr_mid":  ("SAW",  [(21, 4, -40)], {}),                       # FREQ half-way (the LFO case's base)
     "lfo_freq":  ("SAW",  [(21, 4, -40)], {1: 100, 4: 26, 8: 127}),  # LFO1 SPD, DEST = slot 26 (FREQ), DEP
@@ -73,7 +79,7 @@ def run_one(name):
     for n in ("ttk", "messagebox", "filedialog", "font"):
         sys.modules["tkinter." + n] = types.ModuleType("tkinter." + n)
     from unicorn import UC_HOOK_CODE
-    from unicorn.m68k_const import UC_M68K_REG_A7, UC_M68K_REG_PC
+    from unicorn.m68k_const import UC_M68K_REG_A2, UC_M68K_REG_A7, UC_M68K_REG_D2, UC_M68K_REG_PC
     import emu.gui as G
     snap = [os.path.join(dp, f) for dp, _, fs in os.walk(FW + "/snapshots") for f in fs if f == "gui.snap"][0]
 
@@ -110,7 +116,7 @@ def run_one(name):
     at(0, "rec", False)
     steps = t[0] + 2
     st = {"n": 0, "rec": False}
-    master, voice, slots, latev, allv = [], [], {}, [], []
+    master, voice, slots, latev, allv, freqw = [], [], {}, [], [], []
 
     def after(u, ad, s, d):
         if st["rec"]:
@@ -121,11 +127,16 @@ def run_one(name):
             latev.append(struct.unpack(">32i", u.mem_read(0x80001a18, 128)))
             allv.append([sum(abs(x) for x in struct.unpack(">32i", u.mem_read(0x80001a18 + 128 * k, 128))) / 32
                          for k in range(8)])
+            freqw.append(struct.unpack(">h", u.mem_read(0x80002772 + 2 * 26, 2))[0])   # voice 0's FREQ as the filter reads it
 
     seq = []                                   # TRACE=1: the order of reads/writes of voice 0's buffer
     def memhook(u, acc, addr, size, val, d):
         if st["rec"] and len(seq) < 20000 and struct.unpack(">i", u.mem_read(0x8000edc4 + 16, 4))[0] != 0:
             seq.append((acc, u.reg_read(UC_M68K_REG_PC)))
+
+    def nolocks(u, ad, s, d):                  # the pattern's own p-locks on track 1: dropped (see above)
+        if u.reg_read(UC_M68K_REG_D2) & 0xffffffff == 0:
+            u.mem_write((u.reg_read(UC_M68K_REG_A2) & 0xffffffff) + 68, b"\0\0\0\0")
 
     def mst(u, ad, s, d):
         if st["rec"]:
@@ -139,6 +150,8 @@ def run_one(name):
             uc.hook_add(UC_HOOK_CODE, after, begin=0x40077fc8, end=0x40077fc8)
             uc.hook_add(UC_HOOK_CODE, mst, begin=0x400721e6, end=0x400721e6)
             uc.hook_add(UC_HOOK_CODE, late, begin=0x4007814a, end=0x4007814a)
+            for at_ in (0x400778c2, 0x40077bd4):
+                uc.hook_add(UC_HOOK_CODE, nolocks, begin=at_, end=at_)
             if os.environ.get("TRACE"):
                 from unicorn import UC_HOOK_MEM_READ, UC_HOOK_MEM_WRITE
                 uc.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, memhook, begin=0x80001a18, end=0x80001a18 + 127)
@@ -182,6 +195,7 @@ def run_one(name):
     np.save(out + "_voice.npy", np.array(voice, dtype=np.int32).ravel())
     np.save(out + "_late.npy", np.array(latev, dtype=np.int32).ravel())
     np.save(out + "_allv.npy", np.array(allv, dtype=np.float64))
+    np.save(out + "_freq.npy", np.array(freqw, dtype=np.int32))
     if seq:
         json.dump(seq, open(out + "_seq.json", "w"))
         order, last = [], None
@@ -213,13 +227,15 @@ for name in [c for c in CASES if not a.cases or c in a.cases.split(",")]:
         sys.exit("%s: the run failed\n%s" % (name, p.stderr[-2000:]))
     m = np.load(base + "_master.npy").astype(np.float64) / 2 ** 31
     v = np.load(base + "_voice.npy").astype(np.float64) / 2 ** 31
-    R[name] = (json.loads(js[0][4:]), m[len(m) // 8:], v[len(v) // 8:])
+    lt = np.load(base + "_late.npy").astype(np.float64) / 2 ** 31
+    fq = np.load(base + "_freq.npy") / 256.0
+    R[name] = (json.loads(js[0][4:]), m[len(m) // 8:], v[len(v) // 8:], lt[len(lt) // 8:], fq[len(fq) // 8:])
     if a.wavs:
         with wave.open(base + ".wav", "wb") as w:
             w.setnchannels(2); w.setsampwidth(2); w.setframerate(FS)
             w.writeframes(np.clip(np.round(m * 32767 * 4), -32768, 32767).astype("<i2").tobytes())
     print("  ran %-10s %4.0f s  machine %d  %s" % (name, time.time() - t0, R[name][0]["machine"],
-          {k: v_ for k, v_ in R[name][0].items() if k in ("1", "4", "8", "22", "26", "27", "39", "40", "44", "45")}))
+          {k: v_ for k, v_ in R[name][0].items() if k in ("1", "4", "8", "22", "26", "27", "39", "40", "42", "43", "44", "45")}))
     print("      engine copy %s  smoothed %s" % (R[name][0].get("engine"), R[name][0].get("smoothed")))
 
 FAIL = []
@@ -244,9 +260,19 @@ def frames(x, n=2400):
 
 
 L = {k: r[1][:, 0] for k, r in R.items()}
+# The voice's own block after its filter and amp envelope, before the mixer (0x4007814a). The output also
+# carries the delay and reverb returns, whose tails last past a note: the envelope and the filter's
+# movement are measured on the voice, where they act.
+V = {k: r[3] for k, r in R.items()}
 print("filter")
+def band_db(x, lo):                            # energy above lo Hz, dB
+    s = np.abs(np.fft.rfft(x * np.hanning(len(x)))) ** 2
+    return 10 * math.log10(s[np.fft.rfftfreq(len(x), 1 / FS) >= lo].sum() + 1e-30)
+# The note is C4: even a perfect low-pass leaves the 262 Hz fundamental, so the centroid cannot fall far.
+# What FREQ must do is take out the harmonics.
 c0, c1 = centroid(L["base"]), centroid(L["fltr_low"])
-check(c1 < c0 / 4, "FLTR FREQ down: the master's centroid %.0f Hz -> %.0f Hz" % (c0, c1))
+hf = band_db(L["fltr_low"], 1000) - band_db(L["base"], 1000)
+check(hf < -30, "FLTR FREQ down: the master above 1 kHz %.1f dB (centroid %.0f Hz -> %.0f Hz)" % (hf, c0, c1))
 s = np.abs(np.fft.rfft(L["fltr_reso"] * np.hanning(len(L["fltr_reso"]))))
 f = np.fft.rfftfreq(len(L["fltr_reso"]), 1 / FS)
 h = np.array([s[np.argmin(abs(f - k * 261.63))] for k in range(1, 40)])   # the saw's harmonics
@@ -261,19 +287,21 @@ print("amp")
 def sounding(x):                               # the share of 10 ms frames within 30 dB of the loudest
     e = np.array([np.sqrt(np.mean(y ** 2)) for y in frames(x, 480)])
     return float(np.mean(e > e.max() * 10 ** (-30 / 20)))
-sb, ss = sounding(L["base"]), sounding(L["amp_short"])
+sb, ss = sounding(V["base"]), sounding(V["amp_short"])
 check(ss < sb * 0.5, "AMP HOLD and DEC down: notes sound %.0f %% of the time instead of %.0f %%" % (100 * ss, 100 * sb))
 dv = db(L["amp_vol"]) - db(L["base"])
-check(dv < -6, "AMP VOL down 40: the master %.1f dB" % dv)
+vol = R["amp_vol"][0].get("45")
+check(dv < (-60 if vol == 0 else -6), "AMP VOL down 40 (to %s): the master %.1f dB" % (vol, dv))
 pl, pr = R["amp_pan"][1][:, 0], R["amp_pan"][1][:, 1]
 check(db(pr) < db(pl) - 20, "AMP PAN full left: right %.1f dB, left %.1f dB" % (db(pr), db(pl)))
 
 print("LFO")
-def spread(x):
-    c = [centroid(y) for y in frames(x) if np.sqrt(np.mean(y ** 2)) > 1e-4]
-    return float(np.std(c) / (np.mean(c) + 1e-9))
-s0, s1 = spread(L["fltr_mid"]), spread(L["lfo_freq"])
-check(s1 > 3 * s0 + 0.05, "LFO1 -> FREQ: the brightness moves (centroid spread %.2f, baseline %.2f)" % (s1, s0))
+# The pattern's trigs on track 1 play several notes, and a sound's brightness follows its pitch, so the
+# check reads the voice's FREQ where the filter reads it (the smoothed word, 0..127). That FREQ filters
+# a Digi Mono voice is the FLTR check above.
+f0, f1 = R["fltr_mid"][4], R["lfo_freq"][4]
+check(np.ptp(f1) > 40 and np.ptp(f0) < 2, "LFO1 -> FREQ: the voice's FREQ swings %.0f..%.0f (without: %.0f..%.0f)"
+      % (f1.min(), f1.max(), f0.min(), f0.max()))
 def duties(v):
     out = []
     for y in frames(v, 1840):                  # 10 cycles of C4 a frame

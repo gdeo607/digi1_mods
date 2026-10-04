@@ -257,17 +257,26 @@ Digi Mono voices by core's `core_track_machine`, and writes into `0x80001a18 + 1
 loop (0x40077fba), which is also where digisophie injects. The stages after that point work on the
 block in place: 0x40072478, 0x40073280, 0x40073100, 0x40072300, then the mixer.
 
-What works on a Digi Mono track in 0.5, measured on the firmware's own codec output:
-- **AMP:** the envelope (HOLD and DEC down: notes sound 28 % of the time instead of 75 %) and PAN.
-- **FLTR:** RESO, and FREQ, which darkens the voice.
-- **LFO:** an LFO on a Digi Mono knob (PULSE PW) swings the pulse width 0.41..0.81.
-- **VOL:** silences most of the voice.
+What works on a Digi Mono track, measured in digiemu on the firmware's own codec output (0.11, all seven
+checks of tests/digiemu_mono_fx.py pass):
+- **FLTR:** FREQ all the way down takes the output above 1 kHz down 46 dB; RESO raises a harmonic 51 dB.
+- **AMP:** the envelope (HOLD and DEC down: the voice sounds 2 % of the time instead of 73 %); VOL at 0
+  silences the output completely; PAN full left (sends off) leaves the right channel silent.
+- **LFO:** an LFO on FREQ swings the voice's FREQ 0..126 where the filter reads it; one on a Digi Mono knob
+  (PULSE PW) swings the pulse width 0.48..0.89.
 
-**Open issue.** Part of the voice reaches the output unaffected by FREQ, VOL and the sends. Every stage
-between the hook and the mixer processes the buffer in place, and the stock firmware makes no sound in
-the same sequence, so this part comes from Digi Mono through a route not yet identified. Until it is
-found, the FLTR and VOL checks of tests/digiemu_mono_fx.py fail, and a Digi Mono track can sound
-brighter and louder than its FREQ and VOL settings say.
+**No leak (resolved 2026-10-04).** Up to here this section reported that part of the voice reached the
+output unaffected by FREQ, VOL and the sends. There is no such route. digiemu's project is the factory
+one, and none of its patterns is empty: A16, the one the test plays, already has trigs on track 1, and one
+of them is a lock trig that holds VOL 84, DEL and REV 0, FREQ 86 and seven more parameters for several steps
+(the render applies a trig's lock list at 0x40074b0a; locked parameters go back at 0x40074a40). A p-lock
+overrides the knob, so in those steps the voice was as loud and bright as the locks say: the "leak". The
+mixer's own gain for voice 0 is exactly 0 at VOL 0 in every other block, and the sends are post-VOL.
+Without the pattern's locks, VOL 0 gives digital silence and FREQ works on the whole voice. Two checks
+also measured the wrong thing: a C4 note's spectral centroid cannot fall below its 262 Hz fundamental, so
+"the centroid falls to a quarter" could not pass; and the delay and reverb tails, and the track's other
+notes, are in the output. The test now drops the pattern's p-locks on track 1, measures FREQ above 1 kHz,
+and reads the envelope and the LFO on the voice itself.
 
 ## Sharing a build with digisophie (0.6)
 

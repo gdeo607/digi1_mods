@@ -3,6 +3,15 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Digi Mono: FREQ, VOL and the sends do reach the voice (tests)
+- The open issue "part of the voice ignores FREQ and VOL" is closed: there was no leak. The emulator's
+  pattern A16 already holds a lock trig on track 1 (VOL 84, DEL/REV 0, FREQ and seven more), and its p-locks
+  overrode the knobs the test turned. Without them, VOL 0 is digital silence and FREQ down takes the
+  output above 1 kHz down 46 dB. No change to the mod.
+- tests/digiemu_mono_fx.py drops the pattern's p-locks on track 1, checks FREQ above 1 kHz (a C4's
+  centroid cannot fall below its fundamental), VOL 0 as silence, PAN with the sends off, and the envelope
+  and the LFO on the voice itself. All seven checks pass.
+
 ## Ready-made .elemod files, README at a glance
 - **elemods/**: this repo's mods (Digi Mono 0.11, digichain 1.3, Digi Utilities 1.9a, Digi Matrix 1.0b, Digi
   EQ 1.0b) as `.elemod` files built with the latest elekloader (core 2.1), with a README of their hashes.
