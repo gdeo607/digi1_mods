@@ -65,7 +65,7 @@ round knob and its value reads in its units (0.7):
 | PULSE | UNIL | UNIW | SUB2 | SUB1 | PW (duty %) | PWAD | PWRS |
 | ENS   | PCH2 (`+7st`) | PCH3 | PW (duty %, 0 = square) | PCH4 | WAVE (%) | CHRL | CHRW |
 | VO    | VOC1 (vowel) | VOC2 | VOIC (Breath) | V-SW | CONS (`S`, `SH`..) | CLEN (ms) | CVOL |
-| PSIN  | NOT1 (`+4st`) | NOT2 | - | NOT3 | EDEP (`+12st`) | ESPD (`+16`, `OFF`) | - |
+| PSIN  | NOT1 (`+4st`) | NOT2 | NOT3 | EDEP (`+12st`) | ESPD (`+16`, `OFF`) | - | - |
 
 D is the sample slot underneath (SAMP) and H the sample level (LEV); neither means anything for these
 machines, so both carry parameters:

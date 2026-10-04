@@ -3,6 +3,13 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Digi Mono 0.13b: POLY SIN's NOT3 on the top row (HW: not yet)
+- POLY SIN's page is now TUNE NOT1 NOT2 **NOT3** on top (NOT3 on knob D), **EDEP ESPD** under them (knobs
+  E, F); G and H are empty. The sound is the same: only which knob sets what moved. A POLY SIN sound saved
+  with 0.13 or 0.13a reads its old NOT3 (E) as EDEP and EDEP (F) as ESPD: set them again.
+- Checked in digiemu on OS 1.53 and 1.54: the page, D turning NOT3 ("Note 3=+5st", no sample list), the
+  defaults (NOT3 at the note), every block bit for bit against the engine.
+
 ## Every mod for OS 1.54, as .elemod files; Digi Mono 0.13a, digichain 1.6 (HW: not yet)
 - **Info updated:** README and USAGE say seven Digi Mono machines (POLY SIN too) and 0.13a; Digi Mono's
   description in elekloader says it needs digichain 1.6, and digichain's that it carries Digi Mono (all

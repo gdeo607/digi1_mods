@@ -56,7 +56,7 @@ static const int8_t knob_p[MONO_MACHINES][KNOBS] = {
     { 0,  1,  2,  4,  5,  6,  3},       /* PULS  UNIL UNIW SUB1 PW PWAD PWRS, D SUB2      */
     { 0,  1,  2,  3,  5,  6,  4},       /* ENS   PCH2 PCH3 PCH4 WAVE CHRL CHRW, D PW      */
     { 0,  1,  2,  4,  5,  6,  3},       /* VO    VOC1 VOC2 V-SW CONS CLEN CVOL, D VOIC    */
-    { 0,  1,  2,  3,  4, -1, -1},       /* PSIN  NOT1 NOT2 NOT3 EDEP ESPD                 */
+    { 0,  1,  3,  4, -1, -1,  2},       /* PSIN  NOT1 NOT2 EDEP ESPD, D NOT3              */
 };
 
 struct digimono_voice {
@@ -152,7 +152,7 @@ static const char *const sname[MONO_MACHINES][KNOBS] = {
     {"UNIL", "UNIW", "SUB1", "PW",   "PWAD", "PWRS", "SUB2"},
     {"PCH2", "PCH3", "PCH4", "WAVE", "CHRL", "CHRW", "PW"},
     {"VOC1", "VOC2", "V-SW", "CONS", "CLEN", "CVOL", "VOIC"},
-    {"NOT1", "NOT2", "NOT3", "EDEP", "ESPD", "-",    "-"},
+    {"NOT1", "NOT2", "EDEP", "ESPD", "-",    "-",    "NOT3"},
 };
 static const char *const lname[MONO_MACHINES][KNOBS] = {
     {"-", "-", "-", "-", "-", "-", "-"},
@@ -161,7 +161,7 @@ static const char *const lname[MONO_MACHINES][KNOBS] = {
     {"Unison Level", "Unison Detune", "Sub 1 Oct Lev", "Pulse Width", "PWM Depth", "PWM Rate", "Sub 2 Oct Lev"},
     {"Pitch Osc 2", "Pitch Osc 3", "Pitch Osc 4", "Saw-Pulse", "Chorus Level", "Chorus Width", "Pulse Width"},
     {"Vowel 1", "Vowel 2", "Vowel Glide", "Consonant", "Cons. Length", "Cons. Level", "Breath"},
-    {"Note 1", "Note 2", "Note 3", "Env Depth", "Env Speed", "-", "-"},
+    {"Note 1", "Note 2", "Env Depth", "Env Speed", "-", "-", "Note 3"},
 };
 
 /* how each knob's value reads */
@@ -173,7 +173,7 @@ static const uint8_t knob_fmt[MONO_MACHINES][KNOBS] = {
     {F_NUM, F_NUM, F_NUM, F_PW, F_NUM, F_NUM, F_NUM},
     {F_SEMI, F_SEMI, F_SEMI, F_SHAPE, F_NUM, F_NUM, F_PWENS},
     {F_VOWEL, F_VOWEL, F_NUM, F_CONS, F_MS, F_NUM, F_NUM},
-    {F_SEMI, F_SEMI, F_SEMI, F_BIPST, F_BIPOFF, F_NUM, F_NUM},
+    {F_SEMI, F_SEMI, F_BIPST, F_BIPOFF, F_NUM, F_NUM, F_SEMI},
 };
 
 /* The active track's Digi Mono model, or -1. */
@@ -411,7 +411,7 @@ static const uint8_t mono_def[MONO_MACHINES][KNOBS] = {   /* B C E F G H D */
     {0, 40, 0, 64, 0, 40, 0},           /* PULS  UNIL UNIW SUB1 PW PWAD PWRS, SUB2     */
     {63, 63, 63, 0, 0, 127, 0},         /* ENS   PCH2 PCH3 PCH4 WAVE CHRL CHRW, PW (square) */
     {43, 113, 64, 0, 40, 100, 0},       /* VO    VOC1 (AH) VOC2 (EE) V-SW CONS CLEN CVOL, VOIC */
-    {63, 63, 63, 64, 64, 0, 0},         /* PSIN  NOT1..3 at the note (MONO SIN), envelope off */
+    {63, 63, 64, 64, 0, 0, 63},         /* PSIN  NOT1 NOT2, EDEP ESPD off, D NOT3: MONO SIN */
 };
 
 static const uint8_t *seen_kit;

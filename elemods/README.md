@@ -17,8 +17,8 @@ It brings the core mod (`core-2.1`); Digi Mono, Digi Poly and the `-chain` build
 | `digihealth-1.0.elemod` | `aba9413ee205e136` |
 | `digimatrix-1.0b-os1.54.elemod` | `f12fd6c0f154f135` |
 | `digimatrix-1.0b.elemod` | `792810c2432cadab` |
-| `digimono-0.13a-os1.54.elemod` | `d831f8115cfa03d4` |
-| `digimono-0.13a.elemod` | `7eae92ca62feeafc` |
+| `digimono-0.13b-os1.54.elemod` | `bbd79b944ab7a217` |
+| `digimono-0.13b.elemod` | `79b51a364b1b7fd8` |
 | `digineighbor-0.6-chain-os1.54.elemod` | `49fbcabbab7a8f7d` |
 | `digineighbor-0.6-chain.elemod` | `4621ed88a23c86a6` |
 | `digipoly-2.0-os1.54.elemod` | `4cc1462425315077` |

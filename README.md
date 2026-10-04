@@ -37,7 +37,7 @@ your OS file from your own official one.
 
 | mod | what it adds | version | hardware |
 |---|---|---|---|
-| [Digi Mono](#digi-mono) (`digimono`) | seven synth machines: MONO SIN, NOISE, SAW, PULSE, ENS, VO, POLY SIN | 0.13a | not yet tested |
+| [Digi Mono](#digi-mono) (`digimono`) | seven synth machines: MONO SIN, NOISE, SAW, PULSE, ENS, VO, POLY SIN | 0.13b | not yet tested |
 | [Digi Matrix](#digi-matrix) (`digimatrix`) | an LFO modulation matrix, 8 cross-track slots | 1.0b | not yet tested |
 | [Digi Utilities](#digi-utilities) (`digiutils`) | waveform, spectrum and X-Y pages, tuner, track activity | 1.9a | stand-alone 1.5d confirmed |
 | [Digi EQ](#digi-eq) (`digieq`) | a 4-band master EQ on every output | 1.0b | not yet tested |
@@ -65,7 +65,7 @@ pattern is renamed "DEMO". Only screenshots are published here - no firmware, an
 
 ## Digi Mono
 
-**Digi Mono** (elekloader mod `digimono`, 0.13a, needs core 2.1 and digichain 1.6) - seven synth machines after the Monomachine
+**Digi Mono** (elekloader mod `digimono`, 0.13b, needs core 2.1 and digichain 1.6) - seven synth machines after the Monomachine
 - **Seven new machines in the FUNC+SRC list**, each with its own icon: **MONO SIN**, **MONO NOISE** (sample and
   hold, red noise), **MONO SAW** (unison, two sub-oscillators), **MONO PULSE** (PWM, unison, subs), **MONO ENS**
   (four oscillators at set intervals, saw to pulse, chorus), **MONO VO** (a formant voice: vowel to vowel,
