@@ -173,6 +173,15 @@ One page, one band per column (bands 1-4 = knobs A/E, B/F, C/G, D/H):
   that. Only sounding voices count (a track sleeps once its amp envelope is silent). When the screen or
   buttons get slow, or you hear clicks, use fewer of them at once, keep digihealth's FAST AUDIO on, and
   check the load with its SYSTEM INFO (DSP, now and peak).
+- **How many at once on your unit (a load test):**
+  1. Build core, digichain, Digi Mono and digihealth only (FAST AUDIO on, as it is by default), and turn
+     SETTINGS > SYSTEM INFO on: the top bar shows DSP, now and its peak over the last second.
+  2. In an empty pattern, note DSP with nothing playing.
+  3. Track 1: the machine to test at its defaults (MONO VO's start with the SH consonant: the heavy case at
+     each note), trigs on steps 1, 5, 9 and 13, a long AMP decay. Play; note DSP and its peak.
+  4. Copy the track to the next one and play again; note DSP, its peak, and whether the screen and knobs
+     still answer at once. Repeat, one track at a time, until they don't (usually as the peak nears 100 %).
+  5. Once with every track's trigs on the same steps (the worst case), once shifted by a step a track.
 
 ## Song mode
 Stand-alone builds (tools/build.py): disabled, pattern chains work as usual.
