@@ -9,14 +9,37 @@
 |  TDRAW (UI, DRAW(bmp)): clears x 0..31, rows 0..6 (= lower left on the physical screen) and prints
 |         "A#4 +12" / "--" with the stock 5-px font 0x40200b0c via 0x400c257c.
 
+| ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ----
+        .ifdef  OS154
+        .equ    .LF_400ae280, 0x400ae4a8
+        .equ    .LF_400ae290, 0x400ae4b8
+        .equ    .LF_400aeab4, 0x400aecdc
+        .equ    .LF_400aead0, 0x400aecf8
+        .equ    .LF_400c1040, 0x400c1268
+        .equ    .LF_400c257c, 0x400c27a4
+        .equ    .LF_400d4180, 0x400d43a8
+        .equ    .LF_40200b0c, 0x40200ebc
+        .else
+        .equ    .LF_400ae280, 0x400ae280
+        .equ    .LF_400ae290, 0x400ae290
+        .equ    .LF_400aeab4, 0x400aeab4
+        .equ    .LF_400aead0, 0x400aead0
+        .equ    .LF_400c1040, 0x400c1040
+        .equ    .LF_400c257c, 0x400c257c
+        .equ    .LF_400d4180, 0x400d4180
+        .equ    .LF_40200b0c, 0x40200b0c
+        .endif
+| ---- end of the moved addresses ----
+
+
 .ifdef ELK
     .set RING,     digiutils_data+16  | elekloader build: mods/digiutils/osc_data.s
     .set IDXA,     digiutils_data
     .set TDATA,    digiutils_tdata
 .else
-    .set RING,     0x400ae290      | scope ring: 512 x {int16 mid, int16 side}
-    .set IDXA,     0x400ae280
-    .set TDATA,    0x400aeab4      | after the scope data (PNAMP ends at 0x400aeab4)
+    .set RING,     .LF_400ae290      | scope ring: 512 x {int16 mid, int16 side}
+    .set IDXA,     .LF_400ae280
+    .set TDATA,    .LF_400aeab4      | after the scope data (PNAMP ends at 0x400aeab4)
 .endif
     .set TIDX,     TDATA           | 3 kHz ring write index
     .set TNOTE,    TDATA+4         | MIDI note or -1
@@ -26,14 +49,14 @@
 .ifdef ELK
     .set TRING,    digiutils_tring
 .else
-    .set TRING,    0x400aead0      | 512 x int16 (3 kHz)
+    .set TRING,    .LF_400aead0      | 512 x int16 (3 kHz)
 .endif
     .set RN,       512
     .set W,        256
-    .set NEWOP,    0x400d4180      | operator new(size)
-    .set TEXT,     0x400c257c      | printf text(bmp, font, x, y, flags, fmt, ...)
-    .set FONT,     0x40200b0c      | stock 5-px font
-    .set VLINE,    0x400c1040
+    .set NEWOP,    .LF_400d4180      | operator new(size)
+    .set TEXT,     .LF_400c257c      | printf text(bmp, font, x, y, flags, fmt, ...)
+    .set FONT,     .LF_40200b0c      | stock 5-px font
+    .set VLINE,    .LF_400c1040
     .set PA4,      6982            | A4 period at 12 kHz in 1/256 sample
     .set MINPK,    256
 

@@ -24,6 +24,37 @@
  * 12 internal mixer, 13 external mixer). digieq_mdraw inserts kind 0 (the firmware's unused "None" page, no
  * knobs) after 11; while it is shown, its draw, knobs and knob pushes are ours (sites on the view's vtable).
  */
+
+/* ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ---- */
+#ifdef OS154
+#define F_400c178a 0x400c19b2
+#define F_400c19a6 0x400c1bce
+#define F_400c257c 0x400c27a4
+#define F_400c2960 0x400c2b88
+#define F_400c317c 0x400c33a4
+#define F_400c3220 0x400c3448
+#define F_400c9812 0x400c9a3a
+#define F_400d4180 0x400d43a8
+#define F_40200b0c 0x40200ebc
+#define F_4197cf88 0x4197df88
+#define F_4199dc44 0x4199ec44
+#define F_421f7a3c 0x421f8a3c
+#else
+#define F_400c178a 0x400c178a
+#define F_400c19a6 0x400c19a6
+#define F_400c257c 0x400c257c
+#define F_400c2960 0x400c2960
+#define F_400c317c 0x400c317c
+#define F_400c3220 0x400c3220
+#define F_400c9812 0x400c9812
+#define F_400d4180 0x400d4180
+#define F_40200b0c 0x40200b0c
+#define F_4197cf88 0x4197cf88
+#define F_4199dc44 0x4199dc44
+#define F_421f7a3c 0x421f7a3c
+#endif
+/* ---- end of the moved addresses ---- */
+
 typedef int int32;
 typedef unsigned int uint32;
 
@@ -32,21 +63,21 @@ typedef unsigned int uint32;
 /* ---- firmware (OS 1.53) ---- */
 typedef void (*fillrect_t)(void *bmp, int x0, int y0, int x1, int y1, int colour);
 typedef void (*text_t)(void *bmp, const void *font, int x, int y, int flags, const char *fmt, ...);
-#define FILLRECT ((fillrect_t)0x400c19a6)          /* colour 0 clear, 1 set, -1 invert */
-#define FRAMERECT ((fillrect_t)0x400c178a)
-#define TEXT     ((text_t)0x400c257c)
-#define FONT5    ((const void *)0x40200b0c)
-#define INVALIDATE ((void (*)(void *))0x400c9812)
-#define OP_NEW(n) ((int32 *)((uint32 (*)(uint32))0x400d4180)(n))   /* the firmware returns pointers in d0 */
-#define KEYID    ((int (*)(void *))0x400c317c)
-#define KEYPRESS ((char (*)(void *))0x400c3220)
-#define PAGEKINDS ((char **)0x4197cf88)             /* kind 0's short and long page names */
+#define FILLRECT ((fillrect_t)F_400c19a6)          /* colour 0 clear, 1 set, -1 invert */
+#define FRAMERECT ((fillrect_t)F_400c178a)
+#define TEXT     ((text_t)F_400c257c)
+#define FONT5    ((const void *)F_40200b0c)
+#define INVALIDATE ((void (*)(void *))F_400c9812)
+#define OP_NEW(n) ((int32 *)((uint32 (*)(uint32))F_400d4180)(n))   /* the firmware returns pointers in d0 */
+#define KEYID    ((int (*)(void *))F_400c317c)
+#define KEYPRESS ((char (*)(void *))F_400c3220)
+#define PAGEKINDS ((char **)F_4197cf88)             /* kind 0's short and long page names */
 #define STOCK_DRAW ((void (*)(void *, void *))0x400395dc)
 #define STOCK_ENC  ((int (*)(void *, void *))0x40038614)
 #define STOCK_KEY  ((int (*)(void *, void *))0x40038b36)
-#define BLIT     ((void (*)(void *, const void *, int, int, int))0x400c2960)
-#define CHECKBOXES (*(const char **)0x421f7a3c)     /* two bitmaps, 0x1c bytes each: empty, ticked */
-#define UI_KIT   (*(unsigned char *volatile *)0x4199dc44)
+#define BLIT     ((void (*)(void *, const void *, int, int, int))F_400c2960)
+#define CHECKBOXES (*(const char **)F_421f7a3c)     /* two bitmaps, 0x1c bytes each: empty, ticked */
+#define UI_KIT   (*(unsigned char *volatile *)F_4199dc44)
 #include "kitstore.h"
 /* band b in track b + 1's sound: a word (bit 15 stored, bit 14 global in band 1, level << 7 | frequency)
  * and the low 7 bits of a byte (type | Q << 3), whose top bit is Digi Poly's */

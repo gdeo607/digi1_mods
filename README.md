@@ -2,7 +2,7 @@
 
 *(formerly DT1_8_POLY_OSC)*
 
-Unofficial, community-made mods for the 8-track MK1 sampler groovebox ("DT1"), **OS 1.53**: synth machines, an
+Unofficial, community-made mods for the 8-track MK1 sampler groovebox ("DT1"), **OS 1.53 and OS 1.54**: synth machines, an
 LFO modulation matrix, scope / spectrum / tuner pages, a master EQ and polyphony. Each is an
 [elekloader](https://github.com/irpina/elekloader) mod: you tick the ones you want in elekloader and it builds
 your OS file from your own official one.
@@ -12,14 +12,15 @@ your OS file from your own official one.
 
 ## At a glance
 
+- **Digi Poly**: chords on any audio track, from its own trigs, by borrowing other tracks' voices.
 - **Digi Mono**: six synth machines in the FUNC+SRC list (sine, noise, saw, pulse, an ensemble, a formant
   voice), each with its own icon and its own SRC page, values in their units.
 - **Digi Matrix**: any track's LFO to any parameter of any track, 8 slots, per pattern.
 - **Digi Utilities**: waveform, spectrum and X-Y scope, a tuner and track activity, on a held "...".
 - **Digi EQ**: a 4-band master EQ on every output, main outs, headphones and USB.
-- **digichain**: SOPHIE, NEIGHBOR, DIGISLICER and Digi Mono in one build.
+- **digichain**: SOPHIE, NEIGHBOR, DIGISLICER, Digi Mono and Digi Poly in one build.
 - **Ready to use:** the `.elemod` files are in [elemods/](elemods/), built with the latest elekloader: add them
-  in elekloader with your own official OS 1.53 file and build.
+  in elekloader with your own official OS 1.53 or 1.54 file and build (the `-os1.54` files are for 1.54).
 
 <table>
 <tr><td align="center"><img src="docs/img/digimono_list.png" width="384" alt="FUNC+SRC list with the Digi Mono machines and their icons"><br><sub>Digi Mono: the machines, with their icons</sub></td>
@@ -38,14 +39,18 @@ your OS file from your own official one.
 | [Digi Matrix](#digi-matrix) (`digimatrix`) | an LFO modulation matrix, 8 cross-track slots | 1.0b | not yet tested |
 | [Digi Utilities](#digi-utilities) (`digiutils`) | waveform, spectrum and X-Y pages, tuner, track activity | 1.9a | stand-alone 1.5d confirmed |
 | [Digi EQ](#digi-eq) (`digieq`) | a 4-band master EQ on every output | 1.0b | not yet tested |
-| [Digi Poly](#digi-poly) (`digipoly`) | POLY: chords from a track's own trigs, borrowing other tracks' voices | 1.0f (core 2.0a) | not yet tested |
+| [Digi Poly](#digi-poly) (`digipoly`) | POLY: chords from a track's own trigs, borrowing other tracks' voices | 2.0 | not yet tested |
 | [digichain](#digichain) (`digichain`) | lets SOPHIE, NEIGHBOR, DIGISLICER and Digi Mono share a build; menu icons | 1.3 | not yet tested |
 
-Digi Mono, Digi Matrix, Digi Utilities, Digi EQ and digichain need core 2.1 and combine with each other and
-with the [other mods kept up to date](#other-mods-kept-up-to-date) here (digihealth, SOPHIE, NEIGHBOR,
-DIGISLICER, DigiFilter): every pair, checked by `tools/dev.sh elemods`. **Digi Poly 1.0f is built for core
-2.0a**: it patches a place core 2.1 now owns, so it goes in a build with core 2.0a, digihealth, Digi Matrix
-and Digi EQ, not with the core 2.1 mods, until it is ported.
+They all need core 2.1 (elekloader brings it) and combine with each other and with the
+[other mods kept up to date](#other-mods-kept-up-to-date) here (digihealth, SOPHIE, NEIGHBOR, DIGISLICER,
+DigiFilter): every pair, checked by `tools/dev.sh elemods`. All of them in one build fit too, but for
+DIGISLICER (88 KB), which needs a few left out: the mods share 128 KB.
+
+**OS 1.54:** every mod here is built for both 1.53 and 1.54, and on 1.54 they pass the same emulator tests
+(Digi Mono, Digi Poly, Digi Matrix, Digi EQ, Digi Utilities' pages, NEIGHBOR through digichain). Of the other
+mods, digihealth, NEIGHBOR and DIGISLICER have 1.54 versions; SOPHIE and DigiFilter do not yet, so on 1.54
+they are left out until their authors port them. `tools/port_os.py` did the port (docs/DEVELOPING.md).
 
 **Getting them:** download them from [elemods/](elemods/) and add them in elekloader (it brings the core
 mod). Or build them yourself: `tools/dev.sh mods` fetches elekloader and the other mods and builds every mod
@@ -67,9 +72,8 @@ pattern is renamed "DEMO". Only screenshots are published here - no firmware, an
 - **Their own SRC page**: knobs B-H are the machine's parameters, named and shown in their own units
   (semitones, %, ms, vowels, consonants). A stays TUNE; D is a parameter too (no sample list), and the
   volume is the track's LEVEL and AMP page.
-- **Tick it in elekloader** and digichain is ticked with it; it combines with every other mod here and with
-  digisophie, digineighbor and digislicer (their `-chain` builds), but not with Digi Poly 1.0f (both change
-  the machine list).
+- **Tick it in elekloader** and digichain is ticked with it; it combines with every other mod here, Digi Poly
+  included, and with digisophie, digineighbor and digislicer (their `-chain` builds).
 - **Light enough for a few tracks at once**: 0.10 and 0.11 made VO 16-19 % and ENS 20-29 % lighter (ENS starts with its chorus
   off, CHRL 0: the chorus is its costliest part). On a unit
   the stock render already takes about 80 % of each block, so keep to a few playing Digi Mono tracks
@@ -130,9 +134,10 @@ waveform -> spectrum -> X-Y; Song mode is kept.
 
 ## Digi Poly
 
-**Digi Poly** (elekloader mod `digipoly`, 1.0f, core 2.0a) - the POLY machine, redesigned. Built by hand
-(see [below](#building-as-elekloader-mods-by-hand)), with core 2.0a: it does not combine with core 2.1, which
-the other mods here need.
+**Digi Poly** (elekloader mod `digipoly`, 2.0, needs core 2.1 and digichain) - the POLY machine, redesigned.
+2.0 runs on core 2.1, so it shares a build with every other mod here, Digi Mono included. POLY is now machine
+6 (it was 4, which core 2.1 gave NEIGHBOR): a POLY track saved with 1.0f loads as NEIGHBOR or ONESHOT, so
+choose POLY on it again.
 - Any audio track set to POLY plays **chords from its own trigs**: its TRIG page becomes the MIDI tracks' page
   (NOT1-NOT4 piano roll, VEL, LEN, PROB, LFO.T, with the track's LEV fader); SRC, FLTR, AMP and LFO are as usual.
 - Each extra note **borrows the voice of another track** (the one idle longest; never a muted track, a track
@@ -147,7 +152,7 @@ the other mods here need.
   its own voice allocation and it is saved with the project.
 - Several tracks can be POLY. POLY survives kit/project reload, and since 2.0d the pool survives a power cycle.
 
-<table><tr><td align="center"><img src="docs/img/digipoly_trig.png" width="384" alt="POLY track TRIG page"><br><sub>A POLY track's TRIG page: NOT1-NOT4 piano roll and the LEV fader</sub></td><td align="center"><img src="docs/img/digipoly_pool.png" width="384" alt="SETTINGS > POLY"><br><sub>SETTINGS &gt; POLY: track 2 taken out of this pattern's voice pool</sub></td></tr></table>
+<table><tr><td align="center"><img src="docs/img/digipoly_list.png" width="384" alt="FUNC+SRC list with POLY"><br><sub>FUNC+SRC: POLY after SLICE, with its icon, then Digi Mono</sub></td><td align="center"><img src="docs/img/digipoly_trig.png" width="384" alt="POLY track TRIG page"><br><sub>A POLY track's TRIG page: NOT1-NOT4 piano roll and the LEV fader</sub></td></tr><tr><td align="center"><img src="docs/img/digipoly_pool.png" width="384" alt="SETTINGS > POLY"><br><sub>SETTINGS &gt; POLY: track 2 taken out of this pattern's voice pool</sub></td></tr></table>
 
 **POLY in the stand-alone builds** (and the earlier `dt8poly` mod, built only on request) - a 5th sample machine
 in the FUNC+SRC list
@@ -224,7 +229,7 @@ python3 tools/build_elemods.py --stock <official OS 1.53 .syx> --elekloader <ele
 ```
 
 Then add them in elekloader's window (with its core mod), or on the command line:
-`python -m elekloader.patch --stock <official .syx> --mod core-2.0a.elemod --mod digipoly-1.0f.elemod --mod digimatrix-1.0b.elemod --mod digieq-1.0b.elemod --out custom.syx --version 2.0d`.
+`python -m elekloader.patch --stock <official .syx> --mod core-2.1.elemod --mod digichain-1.4.elemod --mod digipoly-2.0.elemod --mod digimatrix-1.0b.elemod --mod digieq-1.0b.elemod --out custom.syx --version 2.0e`.
 Add `--mod digiutils-1.9a.elemod` for the "..." utility pages.
 The mods need m68k binutils to build. This repo's own `.elemod` files are also in [elemods/](elemods/) (`tools/dev.sh publish`): they hold the mods' code, and refer to your own official file for anything from the firmware.
 

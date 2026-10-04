@@ -1,7 +1,7 @@
 {
  "elemod": 2,
  "id": "digichain",
- "version": "1.3",
+ "version": "1.4",
  "title": "digichain",
  "description": "Lets SOPHIE (digisophie), NEIGHBOR (digineighbor) and DIGISLICER (digislicer) combine. Digi Mono gets its SRC page's layout, knob graphics and knob values through it too. Each of them patches the same SRC-page functions (knob labels, values, graphics, ranges) and the same render step; digichain owns those places once and passes each call to the mod whose machine it is for, or to the stock code. It also makes the machine menu draw every added machine's icon (core 2.1 drew only the first). For NEIGHBOR, SLOT runs 0-8 (not SLICE's 0-64) and a new NEIGHBOR track takes the track on its left as its source. It needs the builds of those mods that tools/dev.sh makes for it (version ending in -chain), and changes nothing on its own.",
  "category": "Framework",
@@ -10,19 +10,19 @@
  "target": {
   "device": "digitakt-mk1",
   "product": "Digitakt mk1",
-  "os": "1.53",
-  "syx_sha256": "9bdd44bb6102fb25c143cfab97bc92b7a89c463f795d3112dce89771e29bcc92",
-  "section3_sha256": "4b47a9507758ca5669ca02ab2c0374d2c04c98aece445408295cc1dcb265c5df",
-  "section3_len": 2475584
+  "os": "1.54",
+  "syx_sha256": "f78ba80fa7b1da5fb0e1ff61ad61e9e71aafe79f4364fc49679f3651353e3cf6",
+  "section3_sha256": "5c58bf9e3949ef09977c5fc007a61e8d026931f67f1621238379dfb8ee4d31a2",
+  "section3_len": 2479680
  },
  "sections": {
   ".run": {
    "align": 4,
-   "len": 1428,
+   "len": 1456,
    "parts": [
     [
      "hex",
-     "202f000423c0000000007007b0b9000000006612223c000000000c8100000000670422414ed17004b0b9000000006612223c000000000c8100000000670422414ed12039000000007214b08165187219b0816212223c000000000c8100000000670422414ed1202f000472034ef9400657d27007b0b9000000006612223c000000000c8100000000670422414ed17004b0b9000000006612223c000000000c8100000000670422414ed1"
+     "202f000423c0000000007007b0b9000000006612223c000000000c8100000000670422414ed17004b0b9000000006612223c000000000c8100000000670422414ed17006b0b9000000006612223c000000000c8100000000670422414ed12039000000007214b08165187219b0816212223c000000000c8100000000670422414ed1202f000472034ef9400657d27007b0b9000000006612223c000000000c8100000000670422414ed17004b0b9000000006612223c000000000c8100000000670422414ed1"
     ],
     [
      "stock",
@@ -44,7 +44,7 @@
     ],
     [
      "stock",
-     "0x40151cea",
+     "0x40151f12",
      8
     ],
     [
@@ -53,7 +53,7 @@
     ],
     [
      "stock",
-     "0x40151cea",
+     "0x40151f12",
      8
     ],
     [
@@ -76,7 +76,7 @@
     ],
     [
      "hex",
-     "4ef9400657f82f082f00203c000000000c8000000000670420404e90203c000000000c8000000000670420404e90201f205f49f94199e4444e75224a610000d47007b2806608203c0000000060307004b280661e203c00000088b0af0004662a203c000000000c8000000000671c600000787005b2806612203c000000000c8000000000670422404ed14ef940078f0c226f00246100007c7007b2806608203c0000000060307004b280661e203c00000088b0af0004662a203c000000000c8000000000671c600000247005b2806612203c000000000c8000000000670422404ed14ef940078f0c224a6004226f00242f092f082f2f000c"
+     "4ef9400657f82f082f00203c000000000c8000000000670420404e90203c000000000c8000000000670420404e90201f205f49f94199f4444e75224a610000d47007b2806608203c0000000060307004b280661e203c00000088b0af0004662a203c000000000c8000000000671c600000787005b2806612203c000000000c8000000000670422404ed14ef940078f0c226f00246100007c7007b2806608203c0000000060307004b280661e203c00000088b0af0004662a203c000000000c8000000000671c600000247005b2806612203c000000000c8000000000670422404ed14ef940078f0c224a6004226f00242f092f082f2f000c"
     ],
     [
      "stock",
@@ -103,7 +103,7 @@
     ],
     [
      "hex",
-     "008565300c800000008b62280c8000000086672020110c804017eb5866162269001020110c80401813306608226900101229007e4e75202f00047203b28065064ef940029e805a80"
+     "008565300c800000008b62280c8000000086672020110c804017ee5866162269001020110c80401816306608226900101229007e4e75202f00047203b28065064ef940029e805a80"
     ],
     [
      "stock",
@@ -112,7 +112,7 @@
     ],
     [
      "hex",
-     "3c3c24794199dc444a8a6768203c000000000c8000000000675ab5f900000000675c41ea009e428147f90000000043f90000000049f900000000719077a800a2781875a80144e9a84843424341e80288e18a808380821028ff5e42b1180042b418002780180070085881b08166cc23ca00000000"
+     "3c3c24794199ec444a8a6768203c000000000c8000000000675ab5f900000000675c41ea009e428147f90000000043f90000000049f900000000719077a800a2781875a80144e9a84843424341e80288e18a808380821028ff5e42b1180042b418002780180070085881b08166cc23ca00000000"
     ],
     [
      "stock",
@@ -158,6 +158,10 @@
   }
  },
  "symbols": {
+  "OS154": [
+   "abs",
+   1
+  ],
   "M_NBR": [
    "abs",
    4
@@ -165,6 +169,10 @@
   "M_DSL": [
    "abs",
    5
+  ],
+  "M_POLY": [
+   "abs",
+   6
   ],
   "M_SOPH": [
    "abs",
@@ -180,15 +188,15 @@
   ],
   "digichain_rmach": [
    ".run",
-   918
+   946
   ],
   "digichain_nb_range": [
    ".run",
-   876
+   904
   ],
   "digichain_nb_range_f": [
    ".run",
-   880
+   908
   ],
   "seen_kit": [
    ".bss",
@@ -208,43 +216,43 @@
   ],
   "digichain_ui_rec": [
    ".run",
-   470
+   498
   ],
   "digichain_inject": [
    ".run",
-   650
+   678
   ],
   "digichain_val_text": [
    ".run",
-   258
+   286
   ],
   "digichain_prange_f": [
    ".run",
-   788
+   816
   ],
   "digichain_knob_gfx": [
    ".run",
-   364
+   392
   ],
   "digichain_pop_text": [
    ".run",
-   578
+   606
   ],
   "digichain_prange": [
    ".run",
-   702
+   730
   ],
   "digichain_lab_short": [
    ".run",
-   114
+   142
   ],
   "digichain_tick": [
    ".run",
-   1004
+   1032
   ],
   "digichain_lab_long": [
    ".run",
-   186
+   214
   ],
   "digichain_layout": [
    ".run",
@@ -256,7 +264,7 @@
   ],
   "digichain_mtype": [
    ".run",
-   982
+   1010
   ]
  },
  "exports": [
@@ -280,6 +288,7 @@
   "digimono_layout",
   "digimono_ui_rec",
   "digimono_val_text",
+  "digipoly_layout",
   "ds_inject_s",
   "ds_knob_gfx",
   "ds_lab_long",
@@ -306,6 +315,7 @@
   "digimono_layout",
   "digimono_ui_rec",
   "digimono_val_text",
+  "digipoly_layout",
   "ds_inject_s",
   "ds_knob_gfx",
   "ds_lab_long",
@@ -379,42 +389,42 @@
   ],
   [
    ".run",
-   68,
+   70,
    "abs32",
    "sec:.bss",
    0
   ],
   [
    ".run",
-   86,
+   78,
    "abs32",
-   "sym:digimono_layout",
+   "sym:digipoly_layout",
    0
   ],
   [
    ".run",
-   92,
+   84,
    "abs32",
    "sym:core_zero",
    0
   ],
   [
    ".run",
-   118,
+   96,
    "abs32",
    "sec:.bss",
    0
   ],
   [
    ".run",
-   126,
+   114,
    "abs32",
-   "sym:ds_lab_short",
+   "sym:digimono_layout",
    0
   ],
   [
    ".run",
-   132,
+   120,
    "abs32",
    "sym:core_zero",
    0
@@ -430,7 +440,7 @@
    ".run",
    154,
    "abs32",
-   "sym:nb_lab_short",
+   "sym:ds_lab_short",
    0
   ],
   [
@@ -442,21 +452,21 @@
   ],
   [
    ".run",
-   190,
+   174,
    "abs32",
    "sec:.bss",
    0
   ],
   [
    ".run",
-   198,
+   182,
    "abs32",
-   "sym:ds_lab_long",
+   "sym:nb_lab_short",
    0
   ],
   [
    ".run",
-   204,
+   188,
    "abs32",
    "sym:core_zero",
    0
@@ -472,7 +482,7 @@
    ".run",
    226,
    "abs32",
-   "sym:nb_lab_long",
+   "sym:ds_lab_long",
    0
   ],
   [
@@ -484,21 +494,21 @@
   ],
   [
    ".run",
-   262,
+   246,
    "abs32",
    "sec:.bss",
    0
   ],
   [
    ".run",
-   270,
+   254,
    "abs32",
-   "sym:ds_val_text",
+   "sym:nb_lab_long",
    0
   ],
   [
    ".run",
-   276,
+   260,
    "abs32",
    "sym:core_zero",
    0
@@ -514,7 +524,7 @@
    ".run",
    298,
    "abs32",
-   "sym:nb_val_text",
+   "sym:ds_val_text",
    0
   ],
   [
@@ -526,42 +536,42 @@
   ],
   [
    ".run",
-   316,
+   318,
    "abs32",
    "sec:.bss",
    0
   ],
   [
    ".run",
-   334,
+   326,
    "abs32",
-   "sym:digimono_val_text",
+   "sym:nb_val_text",
    0
   ],
   [
    ".run",
-   340,
+   332,
    "abs32",
    "sym:core_zero",
    0
   ],
   [
    ".run",
-   368,
+   344,
    "abs32",
    "sec:.bss",
    0
   ],
   [
    ".run",
-   376,
+   362,
    "abs32",
-   "sym:ds_knob_gfx",
+   "sym:digimono_val_text",
    0
   ],
   [
    ".run",
-   382,
+   368,
    "abs32",
    "sym:core_zero",
    0
@@ -577,7 +587,7 @@
    ".run",
    404,
    "abs32",
-   "sym:nb_knob_gfx",
+   "sym:ds_knob_gfx",
    0
   ],
   [
@@ -589,42 +599,42 @@
   ],
   [
    ".run",
-   422,
+   424,
    "abs32",
    "sec:.bss",
    0
   ],
   [
    ".run",
-   440,
+   432,
    "abs32",
-   "sym:digimono_knob_gfx",
+   "sym:nb_knob_gfx",
    0
   ],
   [
    ".run",
-   446,
+   438,
    "abs32",
    "sym:core_zero",
    0
   ],
   [
    ".run",
-   474,
+   450,
    "abs32",
    "sec:.bss",
    0
   ],
   [
    ".run",
-   482,
+   468,
    "abs32",
-   "sym:ds_ui_rec",
+   "sym:digimono_knob_gfx",
    0
   ],
   [
    ".run",
-   488,
+   474,
    "abs32",
    "sym:core_zero",
    0
@@ -640,7 +650,7 @@
    ".run",
    510,
    "abs32",
-   "sym:nb_ui_rec",
+   "sym:ds_ui_rec",
    0
   ],
   [
@@ -652,42 +662,42 @@
   ],
   [
    ".run",
-   528,
+   530,
    "abs32",
    "sec:.bss",
    0
   ],
   [
    ".run",
-   546,
+   538,
    "abs32",
-   "sym:digimono_ui_rec",
+   "sym:nb_ui_rec",
    0
   ],
   [
    ".run",
-   552,
+   544,
    "abs32",
    "sym:core_zero",
    0
   ],
   [
    ".run",
-   582,
+   556,
    "abs32",
    "sec:.bss",
    0
   ],
   [
    ".run",
-   590,
+   574,
    "abs32",
-   "sym:ds_pop_text",
+   "sym:digimono_ui_rec",
    0
   ],
   [
    ".run",
-   596,
+   580,
    "abs32",
    "sym:core_zero",
    0
@@ -703,7 +713,7 @@
    ".run",
    618,
    "abs32",
-   "sym:nb_pop_text",
+   "sym:ds_pop_text",
    0
   ],
   [
@@ -715,182 +725,203 @@
   ],
   [
    ".run",
-   656,
+   638,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   646,
+   "abs32",
+   "sym:nb_pop_text",
+   0
+  ],
+  [
+   ".run",
+   652,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   684,
    "abs32",
    "sym:ds_inject_s",
    0
   ],
   [
    ".run",
-   662,
+   690,
    "abs32",
    "sym:core_zero",
    0
   ],
   [
    ".run",
-   674,
+   702,
    "abs32",
    "sym:nb_inject_s",
    0
   ],
   [
    ".run",
-   680,
+   708,
    "abs32",
    "sym:core_zero",
    0
   ],
   [
    ".run",
-   716,
+   744,
    "abs32",
    "sym:ds_prange",
    0
   ],
   [
    ".run",
-   742,
+   770,
    "abs32",
    "sym:nb_layout",
    0
   ],
   [
    ".run",
-   748,
+   776,
    "abs32",
    "sym:core_zero",
    0
   ],
   [
    ".run",
-   766,
+   794,
    "abs32",
    "sym:dsl_prange",
    0
   ],
   [
    ".run",
-   772,
+   800,
    "abs32",
    "sym:core_zero",
    0
   ],
   [
    ".run",
-   804,
+   832,
    "abs32",
    "sym:ds_prange_f",
    0
   ],
   [
    ".run",
-   830,
+   858,
    "abs32",
    "sym:nb_layout",
    0
   ],
   [
    ".run",
-   836,
+   864,
    "abs32",
    "sym:core_zero",
    0
   ],
   [
    ".run",
-   854,
+   882,
    "abs32",
    "sym:dsl_prange_f",
    0
   ],
   [
    ".run",
-   860,
+   888,
    "abs32",
    "sym:core_zero",
    0
   ],
   [
    ".run",
-   1024,
+   1052,
    "abs32",
    "sym:nb_layout",
    0
   ],
   [
    ".run",
-   1030,
+   1058,
    "abs32",
    "sym:core_zero",
    0
   ],
   [
    ".run",
-   1038,
+   1066,
    "abs32",
    "sec:.bss",
    28
   ],
   [
    ".run",
-   1052,
+   1080,
    "abs32",
    "sec:.bss",
    20
   ],
   [
    ".run",
-   1058,
+   1086,
    "abs32",
    "sec:.bss",
    4
   ],
   [
    ".run",
-   1064,
+   1092,
    "abs32",
    "sec:.bss",
    12
   ],
   [
    ".run",
-   1122,
+   1150,
    "abs32",
    "sec:.bss",
    28
   ],
   [
    ".run",
-   1142,
+   1170,
    "abs32",
    "sec:.bss",
    20
   ],
   [
    ".run",
-   1158,
+   1186,
    "abs32",
    "sec:.bss",
    12
   ],
   [
    ".run",
-   1164,
+   1192,
    "abs32",
    "sec:.bss",
    4
   ],
   [
    ".run",
-   1286,
+   1314,
    "abs32",
    "sec:.bss",
    4
   ],
   [
    ".run",
-   1416,
+   1444,
    "abs32",
    "sec:.bss",
    4
@@ -1005,7 +1036,7 @@
   {
    "addr": "0x40077fba",
    "len": 6,
-   "stock_sha256": "5181c52f3e1d44ffa7a732058855f98b3431533e9c7f38684d4739f47fe261aa",
+   "stock_sha256": "039364694af129be95aaf0f68e65e99e67c0a24eb30fb60a70981bff367fb4a6",
    "new": "4eb900000000",
    "kind": "code",
    "relocs": [
@@ -1122,8 +1153,8 @@
  "conflicts": [],
  "build": {
   "sources": {
-   "chain.s": "a4176393c2e71ed21dd504d5f1151fb86165205b6c11f37de68a4fb41b54eb28",
-   "chain.c": "e1338415cebc2ff4f9ffbc068be7824344bf01f92e65dc64ea3290a177bcbc3e"
+   "chain.s": "a28cddf84da9582e72f4015c42d6917613287fb1773f9cc92ec576531b117d8a",
+   "chain.c": "dd89525500545393432bbee6d8b7ef511494436178e5f68c65e3f727b2f6ff79"
   }
  },
  "signature": null

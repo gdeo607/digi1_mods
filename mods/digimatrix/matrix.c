@@ -33,20 +33,39 @@
  * off, NO leaves. The knobs edit the slot under the cursor: A source track, B source LFO, C
  * destination track, D destination parameter, E depth, F whether the LFO keeps its own track.
  */
+
+/* ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ---- */
+#ifdef OS154
+#define F_400c19a6 0x400c1bce
+#define F_400c257c 0x400c27a4
+#define F_400c9812 0x400c9a3a
+#define F_40200b0c 0x40200ebc
+#define F_4199dc44 0x4199ec44
+#define F_421f3e14 0x421f4e14
+#else
+#define F_400c19a6 0x400c19a6
+#define F_400c257c 0x400c257c
+#define F_400c9812 0x400c9812
+#define F_40200b0c 0x40200b0c
+#define F_4199dc44 0x4199dc44
+#define F_421f3e14 0x421f3e14
+#endif
+/* ---- end of the moved addresses ---- */
+
 typedef unsigned int u32;
 typedef unsigned short u16;
 
 /* ---- firmware (OS 1.53) ---- */
 #define ENGINE_KIT   (*(unsigned char *volatile *)0x800019ac)
-#define UI_KIT       (*(unsigned char *volatile *)0x4199dc44)
-#define INVALIDATE   ((void (*)(void *))0x400c9812)
-#define FILLRECT     ((void (*)(void *, int, int, int, int, int))0x400c19a6)
-#define TEXT         ((void (*)(void *, const void *, int, int, int, const char *, ...))0x400c257c)
-#define FONT5        ((const void *)0x40200b0c)
+#define UI_KIT       (*(unsigned char *volatile *)F_4199dc44)
+#define INVALIDATE   ((void (*)(void *))F_400c9812)
+#define FILLRECT     ((void (*)(void *, int, int, int, int, int))F_400c19a6)
+#define TEXT         ((void (*)(void *, const void *, int, int, int, const char *, ...))F_400c257c)
+#define FONT5        ((const void *)F_40200b0c)
 
 /* The LFO stage's own state, 80 bytes a voice: the value it last worked out for LFO1 is at +0x00 of
  * the voice's block and LFO2's at +0x28, both as a signed 32-bit fraction of full scale. */
-#define LFOVAL(v, n) (*(volatile int *)(0x421f3e14 + 80 * (v) + ((n) ? 0x28 : 0)))
+#define LFOVAL(v, n) (*(volatile int *)(F_421f3e14 + 80 * (v) + ((n) ? 0x28 : 0)))
 
 /* The smoothed parameter words the engine plays from: 53 words a voice, slot s of voice v at
  * base + 18 + 106 * v + 2 * s (the LFO stage's own addressing). */

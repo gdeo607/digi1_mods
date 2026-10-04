@@ -27,6 +27,11 @@ sys.path.insert(0, a.elekloader)
 from elekloader import syx as _syx, devices as _dev, elemod as _em, link as _link
 _st = _syx.Syx.load(a.stock)
 _d, _r = _dev.identify(_st.sha256)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
+from port_os import fw as _fw
+OS = _r.version                                    # the firmware addresses here are 1.53's; fw() moves them
+def fw(x):
+    return _fw(x, OS)
 MAP = _link.link([_em.load_any(p) for p in a.mods], _st.section(_d.main_section)).map
 
 FW = os.path.join(a.digiemu, "portable", "firmware", a.fw)
@@ -47,9 +52,9 @@ import emu.gui as G
 
 SNAP = [os.path.join(dp, f) for dp, _, fs in os.walk(FW + "/snapshots") for f in fs if f == "gui.snap"][0]
 os.makedirs(a.png, exist_ok=True)
-UI_KIT, ENG_KIT = 0x4199dc44, 0x800019ac
+UI_KIT, ENG_KIT = fw(0x4199dc44), 0x800019ac
 WORDS = 0x80002760                               # the smoothed words: slot s of voice v at +18+106v+2s
-LFOSTATE = 0x421f3e14                            # the LFO stage's value: LFO1 at +80v, LFO2 at +80v+0x28
+LFOSTATE = fw(0x421f3e14)                            # the LFO stage's value: LFO1 at +80v, LFO2 at +80v+0x28
 DEST_SLOT = 45                                   # AMP page knob H
 SRC_TRACK, DST_TRACK = 0, 1
 
