@@ -229,7 +229,7 @@ python3 tools/build_elemods.py --stock <official OS 1.53 .syx> --elekloader <ele
 ```
 
 Then add them in elekloader's window (with its core mod), or on the command line:
-`python -m elekloader.patch --stock <official .syx> --mod core-2.1.elemod --mod digichain-1.4.elemod --mod digipoly-2.0.elemod --mod digimatrix-1.0b.elemod --mod digieq-1.0b.elemod --out custom.syx --version 2.0e`.
+`python -m elekloader.patch --stock <official .syx> --mod core-2.1.elemod --mod digichain-1.5.elemod --mod digipoly-2.0.elemod --mod digimatrix-1.0b.elemod --mod digieq-1.0b.elemod --out custom.syx --version 2.0e`.
 Add `--mod digiutils-1.9a.elemod` for the "..." utility pages.
 The mods need m68k binutils to build. This repo's own `.elemod` files are also in [elemods/](elemods/) (`tools/dev.sh publish`): they hold the mods' code, and refer to your own official file for anything from the firmware.
 
