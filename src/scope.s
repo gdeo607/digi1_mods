@@ -10,6 +10,37 @@
 |  TAP   (audio ISR, 0x4007814a): original output writer, then appends 8 x {mid, side} per block.
 |  KEY   (vtable slot 2): key 5 press: waveform -> X-Y -> close. key 6 -> original. Others -> main screen.
 
+| ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ----
+        .ifdef  OS154
+        .equ    .LF_400aa8e2, 0x400aab0a
+        .equ    .LF_400ae280, 0x400ae4a8
+        .equ    .LF_400b907c, 0x400b92a4
+        .equ    .LF_400c1040, 0x400c1268
+        .equ    .LF_400c317c, 0x400c33a4
+        .equ    .LF_400c31f0, 0x400c3418
+        .equ    .LF_400c3210, 0x400c3438
+        .equ    .LF_400c3220, 0x400c3448
+        .equ    .LF_400c9812, 0x400c9a3a
+        .equ    .LF_4199dc44, 0x4199ec44
+        .equ    .LF_421f9b50, 0x421fab50
+        .equ    .LF_421f9b54, 0x421fab54
+        .else
+        .equ    .LF_400aa8e2, 0x400aa8e2
+        .equ    .LF_400ae280, 0x400ae280
+        .equ    .LF_400b907c, 0x400b907c
+        .equ    .LF_400c1040, 0x400c1040
+        .equ    .LF_400c317c, 0x400c317c
+        .equ    .LF_400c31f0, 0x400c31f0
+        .equ    .LF_400c3210, 0x400c3210
+        .equ    .LF_400c3220, 0x400c3220
+        .equ    .LF_400c9812, 0x400c9812
+        .equ    .LF_4199dc44, 0x4199dc44
+        .equ    .LF_421f9b50, 0x421f9b50
+        .equ    .LF_421f9b54, 0x421f9b54
+        .endif
+| ---- end of the moved addresses ----
+
+
 .ifdef ELK
 | elekloader build (mods/digiutils): the page's parts are linked by the SDK, not placed at fixed addresses
     .set TTAP,  digiutils_ttap
@@ -32,23 +63,23 @@
     .set USEWAVE, 1
 .endif
 .endif
-    .set KEYNOT0,  0x400c31f0      | event flags: !bit0 (release)
-    .set VLINE,    0x400c1040      | vline(bmp, x, y0, y1, color): color>0 set, 0 clear
+    .set KEYNOT0,  .LF_400c31f0      | event flags: !bit0 (release)
+    .set VLINE,    .LF_400c1040      | vline(bmp, x, y0, y1, color): color>0 set, 0 clear
     .set OUTWRITE, 0x40071c20
-    .set OLDTICK,  0x400aa8e2
-    .set INVAL,    0x400c9812
-    .set KEYID,    0x400c317c
-    .set KEYPRESS, 0x400c3220
-    .set KEYBIT1,  0x400c3210      | event flags bit 1 (stock NO handler: set -> do not close)
-    .set MS_PTR,   0x421f9b50
-    .set MS_CTL,   0x421f9b54
-    .set Q_PTR,    0x4199dc44      | kit params base (machine of track t at Q+0x9e+t*0xa2)
+    .set OLDTICK,  .LF_400aa8e2
+    .set INVAL,    .LF_400c9812
+    .set KEYID,    .LF_400c317c
+    .set KEYPRESS, .LF_400c3220
+    .set KEYBIT1,  .LF_400c3210      | event flags bit 1 (stock NO handler: set -> do not close)
+    .set MS_PTR,   .LF_421f9b50
+    .set MS_CTL,   .LF_421f9b54
+    .set Q_PTR,    .LF_4199dc44      | kit params base (machine of track t at Q+0x9e+t*0xa2)
 .ifdef ELK
     .set VSTATE,   dt8poly_vstate  | weak: only read for POLY tracks, which exist only with the dt8poly mod
     .set DATA,     digiutils_data     | mods/digiutils/osc_data.s
 .else
-    .set VSTATE,   0x400b907c      | cable.s STATE: vnote[8] (0xff = free)
-    .set DATA,     0x400ae280
+    .set VSTATE,   .LF_400b907c      | cable.s STATE: vnote[8] (0xff = free)
+    .set DATA,     .LF_400ae280
 .endif
     .set IDXA,     DATA            | write index (samples)
     .set MODEA,    DATA+4          | 0 wave, 1 X-Y

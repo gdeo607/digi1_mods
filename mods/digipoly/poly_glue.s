@@ -2,6 +2,17 @@
 | The logic is in poly.c; these are the entry shims (registers as each site has them).
 | Firmware addresses are OS 1.53's.
 
+| ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ----
+        .ifdef  OS154
+        .equ    .LF_400ed53e, 0x400ed766
+        .equ    .LF_4017ac20, 0x4017af20
+        .else
+        .equ    .LF_400ed53e, 0x400ed53e
+        .equ    .LF_4017ac20, 0x4017ac20
+        .endif
+| ---- end of the moved addresses ----
+
+
         .text
 
 | ---------------- trig message builder, end (0x4006f7ea, in 0x4006f4be) ----------------------------
@@ -83,7 +94,7 @@ digipoly_lvlhook:
         movem.l (%sp), %d0-%d1/%a0-%a1
         lea     16(%sp), %sp
         movea.l %d0, %a2
-        jmp     0x400ed53e
+        jmp     .LF_400ed53e
 
 | ---------------- TRIG page draw (vtable 0x40184004 slot 5, was 0x400368ba) ------------------------
 | The same view class shows the audio TRIG page (page kind 1) and the MIDI one (kind 15); poly.c sets
@@ -145,7 +156,7 @@ row_label:
         pea     str_row
         move.l  %a0, %d2
         move.l  %a0, -(%sp)
-        jsr     0x4017ac20                      | std::string(this, const char*, alloc&)
+        jsr     .LF_4017ac20                      | std::string(this, const char*, alloc&)
         lea     12(%sp), %sp
         move.l  %d2, %d0
         move.l  -8(%a6), %d2

@@ -33,6 +33,11 @@ sys.path.insert(0, a.elekloader)
 from elekloader import syx as _syx, devices as _dev, elemod as _em, link as _link
 _st = _syx.Syx.load(a.stock)
 _d, _r = _dev.identify(_st.sha256)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
+from port_os import fw as _fw
+OS = _r.version                                    # the firmware addresses here are 1.53's; fw() moves them
+def fw(x):
+    return _fw(x, OS)
 MAP = _link.link([_em.load_any(p) for p in a.mods], _st.section(_d.main_section)).map
 
 FW = os.path.join(a.digiemu, "portable", "firmware", a.fw)
@@ -55,10 +60,10 @@ import emu.gui as G
 
 SNAP = [os.path.join(dp, f) for dp, _, fs in os.walk(FW + "/snapshots") for f in fs if f == "gui.snap"][0]
 os.makedirs(a.png, exist_ok=True)
-UI_KIT, ENG_KIT = 0x4199dc44, 0x800019ac
+UI_KIT, ENG_KIT = fw(0x4199dc44), 0x800019ac
 LOADED, PARAMS, LEVELS = 0x800014f0 + 0x131 * 4, 0x800014f2, 0x80002760
-PAT = 0x409bac18
-VOICE_START = 0x40077a76                       # the render starts voice d2 for message a2
+PAT = fw(0x409bac18)
+VOICE_START = fw(0x40077a76)                       # the render starts voice d2 for message a2
 
 
 def xb(n):                                       # the persistent map (src/kitstore.h)
@@ -160,7 +165,7 @@ def spin(m, pc, *args, **kw):
             def recn(u, ad, s_, d):
                 sp = u.reg_read(0x100 + 15) if False else u.reg_read(UC_M68K_REG_A7)
                 a = struct.unpack(">3I", u.mem_read(sp + 4, 12))
-                st = struct.unpack(">i", u.mem_read(0x4020c29c, 4))[0]
+                st = struct.unpack(">i", u.mem_read(fw(0x4020c29c), 4))[0]
                 state.setdefault("rec", []).append((a[1], a[2], st))
             uc.hook_add(UC_HOOK_CODE, recn, begin=MAP["digipoly_recnote"], end=MAP["digipoly_recnote"])
 
@@ -168,10 +173,10 @@ def spin(m, pc, *args, **kw):
                 sp = u.reg_read(UC_M68K_REG_A7)
                 a = struct.unpack(">3I", u.mem_read(sp + 4, 12))
                 if state.get("force"):
-                    u.mem_write(0x4020c29c, struct.pack(">i", state["force"]))
-                st = struct.unpack(">i", u.mem_read(0x4020c29c, 4))[0]
+                    u.mem_write(fw(0x4020c29c), struct.pack(">i", state["force"]))
+                st = struct.unpack(">i", u.mem_read(fw(0x4020c29c), 4))[0]
                 state.setdefault("live", []).append((a[0], a[1], st))
-            uc.hook_add(UC_HOOK_CODE, liveon, begin=0x400d53dc, end=0x400d53dc)
+            uc.hook_add(UC_HOOK_CODE, liveon, begin=fw(0x400d53dc), end=fw(0x400d53dc))
     for when, act in PLAN:
         if when != state["n"]:
             continue

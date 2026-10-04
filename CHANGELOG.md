@@ -3,6 +3,21 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## OS 1.54 (HW: not yet)
+- **Every mod here builds for OS 1.54 too**: Digi Mono 0.11, digichain 1.4, Digi Poly 2.0, Digi Utilities
+  1.9a, Digi Matrix 1.0b and Digi EQ 1.0b. elemods/ has both sets (`-os1.54` for 1.54). Their 1.53 builds are
+  the same as before, byte for byte.
+- **How:** `tools/port_os.py` found the 1.54 place of each of the 140 firmware addresses the mods and tests name (most
+  code did not move or moved by a few hundred bytes; RAM moved by 0x1000), each by its bytes, by the code
+  that uses it or from its table's start, five checked by hand (tools/os154.json says how each was found).
+  The addresses that moved are named once at the top of each source file for both releases, and each
+  mod.json has a "1.54" port with every site's stock bytes read from 1.54.
+- **Checked on 1.54 in digiemu:** Digi Mono (VO and ENS bit for bit, the SRC page, icons), Digi Poly (all of
+  tests/digiemu_poly.py), Digi Matrix, Digi EQ, Digi Utilities' page on a held "..." (a missed address of its
+  vtable, written 0x401b3748u, was found this way and fixed), NEIGHBOR through digichain playing a Digi Mono
+  track. Every pair of the 1.54 mods combines. The tests take the OS from the stock file (or `--os`).
+- tools/chain_patch.py moves the chained mods' 1.54 sites too; SOPHIE and DigiFilter have no 1.54 port yet.
+
 ## Digi Poly 2.0, digichain 1.4 (HW: not yet)
 - **Digi Poly runs on core 2.1**, so it shares a build with every other mod: Digi Mono, Digi Utilities,
   Digi Matrix, Digi EQ, digihealth, SOPHIE, NEIGHBOR, DIGISLICER, DigiFilter (every pair checked; all but

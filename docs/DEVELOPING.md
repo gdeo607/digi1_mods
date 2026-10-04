@@ -174,3 +174,21 @@ Only a build that ran on the unit counts as hardware-verified.
   `tools/dev.sh all` run.
 - **New helper versions:** `tools/dev.sh` pins elekloader, digiemu and digisophie. To move to newer ones,
   change the `*_REV` lines and run `setup` and `all` again.
+
+## 8. Another OS release (how 1.54 was done)
+
+When the manufacturer releases an OS, the mods' firmware addresses may move. `tools/port_os.py` ports them:
+
+```sh
+python3 tools/port_os.py map   --old Digitakt_OS1.53.syx --new Digitakt_OS1.54.syx --elekloader out/dev/tools/elekloader
+python3 tools/port_os.py apply --new Digitakt_OS1.54.syx --elekloader out/dev/tools/elekloader
+```
+
+- `map` finds each address the mods name in the new image and writes `tools/os154.json` with how it was found
+  (its bytes, the code that uses it, its table's start, or by hand). It never guesses: what it cannot find is
+  listed, and is checked by hand and written into the file with the reason.
+- `apply` names each address that moved once at the top of its source file (`F_<old address>` in C,
+  `.LF_<old address>` in assembly) for both releases, and writes each mod.json's `ports` with every site at its
+  new place and its stock bytes read from the new image. The old release's builds stay the same, byte for byte.
+- Then build with the new file (`STOCK=... tools/dev.sh build` or `elemods`) and run the emulator tests on it;
+  they read the OS from the stock file. `STOCK154=... tools/dev.sh publish` puts both sets in elemods/.

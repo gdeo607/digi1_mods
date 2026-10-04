@@ -54,6 +54,16 @@ MOVED = {
 MACHINE = {'digisophie': 7, 'digineighbor': 4, 'digislicer': 5}
 
 
+def new_addr(a, rel):
+    """a 1.53 address on OS release rel, from tools/os154.json"""
+    if rel == '1.53':
+        return a
+    doc = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'os154.json')))
+    if doc['to'] != rel or not doc['map'].get(a, {}).get('new'):
+        raise ValueError('no %s address for %s (tools/port_os.py map --extra %s)' % (rel, a, a))
+    return doc['map'][a]['new']
+
+
 def machine_id(moddir, doc):
     """The SRC machine number the mod adds (its core_machines entry's first long), or None."""
     syms = [r[2][4:] for c in doc.get('contribute', []) if c.get('to') == 'core_machines'
@@ -95,6 +105,25 @@ def patch(doc, moddir='.'):
         raise ValueError('%s adds machine %s now, not %d' % (mid, m, MACHINE[mid]))
     out = dict(doc)
     out['sites'] = [s for s in sites if '0x%08x' % int(str(s.get('addr')), 16) not in want]
+    if doc.get('ports'):                        # other OS releases: the same places, moved (tools/os154.json)
+        out['ports'] = {}
+        for rel, port in doc['ports'].items():
+            port = dict(port)
+            if 'sites' in port:
+                moved = {}
+                for a, (stock, op, fn) in want.items():
+                    moved[new_addr(a, rel)] = (op, fn)
+                got = {}
+                for s in port['sites']:
+                    a = '0x%08x' % int(str(s.get('addr')), 16)
+                    if a in moved:
+                        got[a] = s
+                for a, (op, fn) in moved.items():
+                    s = got.get(a)
+                    if s is None or (s.get('op'), s.get('target')) != (op, fn):
+                        raise ValueError('%s %s patches %s differently: %s' % (mid, rel, a, s))
+                port['sites'] = [s for s in port['sites'] if '0x%08x' % int(str(s.get('addr')), 16) not in moved]
+            out['ports'][rel] = port
     out['requires'] = list(dict.fromkeys(list(doc.get('requires', [])) + ['digichain']))
     out['version'] = '%s-chain' % doc['version']
     out['description'] = (doc.get('description', '') + ' This build combines with the other SRC machine '

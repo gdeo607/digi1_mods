@@ -5,6 +5,29 @@
  * playing one of our machines (core_track_machine 20..25; they render as ONESHOT) it writes the engine's
  * block there, so the voice's filter, amp envelope, VOL, LFOs, sends and level follow as for a sample. Firmware addresses are OS 1.53's; how each was found: docs/TECHNICAL_NOTES.md.
  */
+
+/* ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ---- */
+#ifdef OS154
+#define F_40151cc2 0x40151eea
+#define F_4197b6b4 0x4197c6b4
+#define F_4197c7fc 0x4197d7fc
+#define F_4197ce98 0x4197de98
+#define F_4197cf5c 0x4197df5c
+#define F_4199dc44 0x4199ec44
+#define F_4199df54 0x4199ef54
+#define F_4199df58 0x4199ef58
+#else
+#define F_40151cc2 0x40151cc2
+#define F_4197b6b4 0x4197b6b4
+#define F_4197c7fc 0x4197c7fc
+#define F_4197ce98 0x4197ce98
+#define F_4197cf5c 0x4197cf5c
+#define F_4199dc44 0x4199dc44
+#define F_4199df54 0x4199df54
+#define F_4199df58 0x4199df58
+#endif
+/* ---- end of the moved addresses ---- */
+
 #include "mono.h"
 
 #define MACH_FIRST   20                      /* digimono_m20..m25 in glue.s: SIN NOIS SAW PULS ENS VO */
@@ -17,8 +40,8 @@ extern volatile uint8_t core_track_machine[8];                  /* core 2.1: the
 /* The amp envelope's phase (0: idle) and level, per track, as the AMP stage leaves them (digisophie reads
  * the same). Not the voice gain at 0x8000edc4 + 94 v + 16: that is LEV^2 x the track level, and LEV is
  * knob H, an engine parameter here. */
-#define AMP_PHASE(v) (*(volatile const int32_t *)(0x4199df54 + 12 * (v)))
-#define AMP_LEVEL(v) (*(volatile const int32_t *)(0x4199df58 + 12 * (v)))
+#define AMP_PHASE(v) (*(volatile const int32_t *)(F_4199df54 + 12 * (v)))
+#define AMP_LEVEL(v) (*(volatile const int32_t *)(F_4199df58 + 12 * (v)))
 #define QUIET_BLOCKS 32                      /* 21 ms of a silent envelope: the voice sleeps */
 
 #define SLOT_TUNE    17                        /* SRC knob A */
@@ -112,13 +135,13 @@ void digimono_blocks(void)
 
 /* ---- the SRC page ------------------------------------------------------------------------------- */
 
-#define ACTIVE_TRACK (*(volatile const uint32_t *)0x4197b6b4)
-#define UI_KIT       (*(uint8_t *volatile const *)0x4199dc44)   /* its sounds: + 0x20 + 0xa2 t */
+#define ACTIVE_TRACK (*(volatile const uint32_t *)F_4197b6b4)
+#define UI_KIT       (*(uint8_t *volatile const *)F_4199dc44)   /* its sounds: + 0x20 + 0xa2 t */
 #define SLICE_ID_B   0x85                      /* SLICE's SRC page: ids 0x84..0x8b = knobs A..H */
-#define FMT_INT      ((void *)0x4197c7fc)      /* the firmware's plain-number formatter (BR's) */
-#define FMT_BUF      ((char *)0x4197ce98)      /* where 0x400657ee writes a value's text */
+#define FMT_INT      ((void *)F_4197c7fc)      /* the firmware's plain-number formatter (BR's) */
+#define FMT_BUF      ((char *)F_4197ce98)      /* where 0x400657ee writes a value's text */
 typedef void (*fmt_t)(void *fmt, int32_t value, char *buf);
-#define FORMAT       ((fmt_t)0x40151cc2)
+#define FORMAT       ((fmt_t)F_40151cc2)
 
 /* the knobs: B C E F G H D ("-": not on the page) */
 static const char *const sname[MONO_MACHINES][KNOBS] = {
@@ -300,7 +323,7 @@ int digimono_knob_text(uint32_t id, int32_t value, char *buf)
 
 /* The SRC page's layout for a Digi Mono machine (0x400657cc, through digichain): SLICE's, with the
  * knobs the machine does not have emptied (id 0), so they show nothing and turn nothing. 0: not ours. */
-#define LAY_SLICE    ((const uint32_t *)0x4197cf5c)    /* 44 bytes; the knobs' ids at +8 (A..H) */
+#define LAY_SLICE    ((const uint32_t *)F_4197cf5c)    /* 44 bytes; the knobs' ids at +8 (A..H) */
 static uint32_t lay[MONO_MACHINES][11];
 static uint8_t lay_ok[MONO_MACHINES];
 

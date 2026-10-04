@@ -183,5 +183,83 @@
    "fn": "digimono_tick",
    "order": 55
   }
- ]
+ ],
+ "ports": {
+  "1.54": {
+   "sites": [
+    {
+     "addr": "0x40077fc2",
+     "stock": "487980001a18",
+     "op": "jsr",
+     "target": "digimono_rblock"
+    },
+    {
+     "addr": "0x40030daa",
+     "stock": "4eb94000fe8a",
+     "op": "keep2",
+     "target": "digimono_sname"
+    },
+    {
+     "addr": "0x40032d36",
+     "stock": "4eb94000feac",
+     "op": "keep2",
+     "target": "digimono_lname"
+    },
+    {
+     "addr": "0x40078f0c",
+     "stock": "2f02202f0008",
+     "op": "jmp",
+     "target": "digimono_prange"
+    },
+    {
+     "addr": "0x40032d16",
+     "stock": "4eb9400657ee",
+     "op": "keep2",
+     "target": "digimono_vtext"
+    },
+    {
+     "addr": "0x40038714",
+     "stock": "4eb9400657ee",
+     "op": "keep2",
+     "target": "digimono_vtext"
+    },
+    {
+     "addr": "0x40038854",
+     "stock": "4eb9400657ee",
+     "op": "keep2",
+     "target": "digimono_vtext"
+    },
+    {
+     "addr": "0x40039142",
+     "stock": "4eb9400657ee",
+     "op": "keep2",
+     "target": "digimono_vtext"
+    },
+    {
+     "addr": "0x400392ea",
+     "stock": "4eb9400657ee",
+     "op": "keep2",
+     "target": "digimono_vtext"
+    },
+    {
+     "addr": "0x4003b314",
+     "stock": "0c8000000087",
+     "op": "jsr",
+     "target": "digimono_samp_d0"
+    },
+    {
+     "addr": "0x4003b5b2",
+     "stock": "0c8200000087",
+     "op": "jsr",
+     "target": "digimono_samp_d2"
+    }
+   ],
+   "defsym": {
+    "OS154": 1
+   },
+   "cflags": [
+    "-DOS154"
+   ]
+  }
+ }
 }

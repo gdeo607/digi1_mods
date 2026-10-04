@@ -34,6 +34,11 @@ sys.path.insert(0, a.elekloader)
 from elekloader import syx as _syx, devices as _dev, elemod as _em, link as _link
 _st = _syx.Syx.load(a.stock)
 _d, _r = _dev.identify(_st.sha256)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
+from port_os import fw as _fw
+OS = _r.version                                    # the firmware addresses here are 1.53's; fw() moves them
+def fw(x):
+    return _fw(x, OS)
 MAP = _link.link([_em.load_any(p) for p in a.mods], _st.section(_d.main_section)).map
 
 FW = os.path.join(a.digiemu, "portable", "firmware", a.fw)
@@ -55,11 +60,11 @@ import emu.gui as G
 
 SNAP = [os.path.join(dp, f) for dp, _, fs in os.walk(FW + "/snapshots") for f in fs if f == "gui.snap"][0]
 os.makedirs(a.png, exist_ok=True)
-UI_KIT = 0x4199dc44
+UI_KIT = fw(0x4199dc44)
 MASTER = 0x8000ea70                    # the master pair: 32 frames of {L, R}, 32-bit
 BUS = 0x80002160                       # the 12-channel bus the USB stream is built from, 48 bytes a frame
-BUSFILL = 0x4007227c                   # where the master is copied into it
-FA_BASE, FA_LO = 0x80003360, 0x400716c0   # FAST AUDIO (digihealth) runs a copy of the render from SRAM
+BUSFILL = fw(0x4007227c)                   # where the master is copied into it
+FA_BASE, FA_LO = 0x80003360, fw(0x400716c0)   # FAST AUDIO (digihealth) runs a copy of the render from SRAM
 TONE_HZ = 55.0
 AMP = 1 << 29
 

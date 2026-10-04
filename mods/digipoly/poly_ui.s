@@ -3,9 +3,20 @@
 | ONESHOT with ONESHOT's eight parameters (defaults, MIDI CC, Randomize, the sample browser); its SRC page
 | is ONESHOT's through digichain (digipoly_layout). Firmware addresses are OS 1.53's.
 
+| ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ----
+        .ifdef  OS154
+        .equ    .LF_401b73b4, 0x401b7734
+        .equ    .LF_4197ced8, 0x4197ded8
+        .else
+        .equ    .LF_401b73b4, 0x401b73b4
+        .equ    .LF_4197ced8, 0x4197ced8
+        .endif
+| ---- end of the moved addresses ----
+
+
         .equ    POLY_ID, 6              | kits store it: fixed for good (resource machine:6)
-        .equ    BMP_VT, 0x401b73b4      | the firmware's Bitmap vtable
-        .equ    LAY_ONESHOT, 0x4197ced8 | the SRC page layout of machine 0 (0x400657cc: 0x4197ced8 + 44 x m)
+        .equ    BMP_VT, .LF_401b73b4      | the firmware's Bitmap vtable
+        .equ    LAY_ONESHOT, .LF_4197ced8 | the SRC page layout of machine 0 (0x400657cc: 0x4197ced8 + 44 x m)
 
         .text
         .balign 4

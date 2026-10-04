@@ -45,6 +45,11 @@ _st = _syx.Syx.load(a.stock)
 _d, _r = _dev.identify(_st.sha256)
 _L = _link.link([_em.load_any(p) for p in a.mods], _st.section(_d.main_section))
 MAP = _L.map
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tools'))
+from port_os import fw as _fw
+OS = _r.version                                    # the firmware addresses below are 1.53's; fw() moves them
+def fw(a):
+    return _fw(a, OS)
 RUN0, RUN1 = _L.layout["ddr"]                      # the mods' code and data in RAM
 VOICES = MAP["digimono:voices"]                    # struct digimono_voice voices[8]; voice 0's engine state first
 TRACK_MACH = MAP["core_track_machine"]             # core 2.1: the machine each voice plays (ours render as ONESHOT)
@@ -90,8 +95,8 @@ from unicorn.m68k_const import UC_M68K_REG_A7
 import emu.gui as G
 
 SNAP = [os.path.join(dp, f) for dp, _, fs in os.walk(FW + "/snapshots") for f in fs if f == "gui.snap"][0]
-AFTER = 0x40077fc8                                  # right after digimono_rblock returns (voice 0's block: 0x80001a18)
-MASTER = 0x400721e6                                 # the master pair at 0x8000ea70 (digieq's site)
+AFTER = fw(0x40077fc8)                                 # right after digimono_rblock returns (voice 0's block: 0x80001a18)
+MASTER = fw(0x400721e6)                                # the master pair at 0x8000ea70 (digieq's site)
 FAIL = []
 
 
@@ -164,7 +169,7 @@ def after(u, ad, s, d):
                    struct.unpack(">8h", u.mem_read(0x80002772 + 34, 16)),
                    struct.unpack(">32i", u.mem_read(0x80001a18, 128)),
                    u.mem_read(TRACK_MACH, 1)[0],
-                   struct.unpack(">2i", u.mem_read(0x4199df54, 8))))   # voice 0's amp phase and level
+                   struct.unpack(">2i", u.mem_read(fw(0x4199df54), 8))))   # voice 0's amp phase and level
 
 
 def mst(u, ad, s, d):
@@ -195,7 +200,7 @@ def spin(m, pc, *args, **kw):
         elif act[0] == "snap" and PNG:
             png(os.path.join(PNG, act[1] + ".png"), E.fb)
         elif act[0] == "knobs":
-            kit = struct.unpack(">I", m.uc.mem_read(0x4199dc44, 4))[0]
+            kit = struct.unpack(">I", m.uc.mem_read(fw(0x4199dc44), 4))[0]
             snd = kit + 0x20
             knobs[act[1]] = (m.uc.mem_read(snd + 0x7e, 1)[0],
                              [struct.unpack(">H", m.uc.mem_read(snd + 0x14 + 2 * s, 2))[0] >> 8 for s in SLOTS])

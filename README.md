@@ -2,7 +2,7 @@
 
 *(formerly DT1_8_POLY_OSC)*
 
-Unofficial, community-made mods for the 8-track MK1 sampler groovebox ("DT1"), **OS 1.53**: synth machines, an
+Unofficial, community-made mods for the 8-track MK1 sampler groovebox ("DT1"), **OS 1.53 and OS 1.54**: synth machines, an
 LFO modulation matrix, scope / spectrum / tuner pages, a master EQ and polyphony. Each is an
 [elekloader](https://github.com/irpina/elekloader) mod: you tick the ones you want in elekloader and it builds
 your OS file from your own official one.
@@ -20,7 +20,7 @@ your OS file from your own official one.
 - **Digi EQ**: a 4-band master EQ on every output, main outs, headphones and USB.
 - **digichain**: SOPHIE, NEIGHBOR, DIGISLICER, Digi Mono and Digi Poly in one build.
 - **Ready to use:** the `.elemod` files are in [elemods/](elemods/), built with the latest elekloader: add them
-  in elekloader with your own official OS 1.53 file and build.
+  in elekloader with your own official OS 1.53 or 1.54 file and build (the `-os1.54` files are for 1.54).
 
 <table>
 <tr><td align="center"><img src="docs/img/digimono_list.png" width="384" alt="FUNC+SRC list with the Digi Mono machines and their icons"><br><sub>Digi Mono: the machines, with their icons</sub></td>
@@ -46,6 +46,11 @@ They all need core 2.1 (elekloader brings it) and combine with each other and wi
 [other mods kept up to date](#other-mods-kept-up-to-date) here (digihealth, SOPHIE, NEIGHBOR, DIGISLICER,
 DigiFilter): every pair, checked by `tools/dev.sh elemods`. All of them in one build fit too, but for
 DIGISLICER (88 KB), which needs a few left out: the mods share 128 KB.
+
+**OS 1.54:** every mod here is built for both 1.53 and 1.54, and on 1.54 they pass the same emulator tests
+(Digi Mono, Digi Poly, Digi Matrix, Digi EQ, Digi Utilities' pages, NEIGHBOR through digichain). Of the other
+mods, digihealth, NEIGHBOR and DIGISLICER have 1.54 versions; SOPHIE and DigiFilter do not yet, so on 1.54
+they are left out until their authors port them. `tools/port_os.py` did the port (docs/DEVELOPING.md).
 
 **Getting them:** download them from [elemods/](elemods/) and add them in elekloader (it brings the core
 mod). Or build them yourself: `tools/dev.sh mods` fetches elekloader and the other mods and builds every mod

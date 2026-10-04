@@ -133,5 +133,95 @@
    "fn": "digichain_tick",
    "order": 50
   }
- ]
+ ],
+ "ports": {
+  "1.54": {
+   "sites": [
+    {
+     "addr": "0x400657cc",
+     "stock": "7203202f0004",
+     "op": "jmp",
+     "target": "digichain_layout"
+    },
+    {
+     "addr": "0x4000fe8a",
+     "stock": "222f00080c81000000a4",
+     "op": "jmp",
+     "target": "digichain_lab_short"
+    },
+    {
+     "addr": "0x4000feac",
+     "stock": "222f00080c81000000a4",
+     "op": "jmp",
+     "target": "digichain_lab_long"
+    },
+    {
+     "addr": "0x4000f324",
+     "stock": "4fefffec48d70c1c",
+     "op": "jmp",
+     "target": "digichain_val_text"
+    },
+    {
+     "addr": "0x4000f2bc",
+     "stock": "4fefffec48d7007c",
+     "op": "jmp",
+     "target": "digichain_knob_gfx"
+    },
+    {
+     "addr": "0x40065794",
+     "stock": "222f00040c81000000a4",
+     "op": "jmp",
+     "target": "digichain_ui_rec"
+    },
+    {
+     "addr": "0x400657ee",
+     "stock": "222f00040c81000000a4",
+     "op": "jmp",
+     "target": "digichain_pop_text"
+    },
+    {
+     "addr": "0x40077fba",
+     "stock": "49f94199f444",
+     "op": "jsr",
+     "target": "digichain_inject"
+    },
+    {
+     "addr": "0x4000ff20",
+     "stock": "4eb940078f0c",
+     "op": "keep2",
+     "target": "digichain_prange"
+    },
+    {
+     "addr": "0x400100c4",
+     "stock": "4eb940078f0c",
+     "op": "keep2",
+     "target": "digichain_prange"
+    },
+    {
+     "addr": "0x4000f534",
+     "stock": "4eb940078f0c",
+     "op": "keep2",
+     "target": "digichain_prange"
+    },
+    {
+     "addr": "0x4000f5fc",
+     "stock": "45f940078f0c",
+     "op": "keep2",
+     "target": "digichain_prange_f"
+    },
+    {
+     "addr": "0x4002a382",
+     "stock": "4eb940029e80",
+     "op": "keep2",
+     "target": "digichain_mtype"
+    }
+   ],
+   "defsym": {
+    "OS154": 1
+   },
+   "cflags": [
+    "-DOS154"
+   ]
+  }
+ }
 }

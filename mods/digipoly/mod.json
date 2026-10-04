@@ -4,6 +4,8 @@
  "title": "Digi Poly",
  "category": "Sound",
  "author": "gdeo607",
+ "device": "digitakt-mk1",
+ "os": "1.53",
  "description": "Adds a POLY machine (FUNC+SRC list). A POLY track plays chords from its own trigs: its TRIG page becomes the MIDI tracks' one (NOT1-NOT4, VEL, LEN, PROB, LFO.T) with the track's level beside it, and each extra note takes the voice of another track (voice stealing: the voice that started longest ago, never a muted one, one holding a live note or one whose track trigs at the same time). Pressing the track's key plays the whole chord. Notes received on the POLY track's own MIDI channel play polyphonically, one voice per note, and recording them writes the chord into the step's NOT1-NOT4 (up to four notes) instead of a bare trig. On its TRIG page the LEVEL knob sets the track level and the LEV fader shows it, as on the audio pages. SETTINGS > POLY chooses which tracks lend their voice to the pool; that is kept in the kit, so each pattern has its own voice allocation and it is saved with the project. A stolen voice plays the POLY track's sound, follows its knobs and level while it does, and gets its own sound back at its next trig. Kits saved with POLY load as ONESHOT on the stock OS. 2.0 is for core 2.1: POLY is machine 6 (it was 4, which is NEIGHBOR's now), so a POLY track saved with 1.0f loads as NEIGHBOR or ONESHOT; choose POLY again.",
  "sources": [
   "poly_ui.s",
@@ -112,5 +114,77 @@
    "settings:POLY",
    "sound:slot 52 (POLY voice pool)"
   ]
+ },
+ "ports": {
+  "1.54": {
+   "sites": [
+    {
+     "addr": "0x4006f7ea",
+     "stock": "254d0044200a",
+     "op": "jsr",
+     "target": "digipoly_tag"
+    },
+    {
+     "addr": "0x400777a2",
+     "stock": "242a00082002",
+     "op": "jsr",
+     "target": "digipoly_route"
+    },
+    {
+     "addr": "0x40184318",
+     "stock": "400368ba",
+     "op": "ptr",
+     "target": "digipoly_trigdraw"
+    },
+    {
+     "addr": "0x400771e8",
+     "stock": "2f027410222f0008",
+     "op": "jmp",
+     "target": "digipoly_setparam"
+    },
+    {
+     "addr": "0x40077eaa",
+     "stock": "24404eb9400ed766",
+     "op": "jsr",
+     "target": "digipoly_lvlhook"
+    },
+    {
+     "addr": "0x40028bae",
+     "stock": "4eb9400d5604",
+     "op": "jsr",
+     "target": "digipoly_prevon_hook"
+    },
+    {
+     "addr": "0x40028c60",
+     "stock": "4eb9400d5986",
+     "op": "jsr",
+     "target": "digipoly_prevoff_hook"
+    },
+    {
+     "addr": "0x400d57ee",
+     "stock": "4fef0018d5cd",
+     "op": "jsr",
+     "target": "digipoly_rechook"
+    },
+    {
+     "addr": "0x4018434c",
+     "stock": "40032a78",
+     "op": "ptr",
+     "target": "digipoly_trigenc"
+    },
+    {
+     "addr": "0x401843e8",
+     "stock": "40032d8c",
+     "op": "ptr",
+     "target": "digipoly_trigenc_thunk"
+    }
+   ],
+   "defsym": {
+    "OS154": 1
+   },
+   "cflags": [
+    "-DOS154"
+   ]
+  }
  }
 }

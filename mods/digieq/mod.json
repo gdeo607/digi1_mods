@@ -4,6 +4,8 @@
  "title": "Digi EQ",
  "category": "Sound",
  "author": "gdeo607",
+ "device": "digitakt-mk1",
+ "os": "1.53",
  "description": "A 4-band master EQ on every output - main, headphones and USB alike - as a page of the master pages (FUNC+LFO) between Compressor and Internal Mixer. Knobs A-D: band level; press one for that band's Q. Knobs E-H: band frequency; press one for its type (HP, low shelf, bell, notch, band pass, high shelf, LP). The response curve is drawn above the knobs. The settings belong to the pattern: they live in the kit, so every pattern has its own EQ and it is saved with the project and kept over a power-off. SETTINGS > GLOBAL FX/MIX > MASTER EQ makes the EQ you can hear override every pattern's own.",
  "sources": [
   "eq_glue.s",
@@ -43,7 +45,11 @@
   }
  ],
  "subscribe": [
-  {"event": "ev_tick", "fn": "digieq_tick", "order": 50}
+  {
+   "event": "ev_tick",
+   "fn": "digieq_tick",
+   "order": 50
+  }
  ],
  "requires": [
   "core"
@@ -54,5 +60,47 @@
    "settings:GLOBAL FX/MIX MASTER EQ",
    "sound:slot 48, 49 of tracks 1-4 (master EQ)"
   ]
+ },
+ "ports": {
+  "1.54": {
+   "sites": [
+    {
+     "addr": "0x400721e6",
+     "stock": "283c8000ea70",
+     "op": "jsr",
+     "target": "digieq_master"
+    },
+    {
+     "addr": "0x40044acc",
+     "stock": "205448780002",
+     "op": "jsr",
+     "target": "digieq_gfx"
+    },
+    {
+     "addr": "0x401848e4",
+     "stock": "40038b36",
+     "op": "ptr",
+     "target": "digieq_mkey"
+    },
+    {
+     "addr": "0x401848ec",
+     "stock": "400395dc",
+     "op": "ptr",
+     "target": "digieq_mdraw"
+    },
+    {
+     "addr": "0x401849bc",
+     "stock": "400388ee",
+     "op": "ptr",
+     "target": "digieq_menc_thunk"
+    }
+   ],
+   "defsym": {
+    "OS154": 1
+   },
+   "cflags": [
+    "-DOS154"
+   ]
+  }
  }
 }
