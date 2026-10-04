@@ -17,6 +17,7 @@
 
         .equ    M_NBR, 4                | NEIGHBOR
         .equ    M_DSL, 5                | DIGISLICER
+        .equ    M_POLY, 6               | POLY (digipoly 2.0): ONESHOT's page
         .equ    M_SOPH, 7               | SOPHIE
         .equ    M_MONO, 20              | Digi Mono: 20..25
         .equ    M_MONO_LAST, 25
@@ -96,6 +97,7 @@ digichain_layout:
         move.l  %d0, digichain_page_m
         ROUTE   M_SOPH, ds_layout
         ROUTE   M_NBR, nb_layout
+        ROUTE   M_POLY, digipoly_layout
         ROUTE_IN M_MONO, M_MONO_LAST, digimono_layout
         move.l  4(%sp), %d0
         moveq   #3, %d1

@@ -3,6 +3,20 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Digi Poly 2.0, digichain 1.4 (HW: not yet)
+- **Digi Poly runs on core 2.1**, so it shares a build with every other mod: Digi Mono, Digi Utilities,
+  Digi Matrix, Digi EQ, digihealth, SOPHIE, NEIGHBOR, DIGISLICER, DigiFilter (every pair checked; all but
+  DIGISLICER fit in one build, 17 KB spare). Core 2.1's machine table now lists POLY (with a new three-note
+  icon), plays it as ONESHOT and gives it ONESHOT's parameters: 19 of its 29 patches are gone. Its SRC page is
+  ONESHOT's, through digichain 1.4. The chord, voice-borrowing, TRIG page, preview and recording code is
+  unchanged.
+- **POLY is machine 6** (it was 4; core 2.1 gives 4 to NEIGHBOR). A POLY track saved with 1.0f loads as
+  NEIGHBOR or ONESHOT: choose POLY again.
+- Checked: tests/emu_poly.py (unicorn) and tests/digiemu_poly.py (the firmware, with Digi Mono, Digi
+  Utilities, Digi Matrix, Digi EQ and digihealth in the build): the TRIG page, the key's chord, chords from
+  the sequencer on four voices, knobs and level on every voice, per-pattern pools, recording.
+- In elemods/ and in `tools/dev.sh mods`.
+
 ## Ready-made .elemod files, README at a glance
 - **elemods/**: this repo's mods (Digi Mono 0.11, digichain 1.3, Digi Utilities 1.9a, Digi Matrix 1.0b, Digi
   EQ 1.0b) as `.elemod` files built with the latest elekloader (core 2.1), with a README of their hashes.

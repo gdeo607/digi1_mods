@@ -45,7 +45,7 @@ typedef unsigned int u32;
 #define BLIT         ((void (*)(void *, const void *, int, int, int))0x400c2960)
 #define CHECKBOXES   (*(const char **)0x421f7a3c)   /* two bitmaps, 0x1c bytes each: empty, ticked */
 
-#define POLY     4
+#define POLY     6                        /* its machine number (core 2.1; poly_ui.s) */
 #define TAG      0xc4
 #define NOTE_OFF 0x40                     /* NOT2..4: 0x40 = no note, else offset + 0x40 */
 

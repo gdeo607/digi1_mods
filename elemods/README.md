@@ -6,10 +6,11 @@ brings the core mod (`core-2.1`); Digi Mono ticks digichain with it.
 
 | file | sha256 |
 |---|---|
-| `digichain-1.3.elemod` | `4f321e72937b89b0` |
+| `digichain-1.4.elemod` | `e86d20a27aba6b99` |
 | `digieq-1.0b.elemod` | `ff95f2f404c1ca8a` |
 | `digimatrix-1.0b.elemod` | `e28dc7ca2c5840b1` |
 | `digimono-0.11.elemod` | `d27c1390213e3742` |
+| `digipoly-2.0.elemod` | `6858af67e54bb307` |
 | `digiutils-1.9a.elemod` | `69139e34685fd1a2` |
 
 Built with elekloader e4d8ba8, 2026-10-03 (core `2.1`) by `tools/dev.sh publish`. Every pair combines with
@@ -18,4 +19,3 @@ DigiFilter and the `-chain` builds of SOPHIE, NEIGHBOR and DIGISLICER. An `.elem
 code: where it repeats firmware bytes, elekloader stores a reference to your own file instead, and the few
 original bytes at each place it patches are there only to check your file. No firmware is stored here.
 
-Digi Poly 1.0f is not here: it is built for core 2.0a, which current elekloader no longer brings.

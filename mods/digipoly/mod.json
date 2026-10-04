@@ -1,139 +1,23 @@
 {
  "id": "digipoly",
- "version": "1.0f",
+ "version": "2.0",
  "title": "Digi Poly",
  "category": "Sound",
  "author": "gdeo607",
- "description": "Adds a POLY machine (FUNC+SRC list). A POLY track plays chords from its own trigs: its TRIG page becomes the MIDI tracks' one (NOT1-NOT4, VEL, LEN, PROB, LFO.T) with the track's level beside it, and each extra note takes the voice of another track (voice stealing: the voice that started longest ago, never a muted one, one holding a live note or one whose track trigs at the same time). Pressing the track's key plays the whole chord. Notes received on the POLY track's own MIDI channel play polyphonically, one voice per note, and recording them writes the chord into the step's NOT1-NOT4 (up to four notes) instead of a bare trig. On its TRIG page the LEVEL knob sets the track level and the LEV fader shows it, as on the audio pages. SETTINGS > POLY chooses which tracks lend their voice to the pool; that is kept in the kit, so each pattern has its own voice allocation and it is saved with the project. A stolen voice plays the POLY track's sound, follows its knobs and level while it does, and gets its own sound back at its next trig. Kits saved with POLY load as ONESHOT on the stock OS.",
+ "description": "Adds a POLY machine (FUNC+SRC list). A POLY track plays chords from its own trigs: its TRIG page becomes the MIDI tracks' one (NOT1-NOT4, VEL, LEN, PROB, LFO.T) with the track's level beside it, and each extra note takes the voice of another track (voice stealing: the voice that started longest ago, never a muted one, one holding a live note or one whose track trigs at the same time). Pressing the track's key plays the whole chord. Notes received on the POLY track's own MIDI channel play polyphonically, one voice per note, and recording them writes the chord into the step's NOT1-NOT4 (up to four notes) instead of a bare trig. On its TRIG page the LEVEL knob sets the track level and the LEV fader shows it, as on the audio pages. SETTINGS > POLY chooses which tracks lend their voice to the pool; that is kept in the kit, so each pattern has its own voice allocation and it is saved with the project. A stolen voice plays the POLY track's sound, follows its knobs and level while it does, and gets its own sound back at its next trig. Kits saved with POLY load as ONESHOT on the stock OS. 2.0 is for core 2.1: POLY is machine 6 (it was 4, which is NEIGHBOR's now), so a POLY track saved with 1.0f loads as NEIGHBOR or ONESHOT; choose POLY again.",
  "sources": [
   "poly_ui.s",
   "poly_glue.s",
   "poly.c"
  ],
+ "requires": [
+  "core",
+  "digichain"
+ ],
+ "conflicts": [
+  "dt8poly"
+ ],
  "sites": [
-  {
-   "addr": "0x40022fe6",
-   "stock": "7004",
-   "op": "bytes",
-   "new": "7005",
-   "kind": "code"
-  },
-  {
-   "addr": "0x4002a9e8",
-   "stock": "7804",
-   "op": "bytes",
-   "new": "7805",
-   "kind": "code"
-  },
-  {
-   "addr": "0x400225f0",
-   "stock": "7003",
-   "op": "bytes",
-   "new": "7004",
-   "kind": "code"
-  },
-  {
-   "addr": "0x40078f72",
-   "stock": "7403b48065dce788",
-   "op": "jsr",
-   "target": "digipoly_lookup"
-  },
-  {
-   "addr": "0x40077272",
-   "stock": "41e8007e13900800",
-   "op": "jsr",
-   "target": "digipoly_engine"
-  },
-  {
-   "addr": "0x4002202e",
-   "stock": "7128007e6002",
-   "op": "jsr",
-   "target": "digipoly_getter"
-  },
-  {
-   "addr": "0x4002b754",
-   "stock": "4eb94002200a",
-   "op": "keep2",
-   "target": "digipoly_rawget"
-  },
-  {
-   "addr": "0x4003b3fc",
-   "stock": "4eb94002200a",
-   "op": "keep2",
-   "target": "digipoly_rawget"
-  },
-  {
-   "addr": "0x4003bd3a",
-   "stock": "4eb94002200a",
-   "op": "keep2",
-   "target": "digipoly_rawget"
-  },
-  {
-   "addr": "0x4007910c",
-   "stock": "7203",
-   "op": "bytes",
-   "new": "7204",
-   "kind": "code"
-  },
-  {
-   "addr": "0x40079118",
-   "stock": "41f9401a9a40",
-   "op": "keep2",
-   "target": "digipoly_names"
-  },
-  {
-   "addr": "0x4007912c",
-   "stock": "7203",
-   "op": "bytes",
-   "new": "7204",
-   "kind": "code"
-  },
-  {
-   "addr": "0x40079138",
-   "stock": "0680401a9a44",
-   "op": "keep2",
-   "target": "digipoly_names4"
-  },
-  {
-   "addr": "0x4002a76e",
-   "stock": "48780006",
-   "op": "bytes",
-   "new": "48780004",
-   "kind": "code"
-  },
-  {
-   "addr": "0x4002a4ca",
-   "stock": "7204",
-   "op": "bytes",
-   "new": "7205",
-   "kind": "code"
-  },
-  {
-   "addr": "0x4007a2d0",
-   "stock": "7405",
-   "op": "bytes",
-   "new": "7406",
-   "kind": "code"
-  },
-  {
-   "addr": "0x40029e80",
-   "stock": "7203",
-   "op": "bytes",
-   "new": "7204",
-   "kind": "code"
-  },
-  {
-   "addr": "0x40029e8a",
-   "stock": "41f9401c2e0c",
-   "op": "keep2",
-   "target": "digipoly_icon_tab"
-  },
-  {
-   "addr": "0x40029f60",
-   "stock": "4cd7001c4fef000c4e75",
-   "op": "jmp",
-   "target": "digipoly_icon"
-  },
   {
    "addr": "0x4006f7ea",
    "stock": "254d0044200a",
@@ -195,6 +79,21 @@
    "target": "digipoly_trigenc_thunk"
   }
  ],
+ "contribute": [
+  {
+   "to": "core_machines",
+   "order": 40,
+   "data": "00000000",
+   "relocs": [
+    [
+     0,
+     "abs32",
+     "sym:digipoly_machine",
+     0
+    ]
+   ]
+  }
+ ],
  "subscribe": [
   {
    "event": "ev_settings",
@@ -207,15 +106,9 @@
    "order": 30
   }
  ],
- "requires": [
-  "core"
- ],
- "conflicts": [
-  "dt8poly"
- ],
  "resources": {
   "names": [
-   "machine:4 POLY",
+   "machine:6",
    "settings:POLY",
    "sound:slot 52 (POLY voice pool)"
   ]

@@ -190,7 +190,7 @@ def spin(m, pc, *args, **kw):
         elif k == "machines":
             m_ = [uc.mem_read(kit + 0x9e + i * 0xa2, 1)[0] for i in range(8)]
             log.append("machines: %s" % m_)
-            if m_[0] != 4:
+            if m_[0] != 6:                      # POLY: machine 6 (digipoly 2.0)
                 fails.append("track 1 is not POLY")
         elif k == "level":
             state.setdefault("lev", []).append((act[1], list(uc.mem_read(kit + 0x10, 8))[0]))

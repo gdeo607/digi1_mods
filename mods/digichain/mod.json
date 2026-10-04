@@ -1,6 +1,6 @@
 {
  "id": "digichain",
- "version": "1.3",
+ "version": "1.4",
  "title": "digichain",
  "category": "Framework",
  "author": "gdeo607",
@@ -39,7 +39,8 @@
   "digimono_layout",
   "digimono_val_text",
   "digimono_knob_gfx",
-  "digimono_ui_rec"
+  "digimono_ui_rec",
+  "digipoly_layout"
  ],
  "sites": [
   {
