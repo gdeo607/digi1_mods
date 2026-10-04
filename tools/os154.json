@@ -137,6 +137,22 @@
    "how": "window",
    "new": "0x40044ad2"
   },
+  "0x40060b8e": {
+   "how": "near 0x40060b82",
+   "new": "0x40060b8e"
+  },
+  "0x40060b94": {
+   "how": "window",
+   "new": "0x40060b94"
+  },
+  "0x40060baa": {
+   "how": "window",
+   "new": "0x40060baa"
+  },
+  "0x40065336": {
+   "how": "window",
+   "new": "0x40065336"
+  },
   "0x40065794": {
    "how": "window",
    "new": "0x40065794"
@@ -165,6 +181,18 @@
    "how": "window",
    "new": "0x40065de6"
   },
+  "0x40065dec": {
+   "how": "window",
+   "new": "0x40065dec"
+  },
+  "0x40065e5e": {
+   "how": "window",
+   "new": "0x40065e5e"
+  },
+  "0x40065e64": {
+   "how": "window",
+   "new": "0x40065e64"
+  },
   "0x40065e68": {
    "how": "window",
    "new": "0x40065e68"
@@ -188,6 +216,22 @@
   "0x4007227c": {
    "how": "window",
    "new": "0x4007227c"
+  },
+  "0x40072844": {
+   "how": "window",
+   "new": "0x40072844"
+  },
+  "0x40073304": {
+   "how": "window",
+   "new": "0x40073304"
+  },
+  "0x40073412": {
+   "how": "window",
+   "new": "0x40073412"
+  },
+  "0x40075184": {
+   "how": "window",
+   "new": "0x40075184"
   },
   "0x40076b3c": {
    "how": "window",
@@ -237,6 +281,14 @@
    "how": "window",
    "new": "0x40077fc8"
   },
+  "0x400780ba": {
+   "how": "window",
+   "new": "0x400780ba"
+  },
+  "0x400780c4": {
+   "how": "window",
+   "new": "0x400780c4"
+  },
   "0x40078150": {
    "how": "window",
    "new": "0x40078150"
@@ -248,6 +300,10 @@
   "0x40078f12": {
    "how": "window",
    "new": "0x40078f12"
+  },
+  "0x40079a60": {
+   "how": "window",
+   "new": "0x40079a60"
   },
   "0x40095aec": {
    "how": "window",
@@ -261,9 +317,17 @@
    "how": "window",
    "new": "0x400a44d0"
   },
+  "0x400a437a": {
+   "how": "window",
+   "new": "0x400a44d6"
+  },
   "0x400a43f0": {
    "how": "window",
    "new": "0x400a454c"
+  },
+  "0x400a43f6": {
+   "how": "window",
+   "new": "0x400a4552"
   },
   "0x400aa8e2": {
    "how": "window",
@@ -397,6 +461,10 @@
    "how": "window",
    "new": "0x40151eea"
   },
+  "0x401539b2": {
+   "how": "window",
+   "new": "0x40153bda"
+  },
   "0x4017ac20": {
    "how": "window",
    "new": "0x4017af20"
@@ -441,9 +509,29 @@
    "how": "near 0x401846ba",
    "new": "0x401849bc"
   },
+  "0x4019b1c0": {
+   "how": "window",
+   "new": "0x4019b4c0"
+  },
   "0x401a9d9c": {
    "how": "window",
    "new": "0x401aa09c"
+  },
+  "0x401a9dc4": {
+   "how": "near 0x401a9dc2",
+   "new": "0x401aa0c4"
+  },
+  "0x401a9dcc": {
+   "how": "near 0x401a9dc4",
+   "new": "0x401aa0cc"
+  },
+  "0x401aa3b4": {
+   "how": "window",
+   "new": "0x401aa6b4"
+  },
+  "0x401aa45c": {
+   "how": "window",
+   "new": "0x401aa75c"
   },
   "0x401b3748": {
    "how": "near 0x401b3740",
@@ -500,6 +588,10 @@
   "0x401b7734": {
    "how": "window",
    "new": "0x401b7ab4"
+  },
+  "0x401ccabe": {
+   "how": "window",
+   "new": "0x401cce3e"
   },
   "0x401d09ca": {
    "how": "window",

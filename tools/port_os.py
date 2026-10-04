@@ -21,6 +21,10 @@ address is found one of four ways, recorded with it:
 both releases (OS154, from mod.json's ports), and writes each mod.json's "ports": {"1.54":
 ...} with every site at its new address and its stock bytes read from the new image. It refuses an address
 that `map` did not find, so nothing is guessed. The mods' 1.53 builds are the same as before, byte for byte.
+
+A mod can also be named by its directory (--mods out/dev/tools/digisophie): the mods fetched from other
+projects without a 1.54 port of their own (SOPHIE, DigiFilter) are mapped that way, and tools/dev.sh
+applies the port to the copy it builds, never to the fetched checkout.
 """
 import argparse
 import collections
@@ -37,11 +41,20 @@ LIT = re.compile(r'0x(4[0-3][0-9a-fA-F]{6})([uUlL]*)\b')     # C suffixes (0x401
 NAMED = re.compile(r'F_([0-9a-f]{8})\b')
 
 
+def moddir(m):
+    """a mod of this repo by name (mods/<name>), or any mod by its directory"""
+    return m if os.path.isdir(m) else os.path.join(ROOT, 'mods', m)
+
+
+def label(m):
+    return os.path.basename(os.path.normpath(m))
+
+
 def sources(m):
-    d = json.load(open(os.path.join(ROOT, 'mods', m, 'mod.json')))
+    d = json.load(open(os.path.join(moddir(m), 'mod.json')))
     out = []
     for s in d['sources']:
-        p = os.path.join(ROOT, 'mods', m, s)
+        p = os.path.join(moddir(m), s)
         out.append(p if os.path.exists(p) else os.path.join(ROOT, 'src', s))
     return d, out
 
@@ -175,8 +188,8 @@ def cmd_map(a):
     want = set()
     per = {}
     for m in a.mods:
-        per[m] = addresses(m)
-        want |= per[m]
+        per[label(m)] = addresses(m)
+        want |= per[label(m)]
     if a.extra:
         per['(tests)'] = {int(x, 16) for x in a.extra}
         want |= per['(tests)']
@@ -288,9 +301,20 @@ def rewrite(path, moved):
     return len(used)
 
 
+def moved_to(stock, full):
+    """stock bytes with each absolute address that map found put at its new place"""
+    w = bytearray(stock)
+    for i in range(0, len(w) - 3, 2):
+        v = int.from_bytes(stock[i:i + 4], 'big')
+        if full.get(v):
+            w[i:i + 4] = full[v].to_bytes(4, 'big')
+    return bytes(w)
+
+
 def port_sites(d, mp, new_img):
     """the mod's sites at their new addresses, stock bytes read from the new image and checked: the same
-    instruction (or data), only its absolute addresses may differ"""
+    instruction (or data), only its absolute addresses may differ (to where map found them, when it did:
+    an opcode such as lea's 41f9 reads like an address too)"""
     out = []
     for s in d['sites']:
         a = int(s['addr'], 16)
@@ -298,7 +322,8 @@ def port_sites(d, mp, new_img):
         stock = bytes.fromhex(s['stock'])
         got = new_img[n - B:n - B + len(stock)]
         mk = Mapper(stock, got)
-        if mk._masked(stock, 0, len(stock)) != mk._masked(got, 0, len(got)):
+        if (mk._masked(stock, 0, len(stock)) != mk._masked(got, 0, len(got))
+                and moved_to(stock, mp) != got):
             raise SystemExit('site 0x%08x: the new image has %s at 0x%08x, not %s' % (a, got.hex(), n, stock.hex()))
         t = dict(s)
         t['addr'] = '0x%08x' % n
@@ -317,7 +342,7 @@ def cmd_apply(a):
         want = addresses(m)
         miss = [x for x in want if full.get(x) is None]
         if miss:
-            raise SystemExit('%s: not mapped: %s (run map; port these by hand)' % (m, ' '.join('0x%08x' % x for x in miss)))
+            raise SystemExit('%s: not mapped: %s (run map; port these by hand)' % (label(m), ' '.join('0x%08x' % x for x in miss)))
         moved = {x: full[x] for x in want if full[x] != x}
         d, files = sources(m)
         n = sum(rewrite(f, moved) for f in files)
@@ -327,10 +352,10 @@ def cmd_apply(a):
         d.setdefault('device', 'digitakt-mk1')
         d.setdefault('os', doc['from'])           # without it the SDK builds the top level for any file
         d['ports'] = {doc['to']: port}
-        p = os.path.join(ROOT, 'mods', m, 'mod.json')
+        p = os.path.join(moddir(m), 'mod.json')
         json.dump(d, open(p, 'w'), indent=1)
         open(p, 'a').write('\n')
-        print('%-11s %d moved addresses named in %d places; %d sites ported' % (m, len(moved), n, len(port['sites'])))
+        print('%-11s %d moved addresses named in %d places; %d sites ported' % (label(m), len(moved), n, len(port['sites'])))
     return 0
 
 

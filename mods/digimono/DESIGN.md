@@ -164,7 +164,9 @@ What each parameter does, as this engine reads the manual:
   - `0x400a4374`, the list line, "MSAW:Unison Level";
   - `0x400a43f0`, the same line when group and long name are too wide for it: the short name, "MNOI:ST";
   - `0x40065de6` and `0x40065e68`, the DEST box's two lines, "MSAW" over "UNIL".
-  Other tracks, and destinations off the SRC page, keep the firmware's names.
+  Other tracks, and destinations off the SRC page, keep the firmware's names. From 0.13a the first three
+  are digichain's (1.6), which SOPHIE's LFO names share, and digichain calls these handlers there; the
+  fourth stays Digi Mono's own (mods/digichain/README.md).
 - **Defaults:** `ev_tick` watches the UI kit for a switch.
 
 ## Verified

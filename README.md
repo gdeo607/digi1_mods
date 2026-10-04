@@ -19,8 +19,9 @@ your OS file from your own official one.
 - **Digi Utilities**: waveform, spectrum and X-Y scope, a tuner and track activity, on a held "...".
 - **Digi EQ**: a 4-band master EQ on every output, main outs, headphones and USB.
 - **digichain**: SOPHIE, NEIGHBOR, DIGISLICER, Digi Mono and Digi Poly in one build.
-- **Ready to use:** the `.elemod` files are in [elemods/](elemods/), built with the latest elekloader: add them
-  in elekloader with your own official OS 1.53 or 1.54 file and build (the `-os1.54` files are for 1.54).
+- **Ready to use:** the `.elemod` files of every mod, the other authors' too, are in [elemods/](elemods/),
+  built with the latest elekloader: add them in elekloader with your own official OS 1.53 or 1.54 file and
+  build (the `-os1.54` files are for 1.54).
 
 <table>
 <tr><td align="center"><img src="docs/img/digimono_list.png" width="384" alt="FUNC+SRC list with the Digi Mono machines and their icons"><br><sub>Digi Mono: the machines, with their icons</sub></td>
@@ -35,7 +36,7 @@ your OS file from your own official one.
 
 | mod | what it adds | version | hardware |
 |---|---|---|---|
-| [Digi Mono](#digi-mono) (`digimono`) | seven synth machines: MONO SIN, NOISE, SAW, PULSE, ENS, VO, POLY SIN | 0.13 | not yet tested |
+| [Digi Mono](#digi-mono) (`digimono`) | seven synth machines: MONO SIN, NOISE, SAW, PULSE, ENS, VO, POLY SIN | 0.13a | not yet tested |
 | [Digi Matrix](#digi-matrix) (`digimatrix`) | an LFO modulation matrix, 8 cross-track slots | 1.0b | not yet tested |
 | [Digi Utilities](#digi-utilities) (`digiutils`) | waveform, spectrum and X-Y pages, tuner, track activity | 1.9a | stand-alone 1.5d confirmed |
 | [Digi EQ](#digi-eq) (`digieq`) | a 4-band master EQ on every output | 1.0b | not yet tested |
@@ -49,8 +50,8 @@ DIGISLICER (88 KB), which needs a few left out: the mods share 128 KB.
 
 **OS 1.54:** every mod here is built for both 1.53 and 1.54, and on 1.54 they pass the same emulator tests
 (Digi Mono, Digi Poly, Digi Matrix, Digi EQ, Digi Utilities' pages, NEIGHBOR through digichain). Of the other
-mods, digihealth, NEIGHBOR and DIGISLICER have 1.54 versions; SOPHIE and DigiFilter do not yet, so on 1.54
-they are left out until their authors port them. `tools/port_os.py` did the port (docs/DEVELOPING.md).
+mods, digihealth, NEIGHBOR and DIGISLICER have 1.54 versions; SOPHIE and DigiFilter do not yet, so
+`tools/dev.sh` ports the copy it builds of them with `tools/port_os.py`, which did ours (docs/DEVELOPING.md).
 
 **Getting them:** download them from [elemods/](elemods/) and add them in elekloader (it brings the core
 mod). Or build them yourself: `tools/dev.sh mods` fetches elekloader and the other mods and builds every mod
@@ -63,7 +64,7 @@ pattern is renamed "DEMO". Only screenshots are published here - no firmware, an
 
 ## Digi Mono
 
-**Digi Mono** (elekloader mod `digimono`, 0.13, needs core 2.1 and digichain) - seven synth machines after the Monomachine
+**Digi Mono** (elekloader mod `digimono`, 0.13a, needs core 2.1 and digichain 1.6) - seven synth machines after the Monomachine
 - **Seven new machines in the FUNC+SRC list**, each with its own icon: **MONO SIN**, **MONO NOISE** (sample and
   hold, red noise), **MONO SAW** (unison, two sub-oscillators), **MONO PULSE** (PWM, unison, subs), **MONO ENS**
   (four oscillators at set intervals, saw to pulse, chorus), **MONO VO** (a formant voice: vowel to vowel,
@@ -229,9 +230,9 @@ python3 tools/build_elemods.py --stock <official OS 1.53 .syx> --elekloader <ele
 ```
 
 Then add them in elekloader's window (with its core mod), or on the command line:
-`python -m elekloader.patch --stock <official .syx> --mod core-2.1.elemod --mod digichain-1.5.elemod --mod digipoly-2.0.elemod --mod digimatrix-1.0b.elemod --mod digieq-1.0b.elemod --out custom.syx --version 2.0e`.
+`python -m elekloader.patch --stock <official .syx> --mod core-2.1.elemod --mod digichain-1.6.elemod --mod digipoly-2.0.elemod --mod digimatrix-1.0b.elemod --mod digieq-1.0b.elemod --out custom.syx --version 2.0e`.
 Add `--mod digiutils-1.9a.elemod` for the "..." utility pages.
-The mods need m68k binutils to build. This repo's own `.elemod` files are also in [elemods/](elemods/) (`tools/dev.sh publish`): they hold the mods' code, and refer to your own official file for anything from the firmware.
+The mods need m68k binutils to build. Every mod's `.elemod` file is also in [elemods/](elemods/) (`tools/dev.sh publish`): they hold the mods' code, and refer to your own official file for anything from the firmware. The other authors' are built from their repositories (elemods/README.md names the commits; their licenses are in elemods/licenses/).
 
 The master EQ is in the elekloader build only; since 1.0a it is its own mod, `digieq`
 ([docs/USAGE.md](docs/USAGE.md)).
@@ -261,7 +262,7 @@ instruction later because FAST AUDIO owns the output-write call (see docs/TECHNI
 | `bin/` | the assembled hooks (committed; `make` rebuilds them) |
 | `tools/build.py` | official .syx -> patched .syx, fully verified |
 | `tools/patch_section3.py` | applies all patches to the MAIN OS section |
-| `elemods/` | this repo's mods as ready-made `.elemod` files, for elekloader |
+| `elemods/` | every mod as a ready-made `.elemod` file, for elekloader, with the other authors' licenses |
 | `mods/`, `tools/build_elemods.py` | the elekloader mods (mod.json + mod-only sources; shared code from `src/`) |
 | `tests/` | emulator tests: the real firmware code runs under unicorn with the patches (`tests/run_tests.sh <official s3> <patched s3> scope|spectrum`) |
 | `docs/` | install/revert, usage, technical notes (reverse-engineering log) |

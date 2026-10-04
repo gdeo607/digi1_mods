@@ -16,7 +16,7 @@
 #   tools/dev.sh update                    pull the latest of every mod and tool (instead of the pinned ones)
 #   tools/dev.sh elemods                   every mod as an .elemod in out/dev/elemods, for the elekloader app,
 #                                          with COMPATIBILITY.txt: which pairs combine
-#   tools/dev.sh publish                   `mods`, then this repo's own .elemod files into elemods/ (committed:
+#   tools/dev.sh publish                   `mods`, then every .elemod file into elemods/ (committed:
 #                                          they hold no firmware bytes), with elemods/README.md; with
 #                                          STOCK154=your OS 1.54 file, the -os1.54 ones too
 #
@@ -135,11 +135,29 @@ cmd_test() {
     grep -q "ALL EMULATOR CHECKS PASSED" "$LOG/emu_mono.log" || die "emulator checks failed: $LOG/emu_mono.log"
 }
 
+needs_port154() {   # needs_port154 DIR: STOCK is OS 1.54, and DIR's mod.json is for 1.53 with no 1.54 port
+    [[ -f $1/mod.json ]] || return 1
+    PYTHONPATH=$TOOLS/elekloader python3 - "$STOCK" "$1/mod.json" <<'EOF'
+import hashlib, json, sys
+try:
+    from elekloader.devices import identify
+    version = identify(hashlib.sha256(open(sys.argv[1], 'rb').read()).hexdigest())[1].version
+except Exception:                         # an elekloader that knows only 1.53
+    sys.exit(1)
+d = json.load(open(sys.argv[2]))
+sys.exit(0 if version == '1.54' and d.get('os') == '1.53' and '1.54' not in d.get('ports', {}) else 1)
+EOF
+}
+
 build_one() {   # build_one NAME SOURCEDIR -> echo the .elemod
     local stage=$BUILD/mods/$1
     rm -rf "$stage"
-    cp -r "$2" "$stage"
+    mkdir -p "$stage" && cp -r "$2/." "$stage/"   # the contents: a symlinked checkout is copied, not linked
     rm -rf "$stage/.git" "$stage/out"
+    if needs_port154 "$stage"; then   # a fetched mod with no 1.54 port of its own: port this copy
+        python3 "$ROOT/tools/port_os.py" apply --new "$STOCK" --elekloader "$TOOLS/elekloader" --mods "$stage" \
+            > "$LOG/port-$1.log" 2>&1 || die "$1 could not be ported to OS 1.54: $LOG/port-$1.log"
+    fi
     case $1 in
         digisophie|digineighbor|digislicer)   # their shared sites go to digichain (tools/chain_patch.py)
             if [[ ${CHAIN:-1} != 0 ]]; then
@@ -348,10 +366,22 @@ cmd_elemods() {   # every mod as an .elemod, in one folder, with which pairs com
     say "done: tools/dev.sh loader opens elekloader with them (or add them to the elekloader app; it has core built in)"
 }
 
-# this repo's own mods, published in elemods/ (the others come from their authors' repositories)
-PUBLISHED=(digimono digichain digiutils digimatrix digieq digipoly)
+# every mod, published in elemods/: this repo's own, and the others built from their authors' repositories
+PUBLISHED=("${ELEMOD_ALL[@]}")
 
-cmd_publish() {   # the latest elekloader and mods, then ours into elemods/ with a README
+# where each fetched mod comes from: "repository|what this build changes"
+THEIRS=(digisophie digislicer digineighbor digifilter digihealth)
+origin() {
+    case $1 in
+        digisophie) echo "$DIGISOPHIE_URL|the sites digichain owns moved to it (tools/chain_patch.py); OS 1.54: ported by tools/port_os.py" ;;
+        digislicer) echo "$DIGISLICER_URL|the sites digichain owns moved to it (tools/chain_patch.py)" ;;
+        digineighbor) echo "$DIGINEIGHBOR_URL|the sites digichain owns moved to it (tools/chain_patch.py)" ;;
+        digifilter) echo "$DIGIFILTER_URL|OS 1.54: ported by tools/port_os.py" ;;
+        digihealth) echo "$DIGIHEALTH_URL|none" ;;
+    esac
+}
+
+cmd_publish() {   # the latest elekloader and mods, then all of them into elemods/ with a README
     cmd_mods
     local dst=$ROOT/elemods m f ver core elk
     mkdir -p "$dst"
@@ -372,6 +402,10 @@ cmd_publish() {   # the latest elekloader and mods, then ours into elemods/ with
             cp "$f" "$dst/"
         done
     fi
+    rm -rf "$dst/licenses"; mkdir -p "$dst/licenses"
+    for m in "${THEIRS[@]}"; do
+        cp "$(ls "$TOOLS/$m"/LICENSE* | head -1)" "$dst/licenses/$m-LICENSE"
+    done
     core=$(basename "$(ls "$DEV/elemods"/core-*.elemod)" .elemod)
     elk=$(git -C "$TOOLS/elekloader" log -1 --format='%h, %cs')
     {
@@ -380,7 +414,7 @@ cmd_publish() {   # the latest elekloader and mods, then ours into elemods/ with
         echo "Ready to add to [elekloader](https://github.com/irpina/elekloader): open it, choose your own official"
         echo "Digitakt mk1 **OS 1.53** or **OS 1.54** file, **Install** these, tick the ones you want and build. Files"
         echo "ending \`-os1.54\` are for OS 1.54, the others for 1.53: elekloader lists the ones that fit your file."
-        echo "It brings the core mod (\`${core}\`); Digi Mono and Digi Poly tick digichain with them."
+        echo "It brings the core mod (\`${core}\`); Digi Mono, Digi Poly and the \`-chain\` builds tick digichain with them."
         echo
         echo "| file | sha256 |"
         echo "|---|---|"
@@ -389,10 +423,26 @@ cmd_publish() {   # the latest elekloader and mods, then ours into elemods/ with
         done
         echo
         echo "Built with elekloader $elk (core \`${core#core-}\`) by \`tools/dev.sh publish\`. Every pair combines with"
-        echo "core (\`elekloader --check\`); so do they with the mods kept up to date by \`tools/dev.sh mods\`: digihealth,"
-        echo "DigiFilter and the \`-chain\` builds of SOPHIE, NEIGHBOR and DIGISLICER. An \`.elemod\` holds the mod's own"
-        echo "code: where it repeats firmware bytes, elekloader stores a reference to your own file instead, and the few"
-        echo "original bytes at each place it patches are there only to check your file. No firmware is stored here."
+        echo "core (\`elekloader --check\`). Several big mods together can need more than the 128 KB of mod RAM:"
+        echo "elekloader says so when you build. An \`.elemod\` holds the mod's own code: where it repeats firmware"
+        echo "bytes, elekloader stores a reference to your own file instead, and the few original bytes at each place"
+        echo "it patches are there only to check your file. No firmware is stored here."
+        echo
+        echo "## The other authors' mods"
+        echo
+        echo "These are built here, unchanged in their code, from their authors' repositories at the commit named;"
+        echo "their licenses are in \`licenses/\`, and the source of each build is that commit plus what the last"
+        echo "column says (the tools named are in this repository). digi1_mods' own mods are under its license."
+        echo
+        echo "| mod | license | source | changed for this build |"
+        echo "|---|---|---|---|"
+        for m in "${THEIRS[@]}"; do
+            local o url what lic rev
+            o=$(origin "$m"); url=${o%%|*}; what=${o#*|}
+            lic=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('license', '?'))" "$TOOLS/$m/mod.json")
+            rev=$(git -C "$TOOLS/$m" rev-parse HEAD)
+            echo "| $m | $lic ([text](licenses/$m-LICENSE)) | [${url#https://github.com/}@${rev:0:7}]($url/tree/$rev) | $what |"
+        done
         echo
     } > "$dst/README.md"
     say "published to $dst:"

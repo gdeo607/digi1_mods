@@ -17,12 +17,18 @@
 
 | ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ----
         .ifdef  OS154
+        .equ    .LF_400a437a, 0x400a44d6
+        .equ    .LF_400a43f6, 0x400a4552
         .equ    .LF_4017eb58, 0x4017ee58
         .equ    .LF_40181330, 0x40181630
+        .equ    .LF_401a9d9c, 0x401aa09c
         .equ    .LF_4199e444, 0x4199f444
         .else
+        .equ    .LF_400a437a, 0x400a437a
+        .equ    .LF_400a43f6, 0x400a43f6
         .equ    .LF_4017eb58, 0x4017eb58
         .equ    .LF_40181330, 0x40181330
+        .equ    .LF_401a9d9c, 0x401a9d9c
         .equ    .LF_4199e444, 0x4199e444
         .endif
 | ---- end of the moved addresses ----
@@ -100,6 +106,34 @@ digichain_page_m:   .skip 4
         movea.l %d0, %a1
         jmp     (%a1)
 3:      jmp     0x40078f0c
+        .endm
+
+| jmp to \fn when the page's machine is \m and \fn is in the build, every register kept; else on to
+| the next line (the condition codes are not kept). For the LFO page's sites, inside functions.
+        .macro  KROUTE m, fn
+        move.l  %d0, -(%sp)
+        moveq   #\m, %d0
+        cmp.l   digichain_page_m, %d0
+        bne.s   1f
+        move.l  #\fn, %d0
+        cmpi.l  #core_zero, %d0
+        beq.s   1f
+        move.l  (%sp)+, %d0
+        jmp     \fn
+1:      move.l  (%sp)+, %d0
+        .endm
+
+| jsr \fn when it is in the build (it stands for the replaced instructions), then jmp \back; else on to
+| the next line. Every register kept.
+        .macro  KCALL fn, back
+        move.l  %d0, -(%sp)
+        move.l  #\fn, %d0
+        cmpi.l  #core_zero, %d0
+        beq.s   1f
+        move.l  (%sp)+, %d0
+        jsr     \fn
+        jmp     \back
+1:      move.l  (%sp)+, %d0
         .endm
 
 | 0x400657cc(machine): the SRC page's layout (was: moveq #3,d1 ; move.l 4(sp),d0), by jmp.
@@ -271,3 +305,53 @@ digichain_mtype:
         jmp     0x40029e80              | 0-3: the stock types
 1:      addq.l  #5, %d0
         rts
+
+| The LFO page's DEST names (the list, its pop-up and the DEST box), which SOPHIE (1.1.13) and Digi Mono
+| (0.12) each name for their own machine. SOPHIE's handlers, by jmp, act when its own page flag says
+| SOPHIE; a chained SOPHIE's flag is set only by its own layout, so it would stay SOPHIE after it: here
+| the page's machine (digichain_page_m) picks them instead. Digi Mono's, by jsr, stand for the replaced
+| instructions and give the stock names on any other machine. Each site was (and its handler is entered
+| as from) the instructions in brackets, by jmp.
+|
+| 0x40060b8e, the destination's label (lea 0x401a9d9c,a0): SOPHIE's only.
+        .globl  digichain_lfo_label
+digichain_lfo_label:
+        KROUTE  M_SOPH, ds_lfo_label
+        lea     .LF_401a9d9c, %a0
+        jmp     0x40060b94
+
+| 0x400a4374, a list row (move.l 0x28(a3,d0.l),-(sp) ; move.l d6,-(sp)).
+        .globl  digichain_lfo_list
+digichain_lfo_list:
+        KROUTE  M_SOPH, ds_lfo_popup_name
+        KCALL   digimono_lfo_list, .LF_400a437a
+        move.l  0x28(%a3,%d0.l), -(%sp)
+        move.l  %d6, -(%sp)
+        jmp     .LF_400a437a
+
+| 0x400a43f0, a list row too wide for the long name (move.l 0x30(a3,d2.l),-(sp) ; move.l d6,-(sp)).
+        .globl  digichain_lfo_lshort
+digichain_lfo_lshort:
+        KROUTE  M_SOPH, ds_lfo_popup_fallback
+        KCALL   digimono_lfo_lshort, .LF_400a43f6
+        move.l  0x30(%a3,%d2.l), -(%sp)
+        move.l  %d6, -(%sp)
+        jmp     .LF_400a43f6
+
+| 0x40065de6, the DEST box's top line (move.l 0x2c(a0,d0.l),-(sp) ; move.l d2,-(sp)).
+        .globl  digichain_lfo_bgrp
+digichain_lfo_bgrp:
+        KROUTE  M_SOPH, ds_lfo_overview_group
+        KCALL   digimono_lfo_bgrp, 0x40065dec
+        move.l  0x2c(%a0,%d0.l), -(%sp)
+        move.l  %d2, -(%sp)
+        jmp     0x40065dec
+
+| 0x40065e5e, the DEST box's bottom line (moveq #52,d0 ; muls.l d0,d3): SOPHIE's only (Digi Mono's is
+| the next instruction but one, 0x40065e68, its own site).
+        .globl  digichain_lfo_bname
+digichain_lfo_bname:
+        KROUTE  M_SOPH, ds_lfo_overview_name
+        moveq   #52, %d0
+        muls.l  %d0, %d3
+        jmp     0x40065e64

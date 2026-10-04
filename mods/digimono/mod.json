@@ -1,6 +1,6 @@
 {
  "id": "digimono",
- "version": "0.13",
+ "version": "0.13a",
  "title": "Digi Mono",
  "category": "Sound",
  "author": "gdeo607",
@@ -79,24 +79,6 @@
    "stock": "0c8200000087",
    "op": "jsr",
    "target": "digimono_samp_d2"
-  },
-  {
-   "addr": "0x400a4374",
-   "stock": "2f3308282f06",
-   "op": "jsr",
-   "target": "digimono_lfo_list"
-  },
-  {
-   "addr": "0x400a43f0",
-   "stock": "2f3328302f06",
-   "op": "jsr",
-   "target": "digimono_lfo_lshort"
-  },
-  {
-   "addr": "0x40065de6",
-   "stock": "2f30082c2f02",
-   "op": "jsr",
-   "target": "digimono_lfo_bgrp"
   },
   {
    "addr": "0x40065e68",
@@ -290,24 +272,6 @@
      "stock": "0c8200000087",
      "op": "jsr",
      "target": "digimono_samp_d2"
-    },
-    {
-     "addr": "0x400a44d0",
-     "stock": "2f3308282f06",
-     "op": "jsr",
-     "target": "digimono_lfo_list"
-    },
-    {
-     "addr": "0x400a454c",
-     "stock": "2f3328302f06",
-     "op": "jsr",
-     "target": "digimono_lfo_lshort"
-    },
-    {
-     "addr": "0x40065de6",
-     "stock": "2f30082c2f02",
-     "op": "jsr",
-     "target": "digimono_lfo_bgrp"
     },
     {
      "addr": "0x40065e68",

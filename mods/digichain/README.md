@@ -46,7 +46,7 @@ Checked in digiemu (`tests/digiemu_chain.py`): NEIGHBOR's page and value texts a
 shifter (from a C4 saw: 262 Hz at TUNE 0, 368 at +6, 522 at +12, 127 at -12); a new NEIGHBOR track on track 2
 takes track 1 and plays with nothing set; SLOT stops at 8; Digi Mono's defaults after the menu passes it.
 
-POLY (Digi Poly 2.0, machine 6, 1.4) gets ONESHOT's page layout through it. Digi Mono (machines 20..25, 1.1) gets its page's layout, knob graphics, UI records and knob values through
+POLY (Digi Poly 2.0, machine 6, 1.4) gets ONESHOT's page layout through it. Digi Mono (machines 20..29 since 1.5) gets its page's layout, knob graphics, UI records and knob values through
 it too; Digi Mono requires digichain.
 
 The handlers are the mods' own code, unchanged. `tools/chain_patch.py` moves their sites for those
@@ -77,6 +77,30 @@ Not yet on a unit.
 
 From 1.5 the Digi Mono routes take machines 20..29: Digi Mono 0.13's POLY SIN is 26, and its next machines
 need no new digichain. 1.4 (Digi Poly 2.0's POLY route) is on another branch; the two touch different lines.
+
+## The LFO page's names (1.6)
+
+SOPHIE 1.1.13 names its parameters on the LFO page (the DEST list, its pop-up and the DEST box), and Digi
+Mono 0.12 names its knobs there, at three of the same five places. digichain 1.6 owns all five:
+
+| place | was | goes to |
+|---|---|---|
+| `0x40060b8e` | the destination's label | SOPHIE |
+| `0x400a4374` | a DEST list row | SOPHIE, else Digi Mono |
+| `0x400a43f0` | a list row too wide for the long name | SOPHIE, else Digi Mono |
+| `0x40065de6` | the DEST box's top line | SOPHIE, else Digi Mono |
+| `0x40065e5e` | the DEST box's bottom line | SOPHIE |
+
+SOPHIE's handlers act when the page's machine is SOPHIE. digichain decides this from the page's machine,
+not from SOPHIE's own page flag, because a chained SOPHIE's flag is set only by its own layout and so stays
+SOPHIE afterwards. Digi Mono's handlers stand for the replaced instructions and give the stock names on any
+other machine; so every other track keeps the firmware's names. Digi Mono's fourth place (`0x40065e68`, the
+box's bottom line) is its own. `tools/chain_patch.py` moves SOPHIE's five when it has them, and Digi Mono
+0.13a's `mod.json` leaves its three to digichain.
+
+Checked in digiemu on OS 1.54, with core, digichain, the chained SOPHIE and Digi Mono: the DEST list and
+box name MONO SAW's knobs ("MSAW:Unison Level", "MSAW" over "SUB2"), SOPHIE's ("SOPH:Model".."SOPH:Color"),
+and ONESHOT's as stock ("SAMP:Play Mode").
 
 ## Memory
 

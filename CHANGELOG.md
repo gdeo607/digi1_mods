@@ -3,6 +3,25 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Every mod for OS 1.54, as .elemod files; Digi Mono 0.13a, digichain 1.6 (HW: not yet)
+- **elemods/ holds every mod for OS 1.53 and 1.54**, the other authors' too: SOPHIE 1.1.13 (chained),
+  DIGISLICER 2.1 (chained), NEIGHBOR 0.6 (chained), DigiFilter 1.0i and digihealth 1.0. They are built from
+  their repositories at the commits elemods/README.md names, with their licenses in elemods/licenses/.
+- **SOPHIE and DigiFilter for 1.54:** their repositories have no 1.54 port yet. tools/dev.sh ports the copy
+  it builds with tools/port_os.py: every address they name is found in 1.54 (tools/os154.json, 162 now). The
+  checkouts are never changed.
+- **SOPHIE with Digi Mono:** SOPHIE 1.1.13 names its parameters on the LFO page at three of the places Digi
+  Mono 0.12 does, so the two clashed (on 1.53 too). digichain 1.6 owns those places and SOPHIE's other two
+  LFO places, and sends each call to SOPHIE on its page, else to Digi Mono (stock names on other machines).
+  Digi Mono 0.13a is 0.13 with its three sites left to digichain (its code is the same), so it needs
+  digichain 1.6. Every pair of the eleven combines on both OS versions. Checked in digiemu on 1.54: the
+  LFO names of a MONO SAW, a SOPHIE and a ONESHOT track; all seven Digi Mono machines, bit for bit, with
+  SOPHIE in the build; SOPHIE plays with DigiFilter and digihealth.
+- **Fixed in tools/dev.sh:** a mod's folder that is a symlink was linked, not copied, into the build, so
+  the chaining and porting were written into the checkout itself. tools/port_os.py: a site whose
+  instruction holds a moved address (SOPHIE's `lea 0x401a9d9c`) is accepted when the address moved to
+  where `map` found it.
+
 ## Digi Mono 0.13 (HW: not yet)
 - New machine **POLY SIN** (machine id 26, after MONO VO in the FUNC+SRC list): MONO SIN three times in one
   voice, for chords on one track (one filter and amp envelope for all three):

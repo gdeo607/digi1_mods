@@ -50,6 +50,16 @@ MOVED = {
         '0x4000f5fc': ('45f940078f0c', 'keep2', 'dsl_prange_f'),
     },
 }
+# sites a mod's newer versions add, moved too when it has them (SOPHIE 1.1.13's LFO page names)
+OPTIONAL = {
+    'digisophie': {
+        '0x40060b8e': ('41f9401a9d9c', 'jmp', 'ds_lfo_label'),
+        '0x400a4374': ('2f3308282f06', 'jmp', 'ds_lfo_popup_name'),
+        '0x400a43f0': ('2f3328302f06', 'jmp', 'ds_lfo_popup_fallback'),
+        '0x40065de6': ('2f30082c2f02', 'jmp', 'ds_lfo_overview_group'),
+        '0x40065e5e': ('70344c003800', 'jmp', 'ds_lfo_overview_name'),
+    },
+}
 # the machine each mod's handlers act for, which digichain routes by (mods/digichain/chain.s)
 MACHINE = {'digisophie': 7, 'digineighbor': 4, 'digislicer': 5}
 
@@ -86,8 +96,10 @@ def patch(doc, moddir='.'):
     mid = doc.get('id')
     if mid not in MOVED:
         raise ValueError('not a mod digichain knows: %s' % mid)
-    want = MOVED[mid]
     sites = doc.get('sites', [])
+    have = {'0x%08x' % int(str(s.get('addr')), 16) for s in sites}
+    want = dict(MOVED[mid])
+    want.update({a: v for a, v in OPTIONAL.get(mid, {}).items() if a in have})
     found = {}
     for s in sites:
         a = '0x%08x' % int(str(s.get('addr')), 16)
@@ -147,7 +159,8 @@ def main():
     with open(path, 'w') as fh:
         json.dump(out, fh, indent=1)
         fh.write('\n')
-    print('chain_patch: %s %s: %d sites moved to digichain' % (out['id'], out['version'], len(MOVED[out['id']])))
+    print('chain_patch: %s %s: %d sites moved to digichain' % (out['id'], out['version'],
+                                                              len(doc['sites']) - len(out['sites'])))
 
 
 if __name__ == '__main__':

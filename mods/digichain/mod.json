@@ -1,6 +1,6 @@
 {
  "id": "digichain",
- "version": "1.5",
+ "version": "1.6",
  "title": "digichain",
  "category": "Framework",
  "author": "gdeo607",
@@ -40,7 +40,15 @@
   "digimono_val_text",
   "digimono_knob_gfx",
   "digimono_ui_rec",
-  "digipoly_layout"
+  "digipoly_layout",
+  "ds_lfo_label",
+  "ds_lfo_popup_name",
+  "ds_lfo_popup_fallback",
+  "ds_lfo_overview_group",
+  "ds_lfo_overview_name",
+  "digimono_lfo_list",
+  "digimono_lfo_lshort",
+  "digimono_lfo_bgrp"
  ],
  "sites": [
   {
@@ -120,6 +128,36 @@
    "stock": "4eb940029e80",
    "op": "keep2",
    "target": "digichain_mtype"
+  },
+  {
+   "addr": "0x40060b8e",
+   "stock": "41f9401a9d9c",
+   "op": "jmp",
+   "target": "digichain_lfo_label"
+  },
+  {
+   "addr": "0x400a4374",
+   "stock": "2f3308282f06",
+   "op": "jmp",
+   "target": "digichain_lfo_list"
+  },
+  {
+   "addr": "0x400a43f0",
+   "stock": "2f3328302f06",
+   "op": "jmp",
+   "target": "digichain_lfo_lshort"
+  },
+  {
+   "addr": "0x40065de6",
+   "stock": "2f30082c2f02",
+   "op": "jmp",
+   "target": "digichain_lfo_bgrp"
+  },
+  {
+   "addr": "0x40065e5e",
+   "stock": "70344c003800",
+   "op": "jmp",
+   "target": "digichain_lfo_bname"
   }
  ],
  "resources": {
@@ -214,6 +252,36 @@
      "stock": "4eb940029e80",
      "op": "keep2",
      "target": "digichain_mtype"
+    },
+    {
+     "addr": "0x40060b8e",
+     "stock": "41f9401aa09c",
+     "op": "jmp",
+     "target": "digichain_lfo_label"
+    },
+    {
+     "addr": "0x400a44d0",
+     "stock": "2f3308282f06",
+     "op": "jmp",
+     "target": "digichain_lfo_list"
+    },
+    {
+     "addr": "0x400a454c",
+     "stock": "2f3328302f06",
+     "op": "jmp",
+     "target": "digichain_lfo_lshort"
+    },
+    {
+     "addr": "0x40065de6",
+     "stock": "2f30082c2f02",
+     "op": "jmp",
+     "target": "digichain_lfo_bgrp"
+    },
+    {
+     "addr": "0x40065e5e",
+     "stock": "70344c003800",
+     "op": "jmp",
+     "target": "digichain_lfo_bname"
     }
    ],
    "defsym": {
