@@ -254,3 +254,96 @@ digimono_samp_ours:
         lea     12(%sp), %sp
         tst.l   %d1
         rts
+
+| ---------------- the LFO page: DEST's names (digimono_dest in digimono.c) ---------------------------
+| A destination's name comes from its parameter descriptor at 0x401a9d9c + 52 id. At each site below the
+| firmware pushes one or two of its fields as arguments; the jsr replaces those 6 bytes, the wrapper
+| leaves the same pushes on the stack (one slot under the return address is made for each), with
+| digimono_dest's answer in place of the field. Every register is kept.
+
+| 0x400a4374 (the DEST list, "SAMP:Play Mode"): move.l 0x28(a3,d0.l),-(sp) ; move.l d6,-(sp)
+| d0 = 52 id, a3 = 0x401a9d9c, d6 = the group's text; leaves [group][long name].
+        .globl  digimono_lfo_list
+digimono_lfo_list:
+        move.l  (%sp), -(%sp)                   | [ret][ret][ret]: two slots made
+        move.l  (%sp), -(%sp)
+        lea     -60(%sp), %sp
+        movem.l %d0-%d7/%a0-%a6, (%sp)
+        move.l  %d0, %d7                        | 52 id (d7 is kept for us by the C code)
+        move.l  0x28(%a3,%d0.l), -(%sp)
+        pea     1.w
+        move.l  %d7, -(%sp)
+        jsr     digimono_dest
+        lea     12(%sp), %sp
+        move.l  %d0, 68(%sp)                    | the long name, under the group
+        move.l  %d6, -(%sp)                     | fresh arguments: the callee may have written its own
+        clr.l   -(%sp)
+        move.l  %d7, -(%sp)
+        jsr     digimono_dest
+        lea     12(%sp), %sp
+        move.l  %d0, 64(%sp)                    | the group
+        movem.l (%sp), %d0-%d7/%a0-%a6
+        lea     60(%sp), %sp
+        rts
+
+| 0x400a43f0 (the same list line when "group:long name" is too wide for it, "SAMP:PLAY"):
+| move.l 0x30(a3,d2.l),-(sp) ; move.l d6,-(sp). d2 = 52 id; leaves [group][short name].
+        .globl  digimono_lfo_lshort
+digimono_lfo_lshort:
+        move.l  (%sp), -(%sp)
+        move.l  (%sp), -(%sp)
+        lea     -60(%sp), %sp
+        movem.l %d0-%d7/%a0-%a6, (%sp)
+        move.l  0x30(%a3,%d2.l), -(%sp)
+        pea     2.w
+        move.l  %d2, -(%sp)
+        jsr     digimono_dest
+        lea     12(%sp), %sp
+        move.l  %d0, 68(%sp)
+        move.l  %d6, -(%sp)
+        clr.l   -(%sp)
+        move.l  %d2, -(%sp)
+        jsr     digimono_dest
+        lea     12(%sp), %sp
+        move.l  %d0, 64(%sp)
+        movem.l (%sp), %d0-%d7/%a0-%a6
+        lea     60(%sp), %sp
+        rts
+
+| 0x40065de6 (the DEST box, top line): move.l 0x2c(a0,d0.l),-(sp) ; move.l d2,-(sp)
+| d0 = 52 id, a0 = 0x401a9d9c, d2 = the line's buffer; leaves [d2][group].
+        .globl  digimono_lfo_bgrp
+digimono_lfo_bgrp:
+        move.l  (%sp), -(%sp)
+        move.l  (%sp), -(%sp)
+        lea     -60(%sp), %sp
+        movem.l %d0-%d7/%a0-%a6, (%sp)
+        move.l  %d2, 64(%sp)
+        move.l  0x2c(%a0,%d0.l), -(%sp)
+        clr.l   -(%sp)
+        move.l  %d0, -(%sp)
+        jsr     digimono_dest
+        lea     12(%sp), %sp
+        move.l  %d0, 68(%sp)
+        movem.l (%sp), %d0-%d7/%a0-%a6
+        lea     60(%sp), %sp
+        rts
+
+| 0x40065e68 (the DEST box, bottom line): pea 0x401d09ca, after move.l 0x30(a0,d3.l),-(sp)
+| d3 = 52 id; leaves [0x401d09ca][short name].
+        .globl  digimono_lfo_bshort
+digimono_lfo_bshort:
+        move.l  (%sp), -(%sp)
+        lea     -60(%sp), %sp
+        movem.l %d0-%d7/%a0-%a6, (%sp)
+        lea     0x401d09ca, %a0
+        move.l  %a0, 64(%sp)
+        move.l  68(%sp), -(%sp)
+        pea     2.w
+        move.l  %d3, -(%sp)
+        jsr     digimono_dest
+        lea     12(%sp), %sp
+        move.l  %d0, 68(%sp)
+        movem.l (%sp), %d0-%d7/%a0-%a6
+        lea     60(%sp), %sp
+        rts

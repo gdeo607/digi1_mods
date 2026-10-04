@@ -192,6 +192,32 @@ const char *digimono_name(uint32_t id, int shortname)
     return shortname ? sname[m][k] : lname[m][k];
 }
 
+/* ---- the LFO page: DEST's list and box name the SRC knobs as the SRC page does ------------------
+ * These machines take ONESHOT's parameters, ids 0x6c..0x73 = knobs A..H, sound slots 17..24; an LFO's
+ * DEST is the slot, so "SAMP:Play Mode" is knob B, the one the engine reads as UNIL on MONO SAW. The
+ * firmware names a destination from its parameter descriptor (0x401a9d9c + 52 id: long name +40, group
+ * +44, short name +48); glue.s hands those reads here with the descriptor's offset (52 id). */
+#define ONESHOT_ID_A 0x6c
+static const char *const mach_short[MONO_MACHINES] = {"MSIN", "MNOI", "MSAW", "MPLS", "MENS", "MVO"};
+
+/* what: 0 the group ("SAMP"), 1 the long name, 2 the short one; stock: the firmware's own */
+const char *digimono_dest(uint32_t off, int what, const char *stock)
+{
+    int m = active_model(), k, j;
+    for (k = 0; k < 8 && off != (uint32_t)(ONESHOT_ID_A + k) * 52; k++)
+        ;
+    if (m < 0 || k == 8)
+        return stock;
+    if (what == 0)
+        return mach_short[m];
+    if (k == 0)                                 /* A: TUNE, as on the SRC page */
+        return stock;
+    j = our_knob(SLICE_ID_B - 1 + k, &m);       /* SLICE's id of the same knob */
+    if (j < 0)
+        return what == 1 ? "Unused" : "-";
+    return what == 1 ? lname[m][j] : sname[m][j];
+}
+
 int digimono_range(uint32_t id, int32_t *out)
 {
     int m;

@@ -3,6 +3,13 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Digi Mono 0.12 (HW: not yet)
+- The LFO page's DEST names a Digi Mono track's SRC knobs as its SRC page does: the list reads
+  "MSAW:Unison Level", "MSAW:Sub Shape"..., the DEST box "MSAW" over "UNIL", where 0.11 showed ONESHOT's
+  "SAMP:Play Mode" / "SAMP LEV" for the same knobs. A knob the machine does not have reads "Unused", and a
+  name too long for the list falls back to the SRC label ("MNOI:ST"). Other tracks keep the firmware's
+  names. Checked in digiemu for all six machines and a ONESHOT track.
+
 ## Digi Mono: FREQ, VOL and the sends do reach the voice (tests)
 - The open issue "part of the voice ignores FREQ and VOL" is closed: there was no leak. The emulator's
   pattern A16 already holds a lock trig on track 1 (VOL 84, DEL/REV 0, FREQ and seven more), and its p-locks
