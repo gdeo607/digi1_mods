@@ -3,6 +3,13 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Upstream SOPHIE 1.1.13, DIGISLICER 2.1 (tools)
+- `dev.sh mods` builds them chained as before: the sites digichain owns are unchanged (SOPHIE's new FOLD
+  keeps BR's range; its new LFO-label sites are its own). Every pair combines; the full set (core,
+  digichain, Digi Mono, SOPHIE, NEIGHBOR, digieq, DigiFilter, digihealth, digimatrix, digiutils) links
+  with 24 KB of RAM spare.
+- docs/USAGE.md: how many Digi Mono tracks at once, from the unit's measured load.
+
 ## elekloader app: old library copies (tools)
 - **Old hand-installed copies no longer win over the updated mods.** elekloader lists its own library
   (~/.elekloader/mods) first; an old digichain or digimono installed there by hand, still ticked, was built

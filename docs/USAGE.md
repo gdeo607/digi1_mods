@@ -165,8 +165,14 @@ One page, one band per column (bands 1-4 = knobs A/E, B/F, C/G, D/H):
 
 - **Everything else works as usual:** the FLTR, AMP and LFO pages, p-locks, parameter locks on these
   knobs, the sends and the track level.
-- **Keep it to a few tracks:** each playing Digi Mono track costs 3-8 % of the audio engine. If you hear
-  clicks, use fewer Digi Mono tracks at once, and switch digihealth's FAST AUDIO on.
+- **Keep it to a few tracks:** on a unit the stock audio engine already uses about 80 % of each block
+  with a song playing (digihealth's measurement), so the room left for added engines is small, and code
+  outside the stock render costs more there than its instruction count (the processor's 8 KB code cache).
+  As a guide: VO, ENS and PULS cost about as much a voice as SOPHIE, whose author finds one instance
+  comfortable and two with FAST AUDIO; SIN, NOIS and SAW at their defaults cost a quarter to a half of
+  that. Only sounding voices count (a track sleeps once its amp envelope is silent). When the screen or
+  buttons get slow, or you hear clicks, use fewer of them at once, keep digihealth's FAST AUDIO on, and
+  check the load with its SYSTEM INFO (DSP, now and peak).
 
 ## Song mode
 Stand-alone builds (tools/build.py): disabled, pattern chains work as usual.
