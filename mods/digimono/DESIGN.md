@@ -16,6 +16,7 @@ after the Monomachine's GND and SWAVE machines:
 | `MONO PULSE` | SWAVE-PULS | band-limited pulse with PWM, 2 detuned unison pulses, a square sub |
 | `MONO ENS`   | SWAVE-ENS  | four oscillators at set intervals, saw..pulse, with a chorus |
 | `MONO VO`    | VO-6       | a formant voice: vowel 1 gliding to vowel 2, consonants at the note's start |
+| `POLY SIN`   | (GND-SIN)  | three sines at set notes (a chord on one track), with a pitch envelope |
 
 They are picked like any machine: FUNC+SRC, after SLICE. A Digi Mono track needs no sample. Its trigs,
 note locks, TUNE, the FLTR, AMP and LFO pages, the sends, p-locks and the track level work on it as on a
@@ -64,6 +65,7 @@ round knob and its value reads in its units (0.7):
 | PULSE | UNIL | UNIW | SUB2 | SUB1 | PW (duty %) | PWAD | PWRS |
 | ENS   | PCH2 (`+7st`) | PCH3 | PW (duty %, 0 = square) | PCH4 | WAVE (%) | CHRL | CHRW |
 | VO    | VOC1 (vowel) | VOC2 | VOIC (Breath) | V-SW | CONS (`S`, `SH`..) | CLEN (ms) | CVOL |
+| PSIN  | NOT1 (`+4st`) | NOT2 | - | NOT3 | EDEP (`+12st`) | ESPD (`+16`, `OFF`) | - |
 
 D is the sample slot underneath (SAMP) and H the sample level (LEV); neither means anything for these
 machines, so both carry parameters:
@@ -94,6 +96,19 @@ What each parameter does, as this engine reads the manual:
   can lose its fundamental.
 - **WAVE** (ENS) fades from saw (0) to pulse (127). **CHRL / CHRW** are the chorus level and width: a
   7 ms delay swung by up to +-2.5 ms at 0.6 Hz.
+- **POLY SIN** (0.13) is MONO SIN three times, in one voice (paraphonic: one filter and amp envelope):
+  - **NOT1..NOT3** put the three sines in semitones from the note, 63 = the note, -36..+36 (ENS's PCH).
+    At their defaults (all the note) the three are in phase and the machine is MONO SIN, sample for sample
+    within 1 of 32767. Each is a third of full scale, so a chord never clips.
+  - **EDEP** is a pitch envelope's depth over all three, -64..+63 semitones (64 = none). **ESPD** its speed
+    and direction (64 = off): above 64 the notes start EDEP away and glide back to their own (a decay),
+    below 64 they start at their own and glide EDEP away (a rise). Further from 64 is faster: a time
+    constant of 2 s next to 64 down to 1 ms at the ends (exponential; tools/gen_mono_tables.py, PENV).
+  - **Checks** (tests/mono_signal.py): MONO SIN's samples at the defaults; a 0 / +4 / +7 chord gives three
+    partials within 0.03 cent at one level, no harmonics (-118 dB); NOT at 27 / 99 is three octaves down /
+    up; EDEP +12 starts an octave up and glides to the note, -12 an octave down; ESPD below 64 rises an
+    octave; ESPD 64 holds the note; further from 64 settles sooner.
+  - **Cost:** about 3,000 instructions a block (three interpolated sines a sample), 3.6 % of the render.
 - **VO** is a glottal source through three vowel resonators:
   - **The source:** a band-limited saw through a one-pole low-pass; VOIC mixes in breath noise.
   - **The vowels:** the resonators sit at the vowel's first three formants, from published averages of

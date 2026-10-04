@@ -7,16 +7,18 @@
 | Descriptor: id, name, short name, icon (below), params, render. They take ONESHOT's eight parameters (their
 | defaults on a switch, MIDI CC 16-23) and render as ONESHOT, so the voice runs the whole stock voice
 | path (the amp envelope and VOL included, which an unknown render machine skips). digimono_rblock
-| replaces the block of a voice whose track plays one of them (core_track_machine). Ids 20..25: clear of
-| NEIGHBOR / POLY (4), DIGISLICER (5) and SOPHIE (7).
+| replaces the block of a voice whose track plays one of them (core_track_machine). Ids 20..26: clear of
+| NEIGHBOR (4), DIGISLICER (5), Digi Poly's POLY (6) and SOPHIE (7).
         .balign 4
         .globl  digimono_m20, digimono_m21, digimono_m22, digimono_m23, digimono_m24, digimono_m25
+        .globl  digimono_m26
 digimono_m20:   .long   20, str_sin,  str_sin_s,  digimono_icon_sin,  0, 0
 digimono_m21:   .long   21, str_nois, str_nois_s, digimono_icon_nois, 0, 0
 digimono_m22:   .long   22, str_saw,  str_saw_s,  digimono_icon_saw,  0, 0
 digimono_m23:   .long   23, str_puls, str_puls_s, digimono_icon_puls, 0, 0
 digimono_m24:   .long   24, str_ens,  str_ens_s,  digimono_icon_ens,  0, 0
 digimono_m25:   .long   25, str_vo,   str_vo_s,   digimono_icon_vo,   0, 0
+digimono_m26:   .long   26, str_psin, str_psin_s, digimono_icon_psin, 0, 0
 str_sin:        .asciz  "MONO SIN"
 str_sin_s:      .asciz  "MSIN"
 str_nois:       .asciz  "MONO NOISE"
@@ -29,6 +31,8 @@ str_ens:        .asciz  "MONO ENS"
 str_ens_s:      .asciz  "MENS"
 str_vo:         .asciz  "MONO VO"
 str_vo_s:       .asciz  "MVO"
+str_psin:       .asciz  "POLY SIN"
+str_psin_s:     .asciz  "PSIN"
 
 | The machine list's icons: a Bitmap as the firmware's own (vtable, width 11, height 7, 1, pixels, mask;
 | one 32-bit word a column, the top row in bit 25), drawn in tools/gen_mono_icons.py.
@@ -65,6 +69,11 @@ digimono_icon_vo:
 digimono_px_vo:
         .long   0x10000000, 0x28000000, 0x44000000, 0x54000000, 0x54000000, 0x54000000
         .long   0x54000000, 0x54000000, 0x44000000, 0x28000000, 0x10000000
+digimono_icon_psin:
+        .long   BMP_VT, 11, 7, 1, digimono_px_psin, digimono_icon_mask, 0
+digimono_px_psin:
+        .long   0x08000000, 0x04000000, 0x04000000, 0x08000000, 0x10000000, 0x20000000
+        .long   0x40000000, 0x00000000, 0x44000000, 0x54000000, 0x7c000000
 digimono_icon_mask:
         .long   0xfe000000, 0xfe000000, 0xfe000000, 0xfe000000, 0xfe000000, 0xfe000000
         .long   0xfe000000, 0xfe000000, 0xfe000000, 0xfe000000, 0xfe000000
@@ -98,7 +107,7 @@ digimono_rblock:
 |
 | The page's layout, the knobs' graphics, their UI records and the value under a turning knob are
 | reached through digichain (mods/digichain), which owns those functions and jumps here, at their entry
-| state, when the page is a Digi Mono machine's (20..25): the layout empties the knobs a machine does not
+| state, when the page is a Digi Mono machine's (20..26; digichain routes 20..29): the layout empties the knobs a machine does not
 | have; every knob it has is drawn as BR's (a plain round knob, a value 0..127) with its own text.
         .equ    P_BR, 0x86
 

@@ -3,6 +3,17 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Digi Mono 0.13 (HW: not yet)
+- New machine **POLY SIN** (machine id 26, after MONO VO in the FUNC+SRC list): MONO SIN three times in one
+  voice, for chords on one track (one filter and amp envelope for all three):
+  - **NOT1, NOT2, NOT3** (knobs B, C, E): each sine's note in semitones from the trig's, -36..+36. At the
+    note (their default) it is MONO SIN, sample for sample.
+  - **EDEP** (F): a pitch envelope's depth, -64..+63 semitones. **ESPD** (G): its speed, OFF in the middle;
+    turned up the notes start EDEP away and glide back, turned down they start on the notes and glide away.
+  - Its own icon, SRC page names and values, and LFO DEST names ("PSIN:Note 2").
+- Checked: tests/mono_signal.py (pitches, levels, purity, the envelope both ways), the ColdFire build bit for
+  bit against the PC's, and tests/digiemu_mono.py in the firmware. About 3,000 instructions a block.
+
 ## Digi Mono 0.12 (HW: not yet)
 - The LFO page's DEST names a Digi Mono track's SRC knobs as its SRC page does: the list reads
   "MSAW:Unison Level", "MSAW:Sub Shape"..., the DEST box "MSAW" over "UNIL", where 0.11 showed ONESHOT's

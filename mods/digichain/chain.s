@@ -1,6 +1,6 @@
 | SPDX-License-Identifier: MIT
 | digichain: one owner for the SRC-page and render sites that SOPHIE (digisophie), NEIGHBOR
-| (digineighbor) and DIGISLICER (digislicer) each patch, so the three combine. Digi Mono (20..25) gets
+| (digineighbor) and DIGISLICER (digislicer) each patch, so the three combine. Digi Mono (20..29) gets
 | its page's layout, knob graphics, UI records and knob values through it too.
 | ColdFire V4e, Digitakt mk1 OS 1.53.
 |
@@ -18,8 +18,8 @@
         .equ    M_NBR, 4                | NEIGHBOR
         .equ    M_DSL, 5                | DIGISLICER
         .equ    M_SOPH, 7               | SOPHIE
-        .equ    M_MONO, 20              | Digi Mono: 20..25
-        .equ    M_MONO_LAST, 25
+        .equ    M_MONO, 20              | Digi Mono: 20..29 (26 POLY SIN; room for its next machines)
+        .equ    M_MONO_LAST, 29
 
         .section .bss
         .balign 4

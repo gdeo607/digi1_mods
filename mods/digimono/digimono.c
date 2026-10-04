@@ -2,12 +2,12 @@
  *
  * digimono_blocks() runs once a render block, after the voice loop has left each voice's 32 Q31 samples at
  * 0x80001a18 + 128 v and before the filter, amp envelope and mixer stages work on them. For every voice
- * playing one of our machines (core_track_machine 20..25; they render as ONESHOT) it writes the engine's
+ * playing one of our machines (core_track_machine 20..26; they render as ONESHOT) it writes the engine's
  * block there, so the voice's filter, amp envelope, VOL, LFOs, sends and level follow as for a sample. Firmware addresses are OS 1.53's; how each was found: docs/TECHNICAL_NOTES.md.
  */
 #include "mono.h"
 
-#define MACH_FIRST   20                      /* digimono_m20..m25 in glue.s: SIN NOIS SAW PULS ENS VO */
+#define MACH_FIRST   20                      /* digimono_m20..m26 in glue.s: SIN NOIS SAW PULS ENS VO PSIN */
 extern volatile uint8_t core_track_machine[8];                  /* core 2.1: the machine each voice plays */
 #define VOICE_MACH   core_track_machine
 #define VOICE_START  (*(volatile const uint32_t *)0x80001228) /* bit v: voice v (re)started this block */
@@ -33,6 +33,7 @@ static const int8_t knob_p[MONO_MACHINES][KNOBS] = {
     { 0,  1,  2,  4,  5,  6,  3},       /* PULS  UNIL UNIW SUB1 PW PWAD PWRS, D SUB2      */
     { 0,  1,  2,  3,  5,  6,  4},       /* ENS   PCH2 PCH3 PCH4 WAVE CHRL CHRW, D PW      */
     { 0,  1,  2,  4,  5,  6,  3},       /* VO    VOC1 VOC2 V-SW CONS CLEN CVOL, D VOIC    */
+    { 0,  1,  2,  3,  4, -1, -1},       /* PSIN  NOT1 NOT2 NOT3 EDEP ESPD                 */
 };
 
 struct digimono_voice {
@@ -128,6 +129,7 @@ static const char *const sname[MONO_MACHINES][KNOBS] = {
     {"UNIL", "UNIW", "SUB1", "PW",   "PWAD", "PWRS", "SUB2"},
     {"PCH2", "PCH3", "PCH4", "WAVE", "CHRL", "CHRW", "PW"},
     {"VOC1", "VOC2", "V-SW", "CONS", "CLEN", "CVOL", "VOIC"},
+    {"NOT1", "NOT2", "NOT3", "EDEP", "ESPD", "-",    "-"},
 };
 static const char *const lname[MONO_MACHINES][KNOBS] = {
     {"-", "-", "-", "-", "-", "-", "-"},
@@ -136,10 +138,11 @@ static const char *const lname[MONO_MACHINES][KNOBS] = {
     {"Unison Level", "Unison Detune", "Sub 1 Oct Lev", "Pulse Width", "PWM Depth", "PWM Rate", "Sub 2 Oct Lev"},
     {"Pitch Osc 2", "Pitch Osc 3", "Pitch Osc 4", "Saw-Pulse", "Chorus Level", "Chorus Width", "Pulse Width"},
     {"Vowel 1", "Vowel 2", "Vowel Glide", "Consonant", "Cons. Length", "Cons. Level", "Breath"},
+    {"Note 1", "Note 2", "Note 3", "Env Depth", "Env Speed", "-", "-"},
 };
 
 /* how each knob's value reads */
-enum { F_NUM, F_VOICES, F_SEMI, F_PW, F_PWENS, F_VOWEL, F_CONS, F_MS, F_SHAPE };
+enum { F_NUM, F_VOICES, F_SEMI, F_PW, F_PWENS, F_VOWEL, F_CONS, F_MS, F_SHAPE, F_BIPST, F_BIPOFF };
 static const uint8_t knob_fmt[MONO_MACHINES][KNOBS] = {
     {F_NUM, F_NUM, F_NUM, F_NUM, F_NUM, F_NUM, F_NUM},
     {F_NUM, F_NUM, F_NUM, F_NUM, F_NUM, F_NUM, F_NUM},
@@ -147,6 +150,7 @@ static const uint8_t knob_fmt[MONO_MACHINES][KNOBS] = {
     {F_NUM, F_NUM, F_NUM, F_PW, F_NUM, F_NUM, F_NUM},
     {F_SEMI, F_SEMI, F_SEMI, F_SHAPE, F_NUM, F_NUM, F_PWENS},
     {F_VOWEL, F_VOWEL, F_NUM, F_CONS, F_MS, F_NUM, F_NUM},
+    {F_SEMI, F_SEMI, F_SEMI, F_BIPST, F_BIPOFF, F_NUM, F_NUM},
 };
 
 /* The active track's Digi Mono model, or -1. */
@@ -198,7 +202,7 @@ const char *digimono_name(uint32_t id, int shortname)
  * firmware names a destination from its parameter descriptor (0x401a9d9c + 52 id: long name +40, group
  * +44, short name +48); glue.s hands those reads here with the descriptor's offset (52 id). */
 #define ONESHOT_ID_A 0x6c
-static const char *const mach_short[MONO_MACHINES] = {"MSIN", "MNOI", "MSAW", "MPLS", "MENS", "MVO"};
+static const char *const mach_short[MONO_MACHINES] = {"MSIN", "MNOI", "MSAW", "MPLS", "MENS", "MVO", "PSIN"};
 
 /* what: 0 the group ("SAMP"), 1 the long name, 2 the short one; stock: the firmware's own */
 const char *digimono_dest(uint32_t off, int what, const char *stock)
@@ -295,6 +299,24 @@ static void text_into(int m, int k, int v, char *buf)
         o = put_u(o, (uint32_t)((96 + ((v * v * 1188) >> 10)) / 48));
         put_s(o, "ms");
         break;
+    case F_BIPST:                           /* render_psin: EDEP, 64 = none, in semitones */
+    case F_BIPOFF: {                        /* render_psin: ESPD, 64 = off, - rises, + decays */
+        int s = v - 64;
+        if (s == 0 && knob_fmt[m][k] == F_BIPOFF) {
+            put_s(o, "OFF");
+            break;
+        }
+        if (s > 0)
+            *o++ = '+';
+        if (s < 0) {
+            *o++ = '-';
+            s = -s;
+        }
+        o = put_u(o, (uint32_t)s);
+        if (knob_fmt[m][k] == F_BIPST)
+            put_s(o, "st");
+        break;
+    }
     case F_SHAPE:                           /* SUBX square..saw, WAVE saw..pulse: a mix, in % */
         o = put_u(o, (uint32_t)((v * 100 + 63) / 127));
         put_s(o, "%");
@@ -366,6 +388,7 @@ static const uint8_t mono_def[MONO_MACHINES][KNOBS] = {   /* B C E F G H D */
     {0, 40, 0, 64, 0, 40, 0},           /* PULS  UNIL UNIW SUB1 PW PWAD PWRS, SUB2     */
     {63, 63, 63, 0, 0, 127, 0},         /* ENS   PCH2 PCH3 PCH4 WAVE CHRL CHRW, PW (square) */
     {43, 113, 64, 0, 40, 100, 0},       /* VO    VOC1 (AH) VOC2 (EE) V-SW CONS CLEN CVOL, VOIC */
+    {63, 63, 63, 64, 64, 0, 0},         /* PSIN  NOT1..3 at the note (MONO SIN), envelope off */
 };
 
 static const uint8_t *seen_kit;

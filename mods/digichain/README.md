@@ -73,6 +73,11 @@ is:
 
 Not yet on a unit.
 
+## Digi Mono's machine ids (1.5)
+
+From 1.5 the Digi Mono routes take machines 20..29: Digi Mono 0.13's POLY SIN is 26, and its next machines
+need no new digichain. 1.4 (Digi Poly 2.0's POLY route) is on another branch; the two touch different lines.
+
 ## Memory
 
 digichain takes 728 bytes. The three machines' own sizes still add up: all three fit (4 KB of the

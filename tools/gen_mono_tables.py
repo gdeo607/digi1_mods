@@ -14,6 +14,9 @@ Everything here is computed from plain maths (no firmware content):
   GAIN      128 x uint16, a knob value as a level in Q15, (v/127)^2 (0 .. 32768: 127 is exactly 1)
   RATE      128 x uint32, a knob value as an internal LFO's phase increment at 48 kHz,
             0.05 Hz * 400^(v/127) (0.05 .. 20 Hz)
+  PENV1     65 x uint32, POLY SIN's pitch envelope: the decay a sample, e^(-1 / (tau * 48000)) in Q30, for a
+            speed m = |ESPD - 64| of 1..64, tau = 2 s * (1 ms / 2 s)^((m - 1) / 63) (2 s .. 1 ms); m = 0: 1
+  PENV32    65 x uint32, the same over 32 samples (a render block), PENV1^32 in Q30
 """
 import argparse, math, os, sys
 
@@ -35,6 +38,9 @@ def tables():
     t["DETUNE"] = ("uint16_t", [int(round((2 ** (50 * (v / 127) ** 2 / 1200) - 1) * 65536)) for v in range(128)])
     t["GAIN"] = ("uint16_t", [int(round(32768 * (v / 127) ** 2)) for v in range(128)])
     t["RATE"] = ("uint32_t", [int(round(0.05 * 400 ** (v / 127) / FS * 2 ** 32)) for v in range(128)])
+    tau = [0] + [2.0 * (0.001 / 2.0) ** ((m - 1) / 63) for m in range(1, 65)]
+    t["PENV1"] = ("uint32_t", [1 << 30] + [int(round(math.exp(-1 / (tau[m] * FS)) * 2 ** 30)) for m in range(1, 65)])
+    t["PENV32"] = ("uint32_t", [1 << 30] + [int(round(math.exp(-32 / (tau[m] * FS)) * 2 ** 30)) for m in range(1, 65)])
     return t
 
 

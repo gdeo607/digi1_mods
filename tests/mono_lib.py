@@ -11,12 +11,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "mods", "digimono", "mono.c")
 FS = 48000
 BLOCK = 32                                  # frames in one render block of the Digitakt
-SIN, NOIS, SAW, PULS, ENS, VO = range(6)
-NAMES = ["SIN", "NOIS", "SAW", "PULS", "ENS", "VO"]
-VOICE_SIZE = 1112
+SIN, NOIS, SAW, PULS, ENS, VO, PSIN = range(7)
+NAMES = ["SIN", "NOIS", "SAW", "PULS", "ENS", "VO", "PSIN"]
+VOICE_SIZE = 1116
 # struct mono_voice (mono.h): 11 32-bit words, a 16-bit word, 2 bytes, the 16-bit chorus line, then
-# 10 32-bit words (VO). The same layout on the ColdFire (big-endian) and on this PC (little-endian).
-_LAYOUT = [(0, 44, 4), (44, 46, 2), (46, 48, 1), (48, 1072, 2), (1072, 1112, 4)]
+# 11 32-bit words (VO, PSIN). The same layout on the ColdFire (big-endian) and on this PC (little-endian).
+_LAYOUT = [(0, 44, 4), (44, 46, 2), (46, 48, 1), (48, 1072, 2), (1072, 1116, 4)]
 
 
 def swap_state(b):

@@ -14,6 +14,8 @@ same samples) and checks, with numbers printed:
   ENS          PCH2..4 as intervals; WAVE saw -> pulse; CHRL / CHRW chorus
   NOIS         ST (sample and hold), RED (darker), STON (pitched)
   VO           the formants of three vowels; VOC1 -> VOC2 by V-SW; a consonant at the start; pitch; level
+  PSIN         NOT1..3 at the note = MONO SIN; as a chord, three pure partials at their intervals; the
+               range; EDEP / ESPD: a pitch glide down from EDEP (decay), up to it (rise), off at 64
   all          random settings and pitches: bounded, no DC, block size makes no difference
 """
 import math, os, random, sys
@@ -21,7 +23,7 @@ import math, os, random, sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from mono_lib import FS, SIN, NOIS, SAW, PULS, ENS, VO, NAMES, Engine, play, pitch_inc, note_hz
+from mono_lib import FS, SIN, NOIS, SAW, PULS, ENS, VO, PSIN, NAMES, Engine, play, pitch_inc, note_hz
 
 FAIL = []
 
@@ -239,11 +241,51 @@ def main():
     lv = 20 * math.log10(np.std(xv) / np.std(play(SAW, [0] * 7, 57, 1.0)))
     check(-18 < lv < 3, "level: %.1f dB against a plain saw" % lv)
 
+    print("PSIN")
+    a = play(SIN, [0] * 7, 57, 0.5)
+    b = play(PSIN, [63, 63, 63, 64, 64, 0, 0], 57, 0.5)
+    d = float(np.max(np.abs(a - b))) * 32768
+    check(d <= 1, "NOT1..3 at 63, envelope off: MONO SIN's samples within %d (of 32767)" % d)
+    f0 = note_hz(57)
+    x = play(PSIN, [63, 67, 70, 64, 64, 0, 0], 57, 1.0)
+    worst = max(abs(cents(peak_hz(x, f * 0.98, f * 1.02), f)) for f in (f0, f0 * 2 ** (4 / 12), f0 * 2 ** (7 / 12)))
+    check(worst < 0.5, "NOT 0 / +4 / +7: partials at A3, C#4, E4 within 0.5 cent (worst %.3f)" % worst)
+    lv = [band_db(x, f) for f in (f0, f0 * 2 ** (4 / 12), f0 * 2 ** (7 / 12))]
+    check(max(lv) - min(lv) < 1, "the three at one level (%.1f / %.1f / %.1f dB)" % tuple(lv))
+    other = max(band_db(x, k * f) for f in (f0, f0 * 2 ** (4 / 12), f0 * 2 ** (7 / 12)) for k in (2, 3, 4))
+    check(other < -80, "no harmonics of them (strongest %.1f dB)" % other)
+    x = play(PSIN, [27, 99, 63, 64, 64, 0, 0], 57, 1.0)
+    worst = max(abs(cents(peak_hz(x, f * 0.98, f * 1.02), f)) for f in (f0 / 8, f0 * 8))
+    check(worst < 0.5, "NOT 27 / 99: three octaves down and up (worst %.3f cent)" % worst)
+
+    def hz_at(x, t, dur=0.006):                 # the frequency from the zero crossings in [t, t + dur)
+        y = x[int(t * FS):int((t + dur) * FS)]
+        z = np.where((y[:-1] < 0) & (y[1:] >= 0))[0]
+        z = z + (-y[z]) / (y[z + 1] - y[z])
+        return (len(z) - 1) / ((z[-1] - z[0]) / FS) if len(z) > 2 else 0.0
+    f0 = note_hz(69)
+    e = play(PSIN, [63, 63, 63, 76, 80, 0, 0], 69, 3.0)             # +12 st, decay, tau ~0.33 s
+    s0, s1 = hz_at(e, 0.0), hz_at(e, 2.9)
+    check(abs(cents(s0, 2 * f0)) < 50 and abs(cents(s1, f0)) < 2,
+          "EDEP +12, ESPD +16: starts an octave up (%.0f Hz) and glides to the note (%.1f Hz, %.1f)" % (s0, s1, f0))
+    e = play(PSIN, [63, 63, 63, 52, 80, 0, 0], 69, 3.0)             # -12 st
+    s0, s1 = hz_at(e, 0.0, 0.014), hz_at(e, 2.9)
+    check(abs(cents(s0, f0 / 2)) < 50 and abs(cents(s1, f0)) < 2,
+          "EDEP -12: starts an octave down (%.0f Hz) and glides up to the note (%.1f Hz)" % (s0, s1))
+    e = play(PSIN, [63, 63, 63, 76, 48, 0, 0], 69, 3.0)             # rise
+    s0, s1 = hz_at(e, 0.0, 0.010), hz_at(e, 2.9)
+    check(abs(cents(s0, f0)) < 50 and abs(cents(s1, 2 * f0)) < 2,
+          "ESPD -16: starts at the note (%.0f Hz) and rises an octave (%.1f Hz)" % (s0, s1))
+    e = play(PSIN, [63, 63, 63, 100, 64, 0, 0], 69, 1.0)            # ESPD 64: no envelope
+    check(abs(cents(hz_at(e, 0.0, 0.02), f0)) < 5, "ESPD 64: no glide, EDEP or not (%.1f Hz)" % hz_at(e, 0.0, 0.02))
+    t = [hz_at(play(PSIN, [63, 63, 63, 76, sp, 0, 0], 69, 0.2), 0.05) for sp in (70, 100, 127)]
+    check(t[0] > t[1] > t[2] * 0.999, "further from 64 is faster: at 50 ms %.0f / %.0f / %.0f Hz" % tuple(t))
+
     print("all machines, random settings")
     rnd = random.Random(1)
     worst_dc = 0
     for i in range(120):
-        m = rnd.randrange(6)
+        m = rnd.randrange(7)
         prm = [rnd.randrange(128) for _ in range(7)]
         note = rnd.uniform(36, 120)
         x = play(m, prm, note, 1.0)

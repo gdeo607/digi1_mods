@@ -227,7 +227,7 @@ cmd_emutest() {
     local mods=()
     while IFS= read -r line; do mods+=("$line"); done < "$BUILD/last.mods"   # (bash 3.2 has no mapfile)
     local ok=1
-    for m in SIN NOIS SAW PULS ENS VO; do
+    for m in SIN NOIS SAW PULS ENS VO PSIN; do
         say "digiemu: MONO $m on track 1"
         "$(emupy)" "$ROOT/tests/digiemu_mono.py" --digiemu "$TOOLS/digiemu" --fw "$fw" --machine "$m" \
             --menu-before "$before" --png "$LOG/png_$m" --wav "$LOG/MONO_$m.wav" \

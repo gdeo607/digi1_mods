@@ -184,10 +184,12 @@ void mono_trig(struct mono_voice *v, int machine)
     v->ph[0] = 0;                                   /* every oscillator here reads 0 at phase 0 */
     for (i = 1; i < 4; i++)
         v->ph[i] = rnd(v);                          /* unison / ensemble: free, like analog ones */
+    if (machine == MONO_PSIN)
+        v->ph[1] = v->ph[2] = 0;                    /* three sines at one note sum to one: MONO SIN */
     v->sub = 0;
     v->age = 0;
     v->c_lo = v->c_bp = 0;
-    (void)machine;
+    v->env = 1u << 30;
 }
 
 static void render_sin(struct mono_voice *v, uint32_t inc, int16_t *out, int n)
@@ -488,6 +490,92 @@ static void render_ens(struct mono_voice *v, const uint8_t *p, uint32_t inc, int
     v->wr = wr;
 }
 
+/* ---- POLY SIN: three sines at set notes, with a pitch envelope ---------------------------------- *
+ * NOT1..NOT3 put the three sines in semitones from the note, 63 = the note itself, -36..+36 (ENS's
+ * PCH). At NOT1..3 = 63 the three are in phase and the sum is MONO SIN's sine (within 1 of 32767).
+ * EDEP and ESPD are a pitch envelope over all three: EDEP the distance, in semitones, 64 = none,
+ * -64..+63; ESPD how fast and which way, 64 = off: above 64 the notes start EDEP away and glide back to
+ * their own (a decay), below 64 they start at their own and glide EDEP away (a rise). Further from 64 is
+ * faster: a time constant of 2 s at 63 / 65 down to 1 ms at 0 (mono_tables.h, PENV). The envelope is
+ * taken a block (32 samples) at a time and the oscillators' steps glide in between. */
+
+/* a * b >> 30 for a, b <= 2^30, in 32-bit (low by at most 2) */
+static uint32_t mul_q30(uint32_t a, uint32_t b)
+{
+    uint32_t ah = a >> 15, al = a & 0x7fff, bh = b >> 15, bl = b & 0x7fff;
+    return ah * bh + ((ah * bl + al * bh) >> 15);
+}
+
+/* inc moved by e / 128 semitones, |e| < 16 octaves; 0 below the bottom, MONO_INC_MAX at the top */
+static uint32_t shift_inc(uint32_t inc, int32_t e)
+{
+    uint32_t u, o, r;
+    int32_t sh;
+    if (e <= -16 * 1536 || e >= 16 * 1536)
+        return e < 0 ? 0 : MONO_INC_MAX;
+    u = (uint32_t)(e + 16 * 1536);
+    o = u / 1536;
+    r = u - o * 1536;
+    inc = scale_up(scale_up(inc, MONO_SEMI_UP[r >> 7]), MONO_FINE[r & 127]);
+    sh = (int32_t)o - 16;
+    if (sh < 0)
+        return -sh < 32 ? inc >> -sh : 0;
+    if (sh > 0) {
+        if (sh > 30 || inc > (MONO_INC_MAX >> sh))
+            return MONO_INC_MAX;
+        inc <<= sh;
+    }
+    return inc > MONO_INC_MAX ? MONO_INC_MAX : inc;
+}
+
+static void render_psin(struct mono_voice *v, const uint8_t *p, uint32_t inc, int16_t *out, int n)
+{
+    int32_t note[3], dep = ((int32_t)p[3] - 64) * 128, spd = (int32_t)p[4] - 64, i;
+    uint32_t m = (uint32_t)(spd < 0 ? -spd : spd), e0 = v->env;
+    for (i = 0; i < 3; i++) {
+        int32_t s = (int32_t)p[i] - 63;
+        note[i] = (s < -36 ? -36 : s > 36 ? 36 : s) * 128;
+    }
+    while (n > 0) {
+        int c = n < CHUNK ? n : CHUNK, j;
+        uint32_t e1 = e0, cur[3], ph[3];
+        int32_t step[3], off0 = 0, off1 = 0;
+        if (spd) {
+            uint32_t k = MONO_PENV32[m];
+            if (c != 32)
+                for (k = 1u << 30, j = 0; j < c; j++)
+                    k = mul_q30(k, MONO_PENV1[m]);
+            e1 = mul_q30(e0, k);
+            /* the offset, 1/128 semitone: EDEP x the envelope (decay) or x (1 - it) (rise) */
+            off0 = (dep * (int32_t)((spd > 0 ? e0 : (1u << 30) - e0) >> 15)) >> 15;
+            off1 = (dep * (int32_t)((spd > 0 ? e1 : (1u << 30) - e1) >> 15)) >> 15;
+        }
+        for (i = 0; i < 3; i++) {
+            uint32_t a = shift_inc(inc, note[i] + off0), b = shift_inc(inc, note[i] + off1);
+            cur[i] = a;
+            step[i] = ((int32_t)b - (int32_t)a) / c;
+            ph[i] = v->ph[i];
+        }
+        for (j = 0; j < c; j++) {
+            int32_t sum = 0;
+            for (i = 0; i < 3; i++) {
+                uint32_t q = ph[i], x = q >> 23, f = (q >> 7) & 0xffff;
+                int32_t a = MONO_SINE[x], b = MONO_SINE[x + 1];
+                sum += a + (((b - a) * (int32_t)f) >> 16);
+                ph[i] = q + cur[i];
+                cur[i] += (uint32_t)step[i];
+            }
+            out[j] = (int16_t)((sum * 21845) >> 16);  /* / 3 */
+        }
+        for (i = 0; i < 3; i++)
+            v->ph[i] = ph[i];
+        e0 = e1;
+        out += c;
+        n -= c;
+    }
+    v->env = e0;
+}
+
 /* ---- VO: a formant voice ------------------------------------------------------------------------ *
  * A glottal source (a band-limited saw through a one-pole low-pass, with breath noise mixed in by VOIC)
  * through three parallel resonators at a vowel's first three formants. VOC1 and VOC2 pick vowels along
@@ -776,6 +864,7 @@ void mono_render(struct mono_voice *v, int machine, const uint8_t *p, uint32_t i
     case MONO_PULS: render_puls(v, p, inc, out, n); break;
     case MONO_ENS:  render_ens(v, p, inc, out, n); break;
     case MONO_VO:   render_vo(v, p, inc, out, n); break;
+    case MONO_PSIN: render_psin(v, p, inc, out, n); break;
     default:
         while (n--)
             *out++ = 0;

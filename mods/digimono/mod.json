@@ -1,11 +1,11 @@
 {
  "id": "digimono",
- "version": "0.12",
+ "version": "0.13",
  "title": "Digi Mono",
  "category": "Sound",
  "author": "gdeo607",
  "license": "MIT",
- "description": "Synth machines for the audio tracks, after the Monomachine's GND and SWAVE machines: MONO SIN, MONO NOISE, MONO SAW (unison, two sub-oscillators), MONO PULSE (PWM, unison, sub), MONO ENS (four oscillators at set intervals, chorus) and MONO VO (a formant voice: vowel to vowel, consonants), in the FUNC+SRC machine list. They need no sample; the track's filter, amp, LFOs and effects work on them as on a sample. A clean-room engine: no Monomachine code or data. The SRC page shows each machine's own knobs (B, C, E, F, G, H); A is TUNE, D the (unused) sample slot.",
+ "description": "Synth machines for the audio tracks, after the Monomachine's GND and SWAVE machines: MONO SIN, MONO NOISE, MONO SAW (unison, two sub-oscillators), MONO PULSE (PWM, unison, sub), MONO ENS (four oscillators at set intervals, chorus), MONO VO (a formant voice: vowel to vowel, consonants) and POLY SIN (three sines at set notes, a pitch envelope), in the FUNC+SRC machine list. They need no sample; the track's filter, amp, LFOs and effects work on them as on a sample. A clean-room engine: no Monomachine code or data. The SRC page shows each machine's own knobs (B, C, E, F, G, H); A is TUNE, D the (unused) sample slot.",
  "device": "digitakt-mk1",
  "os": "1.53",
  "sources": [
@@ -183,6 +183,19 @@
      0
     ]
    ]
+  },
+  {
+   "to": "core_machines",
+   "order": 66,
+   "data": "00000000",
+   "relocs": [
+    [
+     0,
+     "abs32",
+     "sym:digimono_m26",
+     0
+    ]
+   ]
   }
  ],
  "requires": [
@@ -197,6 +210,7 @@
    "machine:23",
    "machine:24",
    "machine:25",
+   "machine:26",
    "render:voice blocks 0x40077fc2",
    "param:SLICE page names, ranges and values while a Digi Mono machine is active"
   ]

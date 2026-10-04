@@ -127,7 +127,7 @@ def main():
     cases = blocks = 0
     same = kept_all = True
     for case in range(80):
-        m = rnd.randrange(6) if case % 10 else 6                  # 6: out of range, must be silence
+        m = rnd.randrange(7) if case % 10 else 7                  # 7: out of range, must be silence
         cf.init()
         hv = H.Voice()
         H.LIB.mono_init(ctypes.byref(hv))
@@ -162,6 +162,7 @@ def main():
         ("PULS", H.PULS, [0, 0, 0, 0, 64, 0, 0], [127, 64, 127, 127, 64, 127, 64]),
         ("ENS", H.ENS, [63, 63, 63, 0, 64, 0, 0], [67, 70, 75, 64, 64, 127, 127]),
         ("VO", H.VO, [42, 113, 64, 0, 0, 40, 100], [42, 113, 64, 64, 20, 127, 127]),
+        ("PSIN", H.PSIN, [63, 63, 63, 64, 64, 0, 0], [63, 67, 70, 100, 90, 0, 0]),
     ]
     inc = H.pitch_inc(48)
     worst = 0

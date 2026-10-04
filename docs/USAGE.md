@@ -144,9 +144,9 @@ One page, one band per column (bands 1-4 = knobs A/E, B/F, C/G, D/H):
   after a while.
 - A band at 0 dB (bell/shelf) costs nothing; four active bands cost about 5 % of the audio time (see RISKS.md).
 
-## Digi Mono (elekloader mod `digimono`, 0.11; needs digichain, ticked with it)
+## Digi Mono (elekloader mod `digimono`, 0.13; needs digichain, ticked with it)
 - **Pick a machine:** FUNC+SRC on an audio track, then scroll past SLICE (and past any other mod's machines):
-  MONO SIN, MONO NOISE, MONO SAW, MONO PULSE, MONO ENS, MONO VO. YES to confirm. The track needs no sample.
+  MONO SIN, MONO NOISE, MONO SAW, MONO PULSE, MONO ENS, MONO VO, POLY SIN. YES to confirm. The track needs no sample.
 - **Play it:** from trigs, the track key, the keyboard (FUNC+TRK) or MIDI, like a sample track. The note
   and knob A (TUNE) set the pitch.
 - **SRC page:** knob A is TUNE. B to H are the machine's; a knob it does not have is blank. Each shows its
@@ -160,6 +160,7 @@ One page, one band per column (bands 1-4 = knobs A/E, B/F, C/G, D/H):
   | PULSE | UNIL | UNIW | SUB2 (-2 oct) | SUB1 (-1 oct) | PW (duty %) | PWAD (PWM depth) | PWRS (PWM rate) |
   | ENS   | PCH2 (semitones) | PCH3 | PW (duty %, 0 = square) | PCH4 | WAVE (saw..pulse, %) | CHRL (chorus level) | CHRW (chorus width) |
   | VO    | VOC1 (vowel: OO U AW AH UH AE EH IH EE ER) | VOC2 | VOIC (breath) | V-SW (glide VOC1 -> VOC2; 0 = VOC1 only) | CONS (- S SH F H T K P) | CLEN (ms) | CVOL (consonant level) |
+  | POLY SIN | NOT1 (semitones from the note) | NOT2 | - | NOT3 | EDEP (pitch envelope depth, semitones, +/-) | ESPD (its speed: + glides back to the notes, - glides away; OFF) | - |
 
   The volume is the track's: LEVEL, the AMP page and VOL. D does not open the sample list on these machines.
 
