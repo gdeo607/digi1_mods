@@ -1293,3 +1293,70 @@ Owner report: "Level acts weird when voice stealing" -> turning a knob of the PO
   / LOAD PROJECT measured; unchanged by the LEVEL knob, SAMP changes (including OFF) and every knob of the
   SRC, FLTR, AMP and LFO pages. Byte map and the load handling: src/kitstore.h.
 
+
+## Digi Mono 0.3 (2026-09-30): the voice render, and synth machines in it
+Found in OS 1.53 with the disassembly and checked in digiemu (tests/digiemu_mono.py).
+- **The voice render.** The render (0x40077420's block, 0x40077f76..0x40077fa6) calls 0x4007472a, then
+  0x40075184 and 0x400757fe with (0x80002760 words, 0x4199e466, d5, d7, 0x80001f18), then the per-voice
+  modulation 0x40072478 / 0x4007269c into 0x80001a18 + 128 v.
+  - **0x40075184** sets up voice 0's sample window. It works out a window of up to 141 samples around
+    the play position and gives it to the eDMA through the descriptors at *0x80001200 / *0x80001204,
+    which copy it into SRAM at 0x800013a0 / 0x80001240. At its end it computes all 8 voices' rates.
+  - **The rates:** idx = ((TUNE word - 16384) << 8) + note + 0x30000, clamped to 0..0x570000, times 1/384
+    by the EMAC, gives table[idx] (0x4019b1c0, 2048 entries an octave, table[10752] = 2^29). Times the
+    sample's base rate (voice + 0x18, 2^30 for a 48 kHz sample), >> 32, gives the rate at voice + 12.
+    That rate is Q28 source samples per 96 kHz output sample: 0x8000000 at note 60, TUNE 0.
+  - **The note word** 0x80001f28 + 4 v is the MIDI note << 16 (measured: 0x3c0000 at note 60, 0x370000
+    at 55).
+  - **0x400757fe** loops v = 0..7 (60(sp) = v, a3 = the voice struct 0x8000edc4 + 94 v, 64(sp) = the
+    voice's words) and does three things for each voice. It resamples the window with a 6-tap polyphase
+    interpolator (EMAC `mac.w`, the phase table at 0x8000c000), 64 samples at 96 kHz. A half-band
+    decimator (0x40075ff4) then writes 32 Q31 samples at 48 kHz to **0x8000eb70**. The filter stage
+    (0x400761b8) reads them from there and writes 0x80001a18 + 128 v. The same iteration also sets up the
+    DMA for voice v + 1.
+  - **Bit v of 0x80001228** is set in the block where voice v starts a note. **Voice + 16** is a gain:
+    0 while the voice has not played or has been stopped; it does not follow the amp envelope, which comes
+    later.
+- **Digi Mono's hook** is at **0x4007606e** (`lea 0x8000eda0,a6`, 6 bytes, between the decimator and the
+  filter stage). For a voice whose render machine byte (0x800018bc + v) is one of its machines, it writes
+  the engine's block there as sample << 16. Those machines render as their own id (core 2.1), so the
+  render's machine switch at 0x40075982 gives them an empty window, and the resampler's output under the
+  hook is silence.
+- **The SRC page.** Machines past 3 get SLICE's layout: 0x400657cc(machine) -> 44 bytes, 0x4197ced8 +
+  44 m for 0..3 (else SLICE's). The layout holds two functor pointers, the 8 knobs' parameter ids and
+  LEVEL (0xa). ONESHOT uses ids 0x6c..0x73 and SLICE 0x84..0x8b. Knob k writes sound slot 17 + k:
+  A TUNE, B PLAY, C BR, D SAMP, E..H the machine's own.
+  - **The descriptors** are in ROM at **0x401a9d9c + 52 id**: machine +0, slot +4, min/max/default << 8
+    at +8/+12/+16, CC +28, long name +40, group +44, short name +48.
+  - **The readers:**
+    - 0x4000fe8a(this, id) returns the short name, and 0x4000feac the long one;
+    - 0x40078f0c(id; a0 = out) copies min/max/default;
+    - 0x400657ee(id, value) formats the value through the parameter's 84-byte functor record (RAM,
+      0x4197d30c + 84 id) into 0x4197ce98.
+  - **Formatters:** the plain-number one (BR's) is the functor at 0x4197c7fc, called as
+    0x40151cc2(functor, value, buffer).
+  - **Active track and machine:** the active track is 0x4197b6b4, and a track's machine is at
+    *0x4199dc44 + 0x9e + 0xa2 t.
+- **A machine switch** (FUNC+SRC) takes effect as the menu's cursor moves. It resets knobs E..H to
+  ONESHOT's defaults (0, 120, 0, 100), leaves C and clears B.
+- **Cost** (digiemu, instructions a block in core + digimono while track 1 plays): SAW at its defaults
+  about 2,400, every oscillator on about 5,900, ENS with the chorus about 6,600; a track not playing about
+  100. The stock render is about 84,000.
+
+## Digi Mono 0.5 / 0.6 (2026-10-01): the voice buffers after the loop, and sharing with digisophie
+- **Where the audio goes in.** After the voice loop, each voice's 32 Q31 samples are at 0x80001a18 + 128 v.
+  The render then works on them in place, block after block: 0x40072478 (reads 0x40072540..), 0x40073280,
+  0x40073100, 0x40072300, then the mixer reads them (0x40071980). The order was traced with a memory hook
+  in digiemu. Written at 0x40077fba / 0x40077fc2, a Digi Mono block gets the AMP envelope (read at
+  0x40078050..5e, slots 38..40), PAN and the filter; written at 0x4007606e (0.3) it did not get the
+  envelope. VOL (slot 45) is read in the mixer (0x40071d26, via 0x4007188c; PAN at 0x40071d3a).
+- **The voice gain** at voice + 16 is 0x40074c60(level word, LEV word) = LEV^2 x track level: it is not
+  the envelope and not VOL.
+- **digisophie's sites** (0.1.7): 0x400657cc (layout), 0x4000fe8a / 0x4000feac (names), 0x4000f324 (value
+  text), 0x4000f2bc (knob graphics), 0x40065794 (UI record), 0x400657ee (popup text), the 0x40078f0c
+  callers 0x4000ff20 / 0x400100c4 / 0x4000f534 / 0x4000f5fc, and 0x40077fba (audio into 0x80001a18).
+  SOPHIE is machine 7, rendered as its own id. It reads the amp envelope's phase and level at
+  0x4199df54 / 0x4199df58 + 12 t.
+- **Callers**, for sharing those functions: 0x4000fe8a is called only at 0x40030daa, 0x4000feac only at
+  0x40032d36, and 0x400657ee at 0x40032d16, 0x40038714, 0x40038854, 0x40039142 and 0x400392ea. A mod
+  redirecting the call (`keep2`) and falling through to the function leaves the entry to another mod.

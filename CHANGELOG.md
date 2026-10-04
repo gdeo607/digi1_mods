@@ -3,6 +3,136 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Ready-made .elemod files, README at a glance
+- **elemods/**: this repo's mods (Digi Mono 0.11, digichain 1.3, Digi Utilities 1.9a, Digi Matrix 1.0b, Digi
+  EQ 1.0b) as `.elemod` files built with the latest elekloader (core 2.1), with a README of their hashes.
+  `tools/dev.sh publish` rebuilds them. Each was checked to hold no 16-byte run of the firmware; elekloader
+  refers to the user's own file for anything from it.
+- README: a summary and six screenshots at the top; new Digi Mono screenshots (VO and ENS pages with values).
+
+## README: a section per mod (docs)
+- The front page lists every mod in a table, then has a section each: Digi Mono, Digi Matrix, Digi Utilities,
+  Digi EQ, Digi Poly, digichain, and the other mods kept up to date. Digi Poly 1.0f is marked as built for core
+  2.0a: it patches a place core 2.1 owns, so it does not share a build with the core 2.1 mods yet.
+- Corrected: MONO ENS starts with its chorus off (CHRL 0) and MONO VO without a consonant (CONS 0); the cost
+  tables and the load test in docs/USAGE.md now say so.
+
+## Digi Mono 0.11 (HW: not yet)
+- **MONO ENS 29 % lighter at its defaults** (estimated ColdFire cycles a voice a block: ~2,100, was
+  ~2,950; the chorus is off there, CHRL 0; with the chorus on ~3,550, was ~4,450; the heaviest, WAVE and
+  chorus on, ~5,620, was ~5,710).
+  One copy of its sample loop for each of WAVE and the chorus on or off, and less work per block. The
+  same samples as 0.10, bit for bit; tests/emu_mono.py and tests/mono_signal.py pass.
+
+## Digi Mono 0.10 (HW: not yet)
+- **MONO VO 16-19 % lighter** (estimated ColdFire cycles a voice a block: a vowel ~3,280, was ~3,900;
+  while a consonant sounds ~5,500-6,300, was ~6,700-7,800). Its formant resonators run one at a time over
+  a short buffer, so their values stay in registers, with one multiply less each; the consonant's level
+  is a ramp. Same sound, within rounding (60-67 dB under the voice). tests/emu_mono.py (bit-exact
+  ColdFire against PC) and tests/mono_signal.py pass.
+
+## Upstream SOPHIE 1.1.13, DIGISLICER 2.1 (tools)
+- `dev.sh mods` builds them chained as before: the sites digichain owns are unchanged (SOPHIE's new FOLD
+  keeps BR's range; its new LFO-label sites are its own). Every pair combines; the full set (core,
+  digichain, Digi Mono, SOPHIE, NEIGHBOR, digieq, DigiFilter, digihealth, digimatrix, digiutils) links
+  with 24 KB of RAM spare.
+- docs/USAGE.md: how many Digi Mono tracks at once, from the unit's measured load.
+
+## elekloader app: old library copies (tools)
+- **Old hand-installed copies no longer win over the updated mods.** elekloader lists its own library
+  (~/.elekloader/mods) first; an old digichain or digimono installed there by hand, still ticked, was built
+  instead of the new one (an old digichain leaves Digi Mono, SOPHIE and DIGISLICER without menu icons). At
+  launch and after each update the app moves those copies to "Digitakt 1/4_bin/library_<date>".
+- Checked: the full set (core, digichain 1.3, Digi Mono 0.9, SOPHIE and NEIGHBOR chained, digieq, DigiFilter,
+  digihealth, digimatrix, digiutils) shows every added machine's icon in digiemu.
+- `dev.sh elemods`: Digi Mono's pairs are checked with digichain (it requires it), no more false CLASHes.
+
+## digichain 1.3 (HW: not yet)
+- **NEIGHBOR plays when you pick it.** A new NEIGHBOR track takes the track on its left as its source
+  (track 2 for track 1) once it has been NEIGHBOR for half a second; before, SLOT started at 0, silence.
+- **NEIGHBOR's SLOT runs 0-8** (it was SLICE's 0-64, where 9-64 were silence too).
+- Tested NEIGHBOR in digiemu: page, values, pitch shifter (within a few cents across +-12), source from
+  SOPHIE and Digi Mono tracks; chained and original NEIGHBOR the same. tests/digiemu_chain.py --blocks-at
+  reads the tracks before the mixer.
+
+## Digi Mono 0.9, digichain 1.2 (HW: not yet)
+- **MONO ENS about 35 % lighter at its defaults (~2,700 estimated ColdFire cycles a voice a block, was
+  ~4,200; heaviest ~5,200, was ~8,200).** Its four saws are worked out as one ramp with corrections at the
+  wraps, not four passes. Within 3 (16-bit) of 0.8's samples.
+- **MONO VO lighter again (a vowel ~3,700, while a consonant sounds ~6,400; 0.7: ~12,300).** SH, H, T, K
+  and P run at 24 kHz; the consonant and the vowel are separate loops. SH and H come out about 3 dB brighter
+  in 1-12 kHz; the vowel is as before.
+- **Icons in the machine menu:** MONO SIN, NOISE, SAW, PULSE, ENS and VO each have one
+  (tools/gen_mono_icons.py). digichain 1.2 fixes the menu so every added machine's icon shows (core 2.1
+  drew only the one right under SLICE): SOPHIE's and DIGISLICER's too.
+- Checked: the engine's signal tests, ColdFire = PC bit for bit, all six machines bit for bit in digiemu,
+  and the menu in digiemu with every icon.
+
+## Digi Mono 0.8 (HW: not yet)
+- **MONO VO about three times lighter:** an estimated ~4,400 ColdFire cycles a voice a block for a vowel
+  (was ~12,300), ~7,100 while a consonant sounds. The vowel runs at 24 kHz (its formants are all under
+  4 kHz), the consonant at 48 kHz while it lasts; no divides a sample; the filters' state stays in
+  registers. The sound: the same formants and levels (every band to 12 kHz within 1 dB); above 12 kHz it
+  is at most 48 dB under the voice.
+- Checked: the engine's signal tests (formants, consonants), ColdFire = PC bit for bit, and in digiemu
+  every block of a VO voice equal to the engine's.
+
+## Digi Mono 0.7, digichain 1.1 (HW: not yet)
+- **The SRC page says what each knob does.** Every knob a machine has gets its name, a plain round knob
+  (not ONESHOT's PLAY, SAMP or LEV controls under it) and its value in its units: voices, semitones, duty %,
+  mix %, ms, vowel and consonant names. Knobs a machine does not have are blank.
+- **D and H are engine knobs.** D was the sample slot: it now carries PULSE's SUB2, ENS's pulse width and
+  VO's breath (until now not on any knob), and no longer opens the sample list. H was the sample level,
+  which also switched the voice off at 0: the voice now follows its amp envelope, and its level is the
+  track's LEVEL.
+- Digi Mono needs digichain (ticked with it); digichain 1.1 routes Digi Mono pages too.
+- Checked in digiemu: all six machines bit for bit against the engine with D and H turned; each page's names
+  and values; the sample list still opens on a ONESHOT track; SOPHIE's and NEIGHBOR's pages unchanged.
+- Projects from 0.6: a PULSE, ENS or VO track's D holds the sample slot it had (often 0), now that parameter.
+
+## digichain 1.0 (HW: not yet)
+- New mod **digichain**: SOPHIE (digisophie), NEIGHBOR (digineighbor) and DIGISLICER (digislicer) now
+  combine. It owns the SRC-page and render places they each patched and sends each call to the mod whose
+  machine it is for; `tools/chain_patch.py` moves those mods' sites to it at build time (`-chain`
+  versions), their code unchanged. mods/digichain/README.md.
+- Checked in digiemu against the original mods: the same SRC pages pixel for pixel, the same ranges,
+  SOPHIE's and NEIGHBOR's voices the same bit for bit; NEIGHBOR can now take a SOPHIE track.
+- elekloader.app builds and updates the chained versions; the Version tab says when a mod is one.
+
+## Digi Mono 0.6 (HW: not yet)
+- New machine **MONO VO**, a formant voice after the Monomachine's VO-6:
+  - three vowel resonators on a glottal source, from published vowel measurements;
+  - VOC1 to VOC2 glide (V-SW), with the vowels shown by name;
+  - consonants S, SH, F, H, T, K and P (CONS, CLEN, CVOL).
+- **Shares a build with digisophie:**
+  - machine ids move to 20..25 (SOPHIE is 7);
+  - the render hook moves one instruction later (0x40077fc2);
+  - the SRC page's name and value hooks sit at the functions' callers instead of their entries.
+  - elekloader accepts core + digimono + digisophie (with digiutils, digimatrix, digieq); both machines
+    work in one digiemu build.
+- A project saved with 0.3's ids (6..10) loads those tracks as ONESHOT.
+
+## Digi Mono 0.5
+- The engine's audio goes in after the voice loop (0x40077fba), so the AMP envelope applies.
+- The machines render as ONESHOT.
+- The FLTR / AMP / LFO pages are measured in digiemu (tests/digiemu_mono_fx.py). One issue is open:
+  part of the voice ignores FREQ and VOL.
+
+## Digi Mono 0.3 (HW: not yet)
+- New elekloader mod `digimono` (needs core 2.1): five SRC machines after the Monomachine's GND and SWAVE
+  machines - MONO SIN, MONO NOISE, MONO SAW, MONO PULSE and MONO ENS - played by a clean-room synth engine
+  (no Monomachine code or data) written for the Digitakt's ColdFire.
+- The engine's block replaces the voice's resampled sample in the render (0x4007606e), so the track's
+  filter, amp, LFOs, sends, p-locks, note locks and TUNE all apply. Pitch comes from the note and TUNE as
+  a sample's does.
+- The SRC page shows the machine's own knob names and 0..127 values; a switch to a Digi Mono machine sets
+  its defaults.
+- Checked in digiemu on the real OS 1.53 for all five machines: every block the voice hands on equals the
+  engine's own, bit for bit (tests/digiemu_mono.py). The engine alone: tests/mono_signal.py (what each
+  parameter does) and tests/emu_mono.py (ColdFire build = PC build).
+- Cost: 3-8 % of the render per playing Digi Mono voice. Not in one build with Digi Poly 1.0f (core 2.1's
+  machine sites).
+
 ## Repository renamed
 The repository is now **digi1_mods** (it was DT1_8_POLY_OSC). Old links redirect. The stand-alone
 builds are now written as `digi1_mods_<release>_<version>.syx`; their contents and SHA-256 are unchanged.

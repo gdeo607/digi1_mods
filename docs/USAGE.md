@@ -144,6 +144,46 @@ One page, one band per column (bands 1-4 = knobs A/E, B/F, C/G, D/H):
   after a while.
 - A band at 0 dB (bell/shelf) costs nothing; four active bands cost about 5 % of the audio time (see RISKS.md).
 
+## Digi Mono (elekloader mod `digimono`, 0.11; needs digichain, ticked with it)
+- **Pick a machine:** FUNC+SRC on an audio track, then scroll past SLICE (and past any other mod's machines):
+  MONO SIN, MONO NOISE, MONO SAW, MONO PULSE, MONO ENS, MONO VO. YES to confirm. The track needs no sample.
+- **Play it:** from trigs, the track key, the keyboard (FUNC+TRK) or MIDI, like a sample track. The note
+  and knob A (TUNE) set the pitch.
+- **SRC page:** knob A is TUNE. B to H are the machine's; a knob it does not have is blank. Each shows its
+  name, a plain knob and its value in its units (the pop-up gives the long name):
+
+  | machine | B | C | D | E | F | G | H |
+  |---|---|---|---|---|---|---|---|
+  | SIN   | - | - | - | - | - | - | - |
+  | NOISE | ST (sample and hold rate) | RED (darker) | - | STON (pitched) | - | - | - |
+  | SAW   | UNIL (unison level) | UNIW (detune) | - | UNIX (1-3 saws) | SUBX (sub square..saw, %) | SUB1 (-1 oct) | SUB2 (-2 oct) |
+  | PULSE | UNIL | UNIW | SUB2 (-2 oct) | SUB1 (-1 oct) | PW (duty %) | PWAD (PWM depth) | PWRS (PWM rate) |
+  | ENS   | PCH2 (semitones) | PCH3 | PW (duty %, 0 = square) | PCH4 | WAVE (saw..pulse, %) | CHRL (chorus level) | CHRW (chorus width) |
+  | VO    | VOC1 (vowel: OO U AW AH UH AE EH IH EE ER) | VOC2 | VOIC (breath) | V-SW (glide VOC1 -> VOC2; 0 = VOC1 only) | CONS (- S SH F H T K P) | CLEN (ms) | CVOL (consonant level) |
+
+  The volume is the track's: LEVEL, the AMP page and VOL. D does not open the sample list on these machines.
+
+- **Everything else works as usual:** the FLTR, AMP and LFO pages, p-locks, parameter locks on these
+  knobs, the sends and the track level.
+- **Keep it to a few tracks:** on a unit the stock audio engine already uses about 80 % of each block
+  with a song playing (digihealth's measurement), so the room left for added engines is small, and code
+  outside the stock render costs more there than its instruction count (the processor's 8 KB code cache).
+  As a guide: VO, ENS and PULS cost about as much a voice as SOPHIE, whose author finds one instance
+  comfortable and two with FAST AUDIO; SIN, NOIS and SAW at their defaults cost a quarter to a half of
+  that. Only sounding voices count (a track sleeps once its amp envelope is silent). When the screen or
+  buttons get slow, or you hear clicks, use fewer of them at once, keep digihealth's FAST AUDIO on, and
+  check the load with its SYSTEM INFO (DSP, now and peak).
+- **How many at once on your unit (a load test):**
+  1. Build core, digichain, Digi Mono and digihealth only (FAST AUDIO on, as it is by default), and turn
+     SETTINGS > SYSTEM INFO on: the top bar shows DSP, now and its peak over the last second.
+  2. In an empty pattern, note DSP with nothing playing.
+  3. Track 1: the machine to test, trigs on steps 1, 5, 9 and 13, a long AMP decay. Play; note DSP and its
+     peak. Its defaults are the light case; for the heavy one turn on what costs most: on MONO VO a
+     consonant (F, CONS: S or SH), on MONO ENS the chorus (G, CHRL) and WAVE (F).
+  4. Copy the track to the next one and play again; note DSP, its peak, and whether the screen and knobs
+     still answer at once. Repeat, one track at a time, until they don't (usually as the peak nears 100 %).
+  5. Once with every track's trigs on the same steps (the worst case), once shifted by a step a track.
+
 ## Song mode
 Stand-alone builds (tools/build.py): disabled, pattern chains work as usual.
 Digi utilities 1.7a and later (elekloader): Song mode works as stock; the utility page opens on a held "...".
