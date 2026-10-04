@@ -4,6 +4,12 @@
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
 ## Every mod for OS 1.54, as .elemod files; Digi Mono 0.13a, digichain 1.6 (HW: not yet)
+- **Info updated:** README and USAGE say seven Digi Mono machines (POLY SIN too) and 0.13a; Digi Mono's
+  description in elekloader says it needs digichain 1.6, and digichain's that it carries Digi Mono (all
+  seven) and Digi Poly, and the LFO names SOPHIE and Digi Mono share.
+- **DigiFilter updated** to its latest commit (709f4af, its filter-curve display): its three new firmware
+  addresses are found in 1.54 (tools/os154.json, 165 now). Checked in digiemu on 1.54 with Digi Mono: the
+  FLTR page draws and turns, POLY SIN plays.
 - **elemods/ holds every mod for OS 1.53 and 1.54**, the other authors' too: SOPHIE 1.1.13 (chained),
   DIGISLICER 2.1 (chained), NEIGHBOR 0.6 (chained), DigiFilter 1.0i and digihealth 1.0. They are built from
   their repositories at the commits elemods/README.md names, with their licenses in elemods/licenses/.

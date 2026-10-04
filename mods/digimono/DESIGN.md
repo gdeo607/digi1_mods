@@ -131,7 +131,7 @@ What each parameter does, as this engine reads the manual:
 
 ## How it sits in the firmware (OS 1.53; details in docs/TECHNICAL_NOTES.md)
 
-- **Machines:** six descriptors in core 2.1's `core_machines`, ids 20..25, clear of NEIGHBOR / POLY (4),
+- **Machines:** seven descriptors in core 2.1's `core_machines`, ids 20..26 (POLY SIN 26), clear of NEIGHBOR / POLY (4),
   DIGISLICER (5) and SOPHIE (7). They have `params` = ONESHOT and `render` = ONESHOT, and digimono
   recognises its voices through core's `core_track_machine`.
 - **Audio:** the voice loop `0x400757fe` resamples each voice's sample, 64 samples at 96 kHz. A half-band

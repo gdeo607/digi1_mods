@@ -161,6 +161,10 @@
    "how": "window",
    "new": "0x4006579e"
   },
+  "0x400657b2": {
+   "how": "window",
+   "new": "0x400657b2"
+  },
   "0x400657cc": {
    "how": "window",
    "new": "0x400657cc"
@@ -425,6 +429,10 @@
    "how": "window",
    "new": "0x400c9a3a"
   },
+  "0x400ca382": {
+   "how": "window",
+   "new": "0x400ca5aa"
+  },
   "0x400d4180": {
    "how": "window",
    "new": "0x400d43a8"
@@ -492,6 +500,10 @@
   "0x401840e8": {
    "how": "by hand: the TRIG view +4 thunk slot; holds 0x40032d8c in both, +0x300 like the table",
    "new": "0x401843e8"
+  },
+  "0x401842a0": {
+   "how": "near 0x40184290",
+   "new": "0x401845a0"
   },
   "0x401845dc": {
    "how": "refs (1)",

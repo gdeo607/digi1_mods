@@ -13,8 +13,9 @@ your OS file from your own official one.
 ## At a glance
 
 - **Digi Poly**: chords on any audio track, from its own trigs, by borrowing other tracks' voices.
-- **Digi Mono**: six synth machines in the FUNC+SRC list (sine, noise, saw, pulse, an ensemble, a formant
-  voice), each with its own icon and its own SRC page, values in their units.
+- **Digi Mono**: seven synth machines in the FUNC+SRC list (sine, noise, saw, pulse, an ensemble, a formant
+  voice, and POLY SIN: three sines, a chord on one track), each with its own icon and its own SRC page,
+  values in their units.
 - **Digi Matrix**: any track's LFO to any parameter of any track, 8 slots, per pattern.
 - **Digi Utilities**: waveform, spectrum and X-Y scope, a tuner and track activity, on a held "...".
 - **Digi EQ**: a 4-band master EQ on every output, main outs, headphones and USB.
