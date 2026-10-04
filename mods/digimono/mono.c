@@ -496,14 +496,51 @@ static int32_t svf_f24(int32_t hz)
     return a + (((b - a) * fr) >> 8);
 }
 
+/* VO's vowel at 24 kHz in passes over up to 16 samples: the source, then each formant on its own (one
+ * resonator's values fit the CPU's registers; all three at once did not). The same arithmetic as
+ * VO_VOWEL, sample for sample. */
+static void vo_source(uint32_t *php, uint32_t inc2, uint32_t dt2, int32_t *glpp, int32_t breath, uint32_t *rp,
+                      int32_t *sb, int n)
+{
+    uint32_t ph = *php, r = *rp;
+    int32_t glp = *glpp, j;
+    for (j = 0; j < n; j++) {
+        int32_t s_ = saw(ph >> 16, dt2);
+        ph += inc2;
+        glp += ((s_ - glp) * 7) >> 4;
+        s_ = glp;
+        if (breath) {
+            r ^= r << 13; r ^= r >> 17; r ^= r << 5;
+            s_ += (((((int32_t)r >> 16) - s_) >> 1) * breath) >> 14;
+        }
+        sb[j] = s_;
+    }
+    *php = ph; *glpp = glp; *rp = r;
+}
+
+/* one resonator over sb: its band-pass, >> sh, into acc (set when first, else added) */
+static void vo_formant(const int32_t *sb, int32_t *acc, int32_t *lop, int32_t *bpp, int32_t f, int32_t q,
+                       int sh, int first, int n)
+{
+    int32_t lo = *lop, bp = *bpp, j;
+    for (j = 0; j < n; j++) {
+        int32_t hp_;
+        lo += (f * bp) >> 14;
+        hp_ = (((sb[j] - bp) * q) >> 14) - lo;
+        bp += (f * hp_) >> 14;
+        acc[j] = first ? bp >> sh : acc[j] + (bp >> sh);
+    }
+    *lop = lo; *bpp = bp;
+}
+
 static void render_vo(struct mono_voice *v, const uint8_t *p, uint32_t inc, int16_t *out, int n)
 {
     int32_t fk[3], qk[3], gk[3], k, cf = 0, cq = 0, cg, lenc, age0, pos1, pos2, pos, m, breath;
     uint32_t dt = inc >> 16, ph = v->ph[0], morph;
     int ct = p[4] >> 4;                                     /* CONS: 8 zones */
     /* the vowel: VOC1 -> VOC2 by V-SW, per block */
-    pos1 = p[0] * 9 * 256 / 127;                            /* Q8 along the continuum 0..9 */
-    pos2 = p[1] * 9 * 256 / 127;
+    pos1 = (p[0] * 74309) >> 12;                            /* Q8 along the continuum 0..9: p x 9 x 256 / 127 */
+    pos2 = (p[1] * 74309) >> 12;
     if (p[2] == 0) {
         m = 0;
     } else {
@@ -576,13 +613,13 @@ static void render_vo(struct mono_voice *v, const uint8_t *p, uint32_t inc, int1
                     s_ += (((((int32_t)r >> 16) - s_) >> 1) * breath) >> 14;            \
                 }                                                                       \
                 lo0 += (f0 * bp0) >> 14;                                                \
-                hp_ = ((s_ * q0) >> 14) - lo0 - ((q0 * bp0) >> 14);                     \
+                hp_ = (((s_ - bp0) * q0) >> 14) - lo0;                                 \
                 bp0 += (f0 * hp_) >> 14;                                                \
                 lo1 += (f1 * bp1) >> 14;                                                \
-                hp_ = ((s_ * q1) >> 14) - lo1 - ((q1 * bp1) >> 14);                     \
+                hp_ = (((s_ - bp1) * q1) >> 14) - lo1;                                 \
                 bp1 += (f1 * hp_) >> 14;                                                \
                 lo2 += (f2 * bp2) >> 14;                                                \
-                hp_ = ((s_ * q2) >> 14) - lo2 - ((q2 * bp2) >> 14);                     \
+                hp_ = (((s_ - bp2) * q2) >> 14) - lo2;                                 \
                 bp2 += (f2 * hp_) >> 14;                                                \
                 yh = bp0 + (bp1 >> 1) + (bp2 >> 2);                                     \
                 y = (last + yh) >> 1;                       /* halfway from the last */ \
@@ -599,13 +636,29 @@ static void render_vo(struct mono_voice *v, const uint8_t *p, uint32_t inc, int1
              * and F, else at 24 kHz with the vowel (halfway values between). Both ramps are running sums. */
             int32_t clo = v->c_lo, cbp = v->c_bp, clast = 0, cnew = 0;
             int32_t va = age0 * vstep, ea = (lenc - age0) * einv;
+            /* the band's level, (ea >> 8) x CVOL in Q14, as a ramp: one step a sample */
+            int32_t ga = (ea >> 8) * cg, gstep = ((einv >> 4) * cg) >> 4;
             const int full = CONS[ct][0] > 4000;
             int cn = lenc - age0 < n ? lenc - age0 : n;
             while (cn > 0) {
                 int c = cn < 32 ? cn : 32, j, tick = !par;
                 int32_t yb[32];
-                for (j = 0; j < c; j++)
-                    VO_VOWEL(yb[j]);
+                if (!par && !(c & 1)) {                     /* whole pairs: in passes, as below */
+                    int32_t sb[16], y24[16];
+                    vo_source(&ph, inc2, dt2, &glp, breath, &r, sb, c >> 1);
+                    vo_formant(sb, y24, &lo0, &bp0, f0, q0, 0, 1, c >> 1);
+                    vo_formant(sb, y24, &lo1, &bp1, f1, q1, 1, 0, c >> 1);
+                    vo_formant(sb, y24, &lo2, &bp2, f2, q2, 2, 0, c >> 1);
+                    for (j = 0; j < c; j += 2) {
+                        yh = y24[j >> 1];
+                        yb[j] = (last + yh) >> 1;
+                        yb[j + 1] = yh;
+                        last = yh;
+                    }
+                } else {
+                    for (j = 0; j < c; j++)
+                        VO_VOWEL(yb[j]);
+                }
                 for (j = 0; j < c; j++, tick ^= 1) {
                     int32_t x, cy, venv = age0 < half ? va >> 8 : 32767;
                     if (full || tick) {
@@ -613,9 +666,9 @@ static void render_vo(struct mono_voice *v, const uint8_t *p, uint32_t inc, int1
                         r ^= r << 13; r ^= r >> 17; r ^= r << 5;
                         nz = (int32_t)r >> 17;
                         clo += (cf * cbp) >> 14;
-                        hp = ((nz * cq) >> 14) - clo - ((cq * cbp) >> 14);
+                        hp = (((nz - cbp) * cq) >> 14) - clo;
                         cbp += (cf * hp) >> 14;
-                        cnew = (cbp * (((ea >> 8) * cg) >> 14)) >> 15;  /* x2: the band's level is its q's */
+                        cnew = (cbp * (ga >> 14)) >> 15;    /* x2: the band's level is its q's */
                         cy = full ? cnew : (clast + cnew) >> 1;
                         clast = cnew;
                     } else {
@@ -624,7 +677,7 @@ static void render_vo(struct mono_voice *v, const uint8_t *p, uint32_t inc, int1
                     x = ((yb[j] * (venv >> 1)) >> 13) + cy;   /* the vowel x2 make-up with the fade */
                     *out++ = sat16(x);
                     va += vstep;
-                    ea -= einv;
+                    ga -= gstep;
                     age0++;
                 }
                 cn -= c;
@@ -639,6 +692,22 @@ static void render_vo(struct mono_voice *v, const uint8_t *p, uint32_t inc, int1
                 VO_VOWEL(y);
                 *out++ = sat16((y * 16383) >> 13);
                 n--;
+            }
+            while (n >= 2) {                                /* in passes, up to 16 pairs at a time */
+                int32_t sb[16], yb[16], j, c = n >> 1 > 16 ? 16 : n >> 1;
+                vo_source(&ph, inc2, dt2, &glp, breath, &r, sb, c);
+                vo_formant(sb, yb, &lo0, &bp0, f0, q0, 0, 1, c);
+                vo_formant(sb, yb, &lo1, &bp1, f1, q1, 1, 0, c);
+                vo_formant(sb, yb, &lo2, &bp2, f2, q2, 2, 0, c);
+                for (j = 0; j < c; j++) {
+                    yh = yb[j];
+                    y = (last + yh) >> 1;
+                    out[0] = sat16((y * 16383) >> 13);
+                    out[1] = sat16((yh * 16383) >> 13);
+                    last = yh;
+                    out += 2;
+                }
+                n -= 2 * c;
             }
             while (n >= 2) {
                 VO_VOWEL(y);                                /* a new sample: halfway to it */

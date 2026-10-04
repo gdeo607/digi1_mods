@@ -200,6 +200,28 @@ a block (instruction kinds weighted: divide 35, multiply 4, load 2): a vowel ~4,
   loop has more values than the CPU has registers; the vowel alone runs a pair of samples a pass. ~3,700
   estimated cycles for a vowel, ~6,400 while the consonant sounds (0.8: ~4,400 and ~7,100; 0.7: ~12,300).
 
+**0.10, VO again.** Its vowel ran the source and the three formant resonators in one loop: twelve
+values for three filters and more for the source, so gcc kept several on the stack and loaded and
+stored them every sample. Now the vowel runs in passes over up to 16 of its 24 kHz samples: the source
+into a buffer, then each resonator on its own over it (its four values in registers), then the output
+pairs. The consonant phase makes its vowel the same way. Each resonator takes one multiply less
+(`(s * q - q * bp) >> 14` is now `((s - bp) * q) >> 14`, and the consonant's band likewise), and the
+consonant's level is a running ramp rather than a multiply a sample. Within rounding of 0.9's samples
+(the difference is 60-67 dB under the voice). Estimated cycles a voice a block, the same model before
+and after (`divide 35, multiply 4, load 2, store 1, branch 2, other 1`, tests/emu_mono.py's build):
+
+| VO (0.10) | 0.9 | 0.10 |
+|---|---|---|
+| a vowel | 3,900 | 3,280 (-16 %) |
+| a vowel with breath (VOIC 60) | 4,330 | 3,570 (-18 %) |
+| while SH sounds | 6,680 | 5,490 (-18 %) |
+| while S sounds (48 kHz) | 7,800 | 6,300 (-19 %) |
+
+A table for the resonators' 1 / Q (instead of three divides a block) was tried and left out: it saved
+about 30 cycles and moved the bandwidth up to 9 % between vowels. Running the loops from on-chip SRAM
+(`.fast`) was left out too: it needs digihealth in the build, and the VO voices render one after another,
+so their loops stay in the instruction cache after the first.
+
 Each playing Digi Mono voice adds 3-8 % to the render. The render already runs at about 80 % (72 % with
 FAST AUDIO), so **two to four Digi Mono tracks playing at once is the safe range until it is measured on
 a unit** with digihealth's SYSTEM INFO. Eight heavy ones would overload it. Ways to make it cheaper:

@@ -3,6 +3,13 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Digi Mono 0.10 (HW: not yet)
+- **MONO VO 16-19 % lighter** (estimated ColdFire cycles a voice a block: a vowel ~3,280, was ~3,900;
+  while a consonant sounds ~5,500-6,300, was ~6,700-7,800). Its formant resonators run one at a time over
+  a short buffer, so their values stay in registers, with one multiply less each; the consonant's level
+  is a ramp. Same sound, within rounding (60-67 dB under the voice). tests/emu_mono.py (bit-exact
+  ColdFire against PC) and tests/mono_signal.py pass.
+
 ## Upstream SOPHIE 1.1.13, DIGISLICER 2.1 (tools)
 - `dev.sh mods` builds them chained as before: the sites digichain owns are unchanged (SOPHIE's new FOLD
   keeps BR's range; its new LFO-label sites are its own). Every pair combines; the full set (core,
