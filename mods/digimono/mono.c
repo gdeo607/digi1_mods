@@ -88,39 +88,6 @@ static inline int32_t saw(uint32_t t, uint32_t dt)
     return (int32_t)t - 32768 - blep(t, dt);
 }
 
-/* For a sum of saws run as one ramp (render_ens): the phase q stepping inc over n samples. d[j] gets
- * -2^28 at each sample just after a wrap (the ramp, in phase >> 4, drops by a cycle there; not at j = 0,
- * which the ramp's start already has), f[j] the blep of the samples on each side of a wrap (16-bit). */
-static void saw_wraps(int32_t *d, int32_t *f, uint32_t q, uint32_t inc, int n)
-{
-    uint32_t dt = inc >> 16;
-    int j = 0, last = -1;
-    if (!inc)
-        return;
-    for (;;) {
-        uint32_t steps;
-        if (q < inc && j != last) {                     /* just after a wrap */
-            if (j)
-                d[j] -= 1 << 28;
-            f[j] -= blep(q >> 16, dt);
-            last = j;
-        }
-        steps = ~q / inc;
-        if (steps >= (uint32_t)(n - j))
-            break;
-        j += (int)steps;
-        q += steps * inc;
-        if (j != last) {                                /* just before it */
-            f[j] -= blep(q >> 16, dt);
-            last = j;
-        }
-        j++;
-        q += inc;
-        if (j >= n)
-            break;
-    }
-}
-
 static inline int16_t sat16(int32_t x)
 {
     return x > 32767 ? 32767 : x < -32768 ? -32768 : (int16_t)x;
@@ -261,10 +228,10 @@ static inline int32_t gmul(int32_t g, uint32_t x)
 /* A jump of j at each wrap of the phase q (stepping inc, < 2^31, over n samples), with a blep residual
  * of a times the polyBLEP (a = -g: a saw's fall; +g: a rise of 2) on the sample before and the one after
  * it. A wrap just before the chunk (q < inc) has its jump in the chunk's level already. The wraps. */
-static int steps(struct ramp *r, uint32_t q, uint32_t inc, int32_t j, int32_t a, int n)
+static int steps(int32_t *h, uint32_t q, uint32_t inc, int32_t j, int32_t a, int n)
 {
     uint32_t dt = inc >> 16;
-    int32_t *h = r->h, e, w = 0;
+    int32_t e, w = 0;
     int i = 0;
     if (!inc)
         return 0;
@@ -302,15 +269,15 @@ static int ramp_saw(struct ramp *r, uint32_t q, uint32_t inc, int32_t g, int n)
 {
     r->q += gmul(g, q) - g * 32768;
     r->s += gmul(g, inc);
-    return steps(r, q, inc, -g * 65536, -g, n);
+    return steps(r->h, q, inc, -g * 65536, -g, n);
 }
 
 /* a square of level g, +1 for the first half cycle */
 static void ramp_square(struct ramp *r, uint32_t q, uint32_t inc, int32_t g, int n)
 {
     r->q += g * (q < 0x80000000u ? 32767 : -32768);
-    steps(r, q, inc, g * 65535, g, n);
-    steps(r, q + 0x80000000u, inc, -g * 65535, -g, n);
+    steps(r->h, q, inc, g * 65535, g, n);
+    steps(r->h, q + 0x80000000u, inc, -g * 65535, -g, n);
 }
 
 /* the subs, one and two octaves down from the main oscillator at phase p0 after w wraps: a square of
@@ -436,19 +403,19 @@ static void render_puls(struct mono_voice *v, const uint8_t *p, uint32_t inc, in
 /* ENS's sample loop over c samples: the summed ramps (and with WAVE, the ramps a duty later), the
  * level, the chorus. has_k and has_c are constants at each call, so each copy has only its own work. */
 static inline __attribute__((always_inline)) void ens_loop(struct mono_voice *v, int16_t *out, int c,
-        uint16_t *wrp, int32_t *d0p, int32_t dd, uint32_t r1, uint32_t s1, const int32_t *d1, const int32_t *f1,
-        uint32_t r2, uint32_t s2, const int32_t *d2, const int32_t *f2, int32_t k, int32_t nw, int32_t gc,
+        uint16_t *wrp, int32_t *d0p, int32_t dd, uint32_t r1, uint32_t s1, const int32_t *h1,
+        uint32_t r2, uint32_t s2, const int32_t *h2, int32_t k, int32_t nw, int32_t gc,
         int32_t nc, const int has_k, const int has_c)
 {
     uint16_t wr = *wrp;
     int32_t d0 = *d0p, j;
     for (j = 0; j < c; j++) {
         int32_t x, dry;
-        r1 += s1 + (uint32_t)d1[j];
-        x = (int32_t)(r1 >> 12) - 4 * 32768 + f1[j];
+        r1 += s1 + (uint32_t)h1[j];
+        x = ((int32_t)r1 >> 12) - 4 * 32768;
         if (has_k) {
-            r2 += s2 + (uint32_t)d2[j];
-            x -= ((((int32_t)(r2 >> 12) - 4 * 32768) + f2[j]) * (k >> 2)) >> 13;   /* 4 saws: 2^17 */
+            r2 += s2 + (uint32_t)h2[j];
+            x -= ((((int32_t)r2 >> 12) - 4 * 32768) * (k >> 2)) >> 13;   /* 4 saws: 2^17 */
             dry = ((x >> 2) * (nw >> 1)) >> 14;
         } else {
             dry = x >> 2;                           /* nw = 2^15 without WAVE */
@@ -495,26 +462,27 @@ static void render_ens(struct mono_voice *v, const uint8_t *p, uint32_t inc, int
     dd = n == 32 ? (d1 - d0) / 32 : (d1 - d0) / n;  /* the usual block: a shift */
     /* The four saws (and, with WAVE, the four a duty later) are each summed as one ramp: the sum of
      * the phases (>> 4, so four fit in 30 bits) steps by the sum of the increments a sample and drops
-     * by a cycle where one wraps (d), with the blep of the samples beside a wrap (f) added in. Within
-     * 3 of the saws added one by one (16-bit). */
+     * by a cycle where one wraps, with the blep of the samples beside a wrap (x 4096, as the ramp's
+     * 16-bit value) added in: both as changes in h (steps(), as SAW's). Within 3 of the saws added one
+     * by one (16-bit). */
     while (n > 0) {
         int c = n < CHUNK ? n : CHUNK, j;
-        int32_t d1[CHUNK], f1[CHUNK], d2[CHUNK], f2[CHUNK];
+        int32_t h1[CHUNK + 2], h2[CHUNK + 2];
         uint32_t r1 = 0, r2 = 0, s1 = 0, s2 = 0;
-        for (j = 0; j < c; j++)
-            d1[j] = f1[j] = 0;
+        for (j = 0; j < c + 2; j++)
+            h1[j] = 0;
         if (k)
-            for (j = 0; j < c; j++)
-                d2[j] = f2[j] = 0;
+            for (j = 0; j < c + 2; j++)
+                h2[j] = 0;
         for (i = 0; i < 4; i++) {
             uint32_t q = v->ph[i];
             r1 += q >> 4;
             s1 += io[i] >> 4;
-            saw_wraps(d1, f1, q, io[i], c);
+            steps(h1, q, io[i], -(1 << 28), -4096, c);
             if (k) {
                 r2 += (q + (o << 16)) >> 4;
                 s2 += io[i] >> 4;
-                saw_wraps(d2, f2, q + (o << 16), io[i], c);
+                steps(h2, q + (o << 16), io[i], -(1 << 28), -4096, c);
             }
             v->ph[i] = q + (uint32_t)c * io[i];
         }
@@ -523,14 +491,14 @@ static void render_ens(struct mono_voice *v, const uint8_t *p, uint32_t inc, int
         /* one copy of the sample loop for each of WAVE on / off and chorus on / off */
         if (k) {
             if (gc)
-                ens_loop(v, out, c, &wr, &d0, dd, r1, s1, d1, f1, r2, s2, d2, f2, k, nw, gc, nc, 1, 1);
+                ens_loop(v, out, c, &wr, &d0, dd, r1, s1, h1, r2, s2, h2, k, nw, gc, nc, 1, 1);
             else
-                ens_loop(v, out, c, &wr, &d0, dd, r1, s1, d1, f1, r2, s2, d2, f2, k, nw, gc, nc, 1, 0);
+                ens_loop(v, out, c, &wr, &d0, dd, r1, s1, h1, r2, s2, h2, k, nw, gc, nc, 1, 0);
         } else {
             if (gc)
-                ens_loop(v, out, c, &wr, &d0, dd, r1, s1, d1, f1, r2, s2, d2, f2, k, nw, gc, nc, 0, 1);
+                ens_loop(v, out, c, &wr, &d0, dd, r1, s1, h1, r2, s2, h2, k, nw, gc, nc, 0, 1);
             else
-                ens_loop(v, out, c, &wr, &d0, dd, r1, s1, d1, f1, r2, s2, d2, f2, k, nw, gc, nc, 0, 0);
+                ens_loop(v, out, c, &wr, &d0, dd, r1, s1, h1, r2, s2, h2, k, nw, gc, nc, 0, 0);
         }
         out += c;
         n -= c;
