@@ -30,7 +30,7 @@ SENT = RAM + 0x100
 VOICE, PRM, OUT = RAM + 0x1000, RAM + 0x4000, RAM + 0x5000
 VOICE_BYTES = 0x3000
 FAIL = []
-ENGINES = ["WSH", "FM", "NOISE", "PART", "BD"]  # macro.h order
+ENGINES = ["WSH", "FM", "NOISE", "PART", "BD", "SD"]  # macro.h order
 
 
 def check(ok, what):

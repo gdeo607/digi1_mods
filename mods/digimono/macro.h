@@ -16,6 +16,7 @@ enum {
     MACRO_NOISE = 2,        /* clocked noise through a LP-to-HP filter (OUT), two band-passes (AUX)  */
     MACRO_PARTICLE = 3,     /* random impulses through resonant band-passes (OUT), the impulses (AUX) */
     MACRO_BD = 4,           /* bass drums: an analog-style one (OUT), a synthetic one (AUX)            */
+    MACRO_SD = 5,           /* snare drums: an analog-style one (OUT), a synthetic one (AUX)           */
     MACRO_ENGINES
 };
 
@@ -103,6 +104,21 @@ struct macro_bd {
     struct macro_svf click;
 };
 
+/* Plaits' snare drum engine: AnalogSnareDrum (OUT) and SyntheticSnareDrum (AUX), Q24 */
+struct macro_sd {
+    int32_t trig;
+    /* analog: five modes' resonators, the noise's band-pass; coefficients kept for the block's knobs */
+    int32_t pulse_left, pulse, pulse_lp, noise_env;
+    struct macro_svf mode[5], nf;
+    int32_t ma1[5], ma2[5], ma3[5], na1, na2, na3;
+    uint32_t key_inc;
+    int32_t key_knobs;
+    /* synthetic */
+    int32_t ph0, ph1, drum_amp, snare_amp, fm, hold;
+    int32_t drum_lp, snare_hp;
+    struct macro_svf snare_lp;
+};
+
 struct macro_voice {
     uint8_t engine;                 /* the engine playing                                            */
     uint8_t latch;                  /* 1: take the engine from knob B at the next block              */
@@ -115,6 +131,7 @@ struct macro_voice {
         struct macro_noise noise;
         struct macro_particles part;
         struct macro_bd bd;
+        struct macro_sd sd;
     } e;
 };
 
