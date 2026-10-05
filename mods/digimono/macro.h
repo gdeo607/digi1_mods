@@ -13,8 +13,14 @@
 enum {
     MACRO_WSH = 0,          /* waveshaping: a slope oscillator through a waveshaper and a wavefolder */
     MACRO_FM  = 1,          /* 2-operator FM with feedback, 4x oversampled (2x without feedback)    */
+    MACRO_NOISE = 2,        /* clocked noise through a LP-to-HP filter (OUT), two band-passes (AUX)  */
+    MACRO_PARTICLE = 3,     /* random impulses through resonant band-passes (OUT), the impulses (AUX) */
     MACRO_ENGINES
 };
+
+/* Knob B has 16 zones of 8 values, one an engine, so a saved ENGN value keeps its engine as engines are
+ * added; the zones past the last engine play the last one. */
+#define MACRO_ZONE_SHIFT 3
 
 /* The parameters, raw 0..127: */
 enum {
@@ -50,13 +56,49 @@ struct macro_fm {
     int32_t  os4;                                   /* this note runs 4x (it started with feedback)   */
 };
 
+/* Plaits' ClockedNoise: random values held at a clock's rate, band-limited steps (polyBLEP) */
+struct macro_cnoise {
+    uint32_t phase;
+    int32_t  sample, next;                          /* Q15                                           */
+};
+
+/* stmlib's Svf (a trapezoidal state-variable filter), states Q24 */
+struct macro_svf {
+    int32_t s1, s2;
+};
+
+struct macro_noise {
+    struct macro_cnoise src[2];
+    struct macro_svf mm, bp;                        /* OUT's LP-to-HP filter; AUX's second band-pass  */
+    int32_t sync;                                   /* a note started: restart both clocks           */
+};
+
+/* Plaits' Particle: impulses at random times, each particle's band-pass (stmlib's Svf, Q24) */
+#define MACRO_PARTICLES 6
+struct macro_particle {
+    int32_t e;                                      /* the time to the next impulse, in exponential units, Q26 */
+    int32_t s1, s2;                                 /* the band-pass's states                          */
+    int32_t a1, a2, a3;                             /* its coefficients (struct svf_c in macro.c)      */
+    int32_t c1m, c1s, c2m, c2s;                     /* an impulse's step into bp (and s1), lp (and s2)  */
+};
+
+struct macro_particles {
+    struct macro_particle p[MACRO_PARTICLES];
+    struct macro_svf post;                          /* the low-pass after them                         */
+    int32_t sync;
+};
+
 struct macro_voice {
     uint8_t engine;                 /* the engine playing                                            */
     uint8_t latch;                  /* 1: take the engine from knob B at the next block              */
     uint8_t pad[2];                 /* (four bytes, then 32-bit words)                               */
+    uint32_t rng;                   /* the voice's random numbers (stmlib's Random)                  */
+    int32_t lim_out, lim_aux;       /* the limiters' peaks (engines Plaits limits), Q17              */
     union {
         struct macro_wsh wsh;
         struct macro_fm fm;
+        struct macro_noise noise;
+        struct macro_particles part;
     } e;
 };
 

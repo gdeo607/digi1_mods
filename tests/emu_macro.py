@@ -2,6 +2,8 @@
 """Digi Mono's MACRO engines (mods/digimono/macro.c) built for the DT1's CPU, run on an emulated
 ColdFire V4e.
     python3 tests/emu_macro.py            (needs m68k-linux-gnu-gcc/ld/nm, gcc, unicorn, capstone)
+   The unicorn must emulate the EMAC as the ColdFire manual describes (digiemu's build does; a stock
+   unicorn 2.1.4 does not, and every MACRO filter engine then differs).
 1. Builds macro.c with elekloader's flags for the DT1 and checks the object needs nothing from
    outside (no libgcc, no memset).
 2. Bit-exact: random voices (engine, knobs, pitch, re-trigs) rendered block by block on the emulated
@@ -28,7 +30,7 @@ SENT = RAM + 0x100
 VOICE, PRM, OUT = RAM + 0x1000, RAM + 0x4000, RAM + 0x5000
 VOICE_BYTES = 0x3000
 FAIL = []
-ENGINES = ["WSH", "FM"]                # macro.h order
+ENGINES = ["WSH", "FM", "NOISE", "PART"]  # macro.h order
 
 
 def check(ok, what):
@@ -121,7 +123,7 @@ class CF:
 
 
 def knob_of(engine):
-    return int((engine + 0.5) * 128 / len(ENGINES))
+    return engine * 8 + 4                # knob B: 16 zones of 8 values
 
 
 def pitch_inc(note):

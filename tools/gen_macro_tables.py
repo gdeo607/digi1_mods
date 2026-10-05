@@ -74,6 +74,22 @@ def main():
         for i in range(0, len(vals), 12):
             print("    " + ", ".join("%d" % v for v in vals[i:i + 12]) + ",")
         print("};\n")
+    # stmlib's OnePole::tan<FREQUENCY_ACCURATE>(f) / f for f = 0..0.5 in 64 steps, Q12 (the SVF's g = f x this)
+    import math
+    pi = math.pi
+    k = [pi, 3.333314036e-01 * pi ** 3, 1.333923995e-01 * pi ** 5, 5.33740603e-02 * pi ** 7,
+         2.900525e-03 * pi ** 9, 9.5168091e-03 * pi ** 11]
+    def tan_over_f(f):
+        f2, acc = f * f, 0.0
+        for c in reversed(k):
+            acc = acc * f2 + c
+        return acc
+    vals = [int(round(tan_over_f(i / 128.0) * 4096)) for i in range(65)]
+    print("#define MACRO_SVF_TAN_SIZE 65")
+    print("static const uint16_t MACRO_SVF_TAN[65] = {")
+    for i in range(0, 65, 12):
+        print("    " + ", ".join("%d" % v for v in vals[i:i + 12]) + ",")
+    print("};\n")
     print("#endif")
 
 
