@@ -88,17 +88,6 @@ static inline int32_t saw(uint32_t t, uint32_t dt)
     return (int32_t)t - 32768 - blep(t, dt);
 }
 
-static inline int32_t square(uint32_t t, uint32_t dt)
-{
-    return (t < 32768 ? 32767 : -32768) + blep(t, dt) - blep((t + 32768) & 0xffff, dt);
-}
-
-/* A pulse of duty o/65536 from two saws. Mean 0; peak (65536 - o) or o, halved. */
-static inline int32_t pulse(uint32_t t, uint32_t o, uint32_t dt)
-{
-    return (saw(t, dt) - saw((t + o) & 0xffff, dt)) >> 1;
-}
-
 /* For a sum of saws run as one ramp (render_ens): the phase q stepping inc over n samples. d[j] gets
  * -2^28 at each sample just after a wrap (the ramp, in phase >> 4, drops by a cycle there; not at j = 0,
  * which the ramp's start already has), f[j] the blep of the samples on each side of a wrap (16-bit). */
@@ -248,85 +237,127 @@ static void render_nois(struct mono_voice *v, const uint8_t *p, uint32_t inc, in
     v->tsh = tsh;
 }
 
-/* The oscillators run one at a time over a chunk of up to CHUNK samples, adding into an int32 buffer:
- * each loop then keeps its phase, step and level in registers. */
+/* SAW and PULS as sums of ramps and steps, a chunk of up to CHUNK samples at a time. Every oscillator
+ * there is a saw (a ramp that drops a cycle at each wrap), a square or a pulse, and a pulse is two saws a
+ * duty apart, of opposite signs (their ramps cancel). So the chunk's output is one ramp, the sum of the
+ * oscillators' ramps (level q, slope s: Q30, a Q15 level times a 16-bit value), plus steps where an
+ * oscillator jumps; a step's polyBLEP touches only the sample on each side of it. The steps and the
+ * blep residuals go into h, as changes from the sample before, so the sample loop is one add a sample
+ * whatever the number of oscillators; finding the jumps costs a division or three a wrap, not a test
+ * a sample. The same samples as adding up the oscillators one by one, within the rounding (+-1). */
 #define CHUNK 32
 
-/* the main saw or pulse (o = 0: saw), written into acc; counts the wraps for the subs */
-static void osc_main(int32_t *acc, uint32_t *ph, uint8_t *sub, uint32_t inc, uint32_t o, int32_t g, int n)
+struct ramp {
+    int32_t q, s;                   /* the level at the chunk's first sample (Q30) and its step         */
+    int32_t h[CHUNK + 2];           /* changes, from the sample before, at each sample                  */
+};
+
+/* g * (x / 65536) for |g| < 2^15, x < 2^32: a phase or a step as a level, Q30 */
+static inline int32_t gmul(int32_t g, uint32_t x)
 {
-    uint32_t p = *ph, dt = inc >> 16;
-    uint8_t w = *sub;
-    while (n--) {
-        uint32_t q = p + inc;
-        int32_t s = o ? pulse(p >> 16, o, dt) : saw(p >> 16, dt);
-        *acc++ = (s * g) >> 15;
-        if (q < p)
-            w++;
-        p = q;
-    }
-    *ph = p;
-    *sub = w;
+    return g * (int32_t)(x >> 16) + ((g * (int32_t)(x & 0xffff)) >> 16);
 }
 
-/* a unison saw or pulse (o = 0: saw), added into acc */
-static void osc_add(int32_t *acc, uint32_t *ph, uint32_t inc, uint32_t o, int32_t g, int n)
-{
-    uint32_t p = *ph, dt = inc >> 16;
-    if (o) {
-        while (n--) {
-            *acc++ += (pulse(p >> 16, o, dt) * g) >> 15;
-            p += inc;
-        }
-    } else {
-        while (n--) {
-            *acc++ += (saw(p >> 16, dt) * g) >> 15;
-            p += inc;
-        }
-    }
-    *ph = p;
-}
-
-/* The two subs, one and two octaves down, added into acc: square, faded to a falling saw by x (Q15).
- * p0 / w are the main oscillator's phase and wrap count at the chunk's start. The saw falls so that its
- * fundamental is in phase with the square's (a rising one would cancel most of it half-way). */
-static void osc_subs(int32_t *acc, uint32_t p0, uint8_t w, uint32_t inc, int32_t g1, int32_t g2, int32_t x, int n)
+/* A jump of j at each wrap of the phase q (stepping inc, < 2^31, over n samples), with a blep residual
+ * of a times the polyBLEP (a = -g: a saw's fall; +g: a rise of 2) on the sample before and the one after
+ * it. A wrap just before the chunk (q < inc) has its jump in the chunk's level already. The wraps. */
+static int steps(struct ramp *r, uint32_t q, uint32_t inc, int32_t j, int32_t a, int n)
 {
     uint32_t dt = inc >> 16;
-    while (n--) {
-        uint32_t q = p0 + inc;
-        if (g1) {
-            uint32_t t = (((uint32_t)(w & 1) << 31) | (p0 >> 1)) >> 16;
-            int32_t sq = square(t, dt >> 1);
-            if (x)
-                sq += ((-saw(t, dt >> 1) - sq) * x) >> 15;
-            *acc += (sq * g1) >> 15;
-        }
-        if (g2) {
-            uint32_t t = (((uint32_t)(w & 3) << 30) | (p0 >> 2)) >> 16;
-            int32_t sq = square(t, dt >> 2);
-            if (x)
-                sq += ((-saw(t, dt >> 2) - sq) * x) >> 15;
-            *acc += (sq * g2) >> 15;
-        }
-        acc++;
-        if (q < p0)
-            w++;
-        p0 = q;
+    int32_t *h = r->h, e, w = 0;
+    int i = 0;
+    if (!inc)
+        return 0;
+    if (q < inc && (e = a * blep(q >> 16, dt)) != 0) {
+        h[0] += e;
+        h[1] -= e;
+    }
+    for (;;) {
+        uint32_t k, m = (uint32_t)(n - i);
+        int32_t b, f = 0;
+        if (inc < (1u << 26) && m * inc <= ~q)  /* no wrap left in the chunk (m <= 32: no overflow) */
+            break;
+        k = ~q / inc;                           /* samples until the last one before the next wrap */
+        if (k >= m)
+            break;
+        i += (int)k;
+        q += k * inc;
+        b = a * blep(q >> 16, dt);              /* the sample before the wrap */
+        q += inc;
+        w++;
+        i++;                                    /* the sample after it */
+        if (i < n)
+            f = a * blep(q >> 16, dt);
+        h[i - 1] += b;
+        h[i] += j + f - b;
+        h[i + 1] -= f;
+        if (i >= n)
+            break;
+    }
+    return w;
+}
+
+/* a saw of level g (Q15, either sign) at phase q, stepping inc */
+static int ramp_saw(struct ramp *r, uint32_t q, uint32_t inc, int32_t g, int n)
+{
+    r->q += gmul(g, q) - g * 32768;
+    r->s += gmul(g, inc);
+    return steps(r, q, inc, -g * 65536, -g, n);
+}
+
+/* a square of level g, +1 for the first half cycle */
+static void ramp_square(struct ramp *r, uint32_t q, uint32_t inc, int32_t g, int n)
+{
+    r->q += g * (q < 0x80000000u ? 32767 : -32768);
+    steps(r, q, inc, g * 65535, g, n);
+    steps(r, q + 0x80000000u, inc, -g * 65535, -g, n);
+}
+
+/* the subs, one and two octaves down from the main oscillator at phase p0 after w wraps: a square of
+ * level g1 / g2, faded to a falling saw by x (Q15). The saw falls so that its fundamental is in phase
+ * with the square's (a rising one would cancel most of it half-way). */
+static void ramp_subs(struct ramp *r, uint32_t p0, uint32_t w, uint32_t inc, int32_t g1, int32_t g2, int32_t x, int n)
+{
+    if (g1) {
+        uint32_t q = (w << 31) | (p0 >> 1);
+        ramp_square(r, q, inc >> 1, (g1 * (32768 - x)) >> 15, n);
+        if (x)
+            ramp_saw(r, q, inc >> 1, -((g1 * x) >> 15), n);
+    }
+    if (g2) {
+        uint32_t q = (w << 30) | (p0 >> 2);
+        ramp_square(r, q, inc >> 2, (g2 * (32768 - x)) >> 15, n);
+        if (x)
+            ramp_saw(r, q, inc >> 2, -((g2 * x) >> 15), n);
     }
 }
 
-static void put(int16_t *out, const int32_t *acc, int n)
+static void ramp_start(struct ramp *r, int n)
 {
-    while (n--)
-        *out++ = sat16(*acc++);
+    int i;
+    r->q = 16384;                               /* rounds the sum */
+    r->s = 0;
+    for (i = 0; i < n + 2; i++)
+        r->h[i] = 0;
+}
+
+static void ramp_out(const struct ramp *r, int16_t *out, int n)
+{
+    int32_t q = r->q - r->s, s = r->s;
+    const int32_t *h = r->h;
+    while (n--) {
+        q += s + *h++;
+        *out++ = sat16(q >> 15);
+    }
 }
 
 static void render_saw(struct mono_voice *v, const uint8_t *p, uint32_t inc, int16_t *out, int n)
 {
-    int32_t acc[CHUNK], g[6], nu, k, x = lin(p[4]);
+    struct ramp r;
+    int32_t g[6], nu, k, x = lin(p[4]);
     uint32_t iu[4], f = MONO_DETUNE[p[1]];
     nu = p[2] < 43 ? 1 : p[2] < 86 ? 2 : 3;         /* UNIX: how many unison saws */
+    iu[0] = inc;
     iu[1] = scale_up(inc, f);
     iu[2] = scale_down(inc, f);
     iu[3] = scale_up(inc, f >> 1);
@@ -339,23 +370,35 @@ static void render_saw(struct mono_voice *v, const uint8_t *p, uint32_t inc, int
     normalise(g, 6);
     while (n > 0) {
         int c = n < CHUNK ? n : CHUNK;
-        uint32_t p0 = v->ph[0];
-        uint8_t w = v->sub;
-        osc_main(acc, &v->ph[0], &v->sub, inc, 0, g[0], c);
+        uint32_t p0 = v->ph[0], w = v->sub;
+        ramp_start(&r, c);
+        v->sub = (uint8_t)(w + ramp_saw(&r, p0, inc, g[0], c));
+        v->ph[0] = p0 + (uint32_t)c * inc;
         for (k = 1; k < 4; k++)
-            if (g[k])
-                osc_add(acc, &v->ph[k], iu[k], 0, g[k], c);
+            if (g[k]) {
+                ramp_saw(&r, v->ph[k], iu[k], g[k], c);
+                v->ph[k] += (uint32_t)c * iu[k];
+            }
         if (g[4] | g[5])
-            osc_subs(acc, p0, w, inc, g[4], g[5], x, c);
-        put(out, acc, c);
+            ramp_subs(&r, p0, w, inc, g[4], g[5], x, c);
+        ramp_out(&r, out, c);
         out += c;
         n -= c;
     }
 }
 
+/* a pulse of level g and duty o / 65536: a saw of g / 2 less the saw a duty later */
+static int ramp_pulse(struct ramp *r, uint32_t q, uint32_t inc, uint32_t o, int32_t g, int n)
+{
+    int32_t h = (g + 1) >> 1;
+    ramp_saw(r, q + (o << 16), inc, -h, n);
+    return ramp_saw(r, q, inc, h, n);
+}
+
 static void render_puls(struct mono_voice *v, const uint8_t *p, uint32_t inc, int16_t *out, int n)
 {
-    int32_t acc[CHUNK], g[5], o;
+    struct ramp r;
+    int32_t g[5], o, k;
     uint32_t iu[3], f = MONO_DETUNE[p[1]];
     /* the pulse width for this block: PW, swung by the PWM LFO (triangle, PWRS) by PWAD */
     o = duty(p[4]) + ((((tri(v->lfo) << 1) - 32767) * ((MONO_GAIN[p[5]] * 30000) >> 15)) >> 15);
@@ -373,16 +416,18 @@ static void render_puls(struct mono_voice *v, const uint8_t *p, uint32_t inc, in
     normalise(g, 5);
     while (n > 0) {
         int c = n < CHUNK ? n : CHUNK;
-        uint32_t p0 = v->ph[0];
-        uint8_t w = v->sub;
-        osc_main(acc, &v->ph[0], &v->sub, inc, (uint32_t)o, g[0], c);
-        if (g[1]) {
-            osc_add(acc, &v->ph[1], iu[1], (uint32_t)o, g[1], c);
-            osc_add(acc, &v->ph[2], iu[2], (uint32_t)o, g[2], c);
-        }
+        uint32_t p0 = v->ph[0], w = v->sub;
+        ramp_start(&r, c);
+        v->sub = (uint8_t)(w + ramp_pulse(&r, p0, inc, (uint32_t)o, g[0], c));
+        v->ph[0] = p0 + (uint32_t)c * inc;
+        if (g[1])
+            for (k = 1; k < 3; k++) {
+                ramp_pulse(&r, v->ph[k], iu[k], (uint32_t)o, g[k], c);
+                v->ph[k] += (uint32_t)c * iu[k];
+            }
         if (g[3] | g[4])
-            osc_subs(acc, p0, w, inc, g[3], g[4], 0, c);
-        put(out, acc, c);
+            ramp_subs(&r, p0, w, inc, g[3], g[4], 0, c);
+        ramp_out(&r, out, c);
         out += c;
         n -= c;
     }

@@ -296,12 +296,24 @@ def main():
             worst_dc = max(worst_dc, abs(float(np.mean(x[FS // 20:]))))
     check(worst_dc < 0.01, "no DC offset above 1 %% of full scale (worst %.4f)" % worst_dc)
     same = True
-    for m in (SIN, SAW, NOIS):
+    for m in (SIN, NOIS):
         prm = [rnd.randrange(128) for _ in range(7)]
         a = play(m, prm, 50.3, 0.1, block=32)
         b = play(m, prm, 50.3, 0.1, block=7)
         same &= bool(np.array_equal(a, b))
-    check(same, "SIN / SAW / NOIS: the same samples in 32- or 7-frame blocks (state carries across blocks)")
+    check(same, "SIN / NOIS: the same samples in 32- or 7-frame blocks (state carries across blocks)")
+    # SAW and PULS sum their oscillators as one ramp from each block's start: the rounding of a sample
+    # can differ by 1 with the block size (PULS without PWM, which moves once a block)
+    worst = 0
+    for i in range(12):
+        m = (SAW, PULS)[i & 1]
+        prm = [rnd.randrange(128) for _ in range(7)]
+        prm[5] = prm[5] if m == SAW else 0
+        note = 30 + 7 * i
+        a = play(m, prm, note, 0.1, block=32)
+        b = play(m, prm, note, 0.1, block=7)
+        worst = max(worst, float(np.max(np.abs(a - b))) * 32768)
+    check(worst <= 1, "SAW / PULS: within 1 (of 32768) in 32- or 7-frame blocks (worst %d)" % worst)
 
     print()
     if FAIL:
