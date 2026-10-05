@@ -1,0 +1,1476 @@
+{
+ "elemod": 2,
+ "id": "digichain",
+ "version": "1.6",
+ "title": "digichain",
+ "description": "Lets SOPHIE (digisophie), NEIGHBOR (digineighbor) and DIGISLICER (digislicer) combine. Digi Mono (all seven machines, POLY SIN too) and Digi Poly get their SRC page's layout, knob graphics and knob values through it too, and from 1.6 SOPHIE and Digi Mono share the LFO page's DEST names through it, so the two combine. Each of them patches the same SRC-page functions (knob labels, values, graphics, ranges) and the same render step; digichain owns those places once and passes each call to the mod whose machine it is for, or to the stock code. It also makes the machine menu draw every added machine's icon (core 2.1 drew only the first). For NEIGHBOR, SLOT runs 0-8 (not SLICE's 0-64) and a new NEIGHBOR track takes the track on its left as its source. It needs the builds of those mods that tools/dev.sh makes for it (version ending in -chain), and changes nothing on its own.",
+ "category": "Framework",
+ "author": "gdeo607",
+ "license": "MIT",
+ "target": {
+  "device": "digitakt-mk1",
+  "product": "Digitakt mk1",
+  "os": "1.53",
+  "syx_sha256": "9bdd44bb6102fb25c143cfab97bc92b7a89c463f795d3112dce89771e29bcc92",
+  "section3_sha256": "4b47a9507758ca5669ca02ab2c0374d2c04c98aece445408295cc1dcb265c5df",
+  "section3_len": 2475584
+ },
+ "sections": {
+  ".run": {
+   "align": 4,
+   "len": 1792,
+   "parts": [
+    [
+     "hex",
+     "202f000423c0000000007007b0b9000000006612223c000000000c8100000000670422414ed17004b0b9000000006612223c000000000c8100000000670422414ed17006b0b9000000006612223c000000000c8100000000670422414ed12039000000007214b0816518721db0816212223c000000000c8100000000670422414ed1202f000472034ef9400657d27007b0b9000000006612223c000000000c8100000000670422414ed17004b0b9000000006612223c000000000c8100000000670422414ed1"
+    ],
+    [
+     "stock",
+     "0x4000fe8a",
+     10
+    ],
+    [
+     "hex",
+     "4ef94000fe947007b0b9000000006612223c000000000c8100000000670422414ed17004b0b9000000006612223c000000000c8100000000670422414ed1"
+    ],
+    [
+     "stock",
+     "0x4000fe8a",
+     10
+    ],
+    [
+     "hex",
+     "4ef94000feb67007b0b9000000006612223c000000000c8100000000670422414ed17004b0b9000000006612223c000000000c8100000000670422414ed12039000000007214b0816518721db0816212223c000000000c810000000067042241"
+    ],
+    [
+     "stock",
+     "0x40151cea",
+     8
+    ],
+    [
+     "hex",
+     "0c1c4ef94000f32c7007b0b9000000006612223c000000000c8100000000670422414ed17004b0b9000000006612223c000000000c8100000000670422414ed12039000000007214b0816518721db0816212223c000000000c810000000067042241"
+    ],
+    [
+     "stock",
+     "0x40151cea",
+     8
+    ],
+    [
+     "hex",
+     "007c4ef94000f2c47007b0b9000000006612223c000000000c8100000000670422414ed17004b0b9000000006612223c000000000c8100000000670422414ed12039000000007214b0816518721db0816212223c000000000c8100000000670422414ed1"
+    ],
+    [
+     "stock",
+     "0x40065794",
+     10
+    ],
+    [
+     "hex",
+     "4ef94006579e7007b0b9000000006612223c000000000c8100000000670422414ed17004b0b9000000006612223c000000000c8100000000670422414ed1"
+    ],
+    [
+     "stock",
+     "0x40065794",
+     10
+    ],
+    [
+     "hex",
+     "4ef9400657f82f082f00203c000000000c8000000000670420404e90203c000000000c8000000000670420404e90201f205f49f94199e4444e75224a610000d47007b2806608203c0000000060307004b280661e203c00000088b0af0004662a203c000000000c8000000000671c600000787005b2806612203c000000000c8000000000670422404ed14ef940078f0c226f00246100007c7007b2806608203c0000000060307004b280661e203c00000088b0af0004662a203c000000000c8000000000671c600000247005b2806612203c000000000c8000000000670422404ed14ef940078f0c224a6004226f00242f092f082f2f000c"
+    ],
+    [
+     "stock",
+     "0x40010d50",
+     8
+    ],
+    [
+     "hex",
+     "205f225f203c00000800"
+    ],
+    [
+     "stock",
+     "0x4008af4a",
+     8
+    ],
+    [
+     "hex",
+     "7200"
+    ],
+    [
+     "stock",
+     "0x40016a22",
+     8
+    ],
+    [
+     "hex",
+     "008565300c800000008b62280c8000000086672020110c804017eb5866162269001020110c80401813306608226900101229007e4e75202f00047203b28065064ef940029e805a804e752f007007b0b9000000006616203c000000000c80000000006708201f4ef900000000201f41f9401a9d9c4ef940060b942f007007b0b9000000006616203c000000000c80000000006708201f4ef900000000201f2f00203c000000000c8000000000670e201f4eb9000000004ef9400a437a201f2f3308282f064ef9400a437a2f007007b0b9000000006616203c000000000c80000000006708201f4ef900000000201f2f00203c000000000c8000000000670e201f4eb9000000004ef9400a43f6201f2f3328302f064ef9400a43f62f007007b0b9000000006616203c000000000c80000000006708201f4ef900000000201f2f00203c000000000c8000000000670e201f4eb9000000004ef940065dec201f2f30082c2f024ef940065dec2f007007b0b9000000006616203c000000000c80000000006708201f4ef900000000201f70344c0038004ef940065e64"
+    ],
+    [
+     "stock",
+     "0x4008475e",
+     8
+    ],
+    [
+     "hex",
+     "3c3c24794199dc444a8a6768203c000000000c8000000000675ab5f900000000675c41ea009e428147f90000000043f90000000049f900000000719077a800a2781875a80144e9a84843424341e80288e18a808380821028ff5e42b1180042b418002780180070085881b08166cc23ca00000000"
+    ],
+    [
+     "stock",
+     "0x40004132",
+     10
+    ],
+    [
+     "hex",
+     "182a009e47f9000000004285719b45ea005e428249f9000000004bf9000000007784b083673e59804a80670000881744ffff420459831b8428004a83670000ae420019802800528245ea00a20685000001007208b282679e182a0040719b7784b08366c21034280067dc53801980280066d44a1266d04a82677c320516022005348148780015"
+    ],
+    [
+     "stock",
+     "0x4001bd1e",
+     8
+    ],
+    [
+     "hex",
+     "71e84fef000c43f90000000013832800528245ea00a20685000001007208b28266a86000ff44103528006700ff7471807392b2806600ff6a42525983487800152f0242a7"
+    ],
+    [
+     "stock",
+     "0x4000fd3e",
+     10
+    ],
+    [
+     "hex",
+     "1744ffff42041b8428004a836600ff56700f198028006000ff52323c02007602203c00000200348148780015"
+    ],
+    [
+     "stock",
+     "0x4001bd1e",
+     8
+    ],
+    [
+     "hex",
+     "71e84fef000c43f900000000138328006000ff7c"
+    ]
+   ]
+  },
+  ".bss": {
+   "align": 4,
+   "size": 32
+  }
+ },
+ "symbols": {
+  "M_NBR": [
+   "abs",
+   4
+  ],
+  "M_DSL": [
+   "abs",
+   5
+  ],
+  "M_POLY": [
+   "abs",
+   6
+  ],
+  "M_SOPH": [
+   "abs",
+   7
+  ],
+  "M_MONO": [
+   "abs",
+   20
+  ],
+  "M_MONO_LAST": [
+   "abs",
+   29
+  ],
+  "digichain_rmach": [
+   ".run",
+   946
+  ],
+  "digichain_nb_range": [
+   ".run",
+   904
+  ],
+  "digichain_nb_range_f": [
+   ".run",
+   908
+  ],
+  "seen_kit": [
+   ".bss",
+   28
+  ],
+  "seen_mach": [
+   ".bss",
+   20
+  ],
+  "set_by_us": [
+   ".bss",
+   4
+  ],
+  "wait_t": [
+   ".bss",
+   12
+  ],
+  "digichain_lfo_label": [
+   ".run",
+   1030
+  ],
+  "digichain_lfo_list": [
+   ".run",
+   1078
+  ],
+  "digichain_ui_rec": [
+   ".run",
+   498
+  ],
+  "digichain_inject": [
+   ".run",
+   678
+  ],
+  "digichain_val_text": [
+   ".run",
+   286
+  ],
+  "digichain_prange_f": [
+   ".run",
+   816
+  ],
+  "digichain_lfo_bgrp": [
+   ".run",
+   1238
+  ],
+  "digichain_knob_gfx": [
+   ".run",
+   392
+  ],
+  "digichain_pop_text": [
+   ".run",
+   606
+  ],
+  "digichain_lfo_lshort": [
+   ".run",
+   1158
+  ],
+  "digichain_prange": [
+   ".run",
+   730
+  ],
+  "digichain_lab_short": [
+   ".run",
+   142
+  ],
+  "digichain_tick": [
+   ".run",
+   1368
+  ],
+  "digichain_lab_long": [
+   ".run",
+   214
+  ],
+  "digichain_lfo_bname": [
+   ".run",
+   1318
+  ],
+  "digichain_layout": [
+   ".run",
+   0
+  ],
+  "digichain_page_m": [
+   ".bss",
+   0
+  ],
+  "digichain_mtype": [
+   ".run",
+   1010
+  ]
+ },
+ "exports": [
+  "digichain_inject",
+  "digichain_knob_gfx",
+  "digichain_lab_long",
+  "digichain_lab_short",
+  "digichain_layout",
+  "digichain_lfo_bgrp",
+  "digichain_lfo_bname",
+  "digichain_lfo_label",
+  "digichain_lfo_list",
+  "digichain_lfo_lshort",
+  "digichain_mtype",
+  "digichain_page_m",
+  "digichain_pop_text",
+  "digichain_prange",
+  "digichain_prange_f",
+  "digichain_tick",
+  "digichain_ui_rec",
+  "digichain_val_text"
+ ],
+ "imports": [
+  "core_zero",
+  "digimono_knob_gfx",
+  "digimono_layout",
+  "digimono_lfo_bgrp",
+  "digimono_lfo_list",
+  "digimono_lfo_lshort",
+  "digimono_ui_rec",
+  "digimono_val_text",
+  "digipoly_layout",
+  "ds_inject_s",
+  "ds_knob_gfx",
+  "ds_lab_long",
+  "ds_lab_short",
+  "ds_layout",
+  "ds_lfo_label",
+  "ds_lfo_overview_group",
+  "ds_lfo_overview_name",
+  "ds_lfo_popup_fallback",
+  "ds_lfo_popup_name",
+  "ds_pop_text",
+  "ds_prange",
+  "ds_prange_f",
+  "ds_ui_rec",
+  "ds_val_text",
+  "dsl_prange",
+  "dsl_prange_f",
+  "nb_inject_s",
+  "nb_knob_gfx",
+  "nb_lab_long",
+  "nb_lab_short",
+  "nb_layout",
+  "nb_pop_text",
+  "nb_ui_rec",
+  "nb_val_text"
+ ],
+ "weak": [
+  "digimono_knob_gfx",
+  "digimono_layout",
+  "digimono_lfo_bgrp",
+  "digimono_lfo_list",
+  "digimono_lfo_lshort",
+  "digimono_ui_rec",
+  "digimono_val_text",
+  "digipoly_layout",
+  "ds_inject_s",
+  "ds_knob_gfx",
+  "ds_lab_long",
+  "ds_lab_short",
+  "ds_layout",
+  "ds_lfo_label",
+  "ds_lfo_overview_group",
+  "ds_lfo_overview_name",
+  "ds_lfo_popup_fallback",
+  "ds_lfo_popup_name",
+  "ds_pop_text",
+  "ds_prange",
+  "ds_prange_f",
+  "ds_ui_rec",
+  "ds_val_text",
+  "dsl_prange",
+  "dsl_prange_f",
+  "nb_inject_s",
+  "nb_knob_gfx",
+  "nb_lab_long",
+  "nb_lab_short",
+  "nb_layout",
+  "nb_pop_text",
+  "nb_ui_rec",
+  "nb_val_text"
+ ],
+ "relocs": [
+  [
+   ".run",
+   6,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   14,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   22,
+   "abs32",
+   "sym:ds_layout",
+   0
+  ],
+  [
+   ".run",
+   28,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   42,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   50,
+   "abs32",
+   "sym:nb_layout",
+   0
+  ],
+  [
+   ".run",
+   56,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   70,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   78,
+   "abs32",
+   "sym:digipoly_layout",
+   0
+  ],
+  [
+   ".run",
+   84,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   96,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   114,
+   "abs32",
+   "sym:digimono_layout",
+   0
+  ],
+  [
+   ".run",
+   120,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   146,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   154,
+   "abs32",
+   "sym:ds_lab_short",
+   0
+  ],
+  [
+   ".run",
+   160,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   174,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   182,
+   "abs32",
+   "sym:nb_lab_short",
+   0
+  ],
+  [
+   ".run",
+   188,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   218,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   226,
+   "abs32",
+   "sym:ds_lab_long",
+   0
+  ],
+  [
+   ".run",
+   232,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   246,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   254,
+   "abs32",
+   "sym:nb_lab_long",
+   0
+  ],
+  [
+   ".run",
+   260,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   290,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   298,
+   "abs32",
+   "sym:ds_val_text",
+   0
+  ],
+  [
+   ".run",
+   304,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   318,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   326,
+   "abs32",
+   "sym:nb_val_text",
+   0
+  ],
+  [
+   ".run",
+   332,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   344,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   362,
+   "abs32",
+   "sym:digimono_val_text",
+   0
+  ],
+  [
+   ".run",
+   368,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   396,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   404,
+   "abs32",
+   "sym:ds_knob_gfx",
+   0
+  ],
+  [
+   ".run",
+   410,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   424,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   432,
+   "abs32",
+   "sym:nb_knob_gfx",
+   0
+  ],
+  [
+   ".run",
+   438,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   450,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   468,
+   "abs32",
+   "sym:digimono_knob_gfx",
+   0
+  ],
+  [
+   ".run",
+   474,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   502,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   510,
+   "abs32",
+   "sym:ds_ui_rec",
+   0
+  ],
+  [
+   ".run",
+   516,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   530,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   538,
+   "abs32",
+   "sym:nb_ui_rec",
+   0
+  ],
+  [
+   ".run",
+   544,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   556,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   574,
+   "abs32",
+   "sym:digimono_ui_rec",
+   0
+  ],
+  [
+   ".run",
+   580,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   610,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   618,
+   "abs32",
+   "sym:ds_pop_text",
+   0
+  ],
+  [
+   ".run",
+   624,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   638,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   646,
+   "abs32",
+   "sym:nb_pop_text",
+   0
+  ],
+  [
+   ".run",
+   652,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   684,
+   "abs32",
+   "sym:ds_inject_s",
+   0
+  ],
+  [
+   ".run",
+   690,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   702,
+   "abs32",
+   "sym:nb_inject_s",
+   0
+  ],
+  [
+   ".run",
+   708,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   744,
+   "abs32",
+   "sym:ds_prange",
+   0
+  ],
+  [
+   ".run",
+   770,
+   "abs32",
+   "sym:nb_layout",
+   0
+  ],
+  [
+   ".run",
+   776,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   794,
+   "abs32",
+   "sym:dsl_prange",
+   0
+  ],
+  [
+   ".run",
+   800,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   832,
+   "abs32",
+   "sym:ds_prange_f",
+   0
+  ],
+  [
+   ".run",
+   858,
+   "abs32",
+   "sym:nb_layout",
+   0
+  ],
+  [
+   ".run",
+   864,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   882,
+   "abs32",
+   "sym:dsl_prange_f",
+   0
+  ],
+  [
+   ".run",
+   888,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   1036,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   1044,
+   "abs32",
+   "sym:ds_lfo_label",
+   0
+  ],
+  [
+   ".run",
+   1050,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   1060,
+   "abs32",
+   "sym:ds_lfo_label",
+   0
+  ],
+  [
+   ".run",
+   1084,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   1092,
+   "abs32",
+   "sym:ds_lfo_popup_name",
+   0
+  ],
+  [
+   ".run",
+   1098,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   1108,
+   "abs32",
+   "sym:ds_lfo_popup_name",
+   0
+  ],
+  [
+   ".run",
+   1118,
+   "abs32",
+   "sym:digimono_lfo_list",
+   0
+  ],
+  [
+   ".run",
+   1124,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   1134,
+   "abs32",
+   "sym:digimono_lfo_list",
+   0
+  ],
+  [
+   ".run",
+   1164,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   1172,
+   "abs32",
+   "sym:ds_lfo_popup_fallback",
+   0
+  ],
+  [
+   ".run",
+   1178,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   1188,
+   "abs32",
+   "sym:ds_lfo_popup_fallback",
+   0
+  ],
+  [
+   ".run",
+   1198,
+   "abs32",
+   "sym:digimono_lfo_lshort",
+   0
+  ],
+  [
+   ".run",
+   1204,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   1214,
+   "abs32",
+   "sym:digimono_lfo_lshort",
+   0
+  ],
+  [
+   ".run",
+   1244,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   1252,
+   "abs32",
+   "sym:ds_lfo_overview_group",
+   0
+  ],
+  [
+   ".run",
+   1258,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   1268,
+   "abs32",
+   "sym:ds_lfo_overview_group",
+   0
+  ],
+  [
+   ".run",
+   1278,
+   "abs32",
+   "sym:digimono_lfo_bgrp",
+   0
+  ],
+  [
+   ".run",
+   1284,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   1294,
+   "abs32",
+   "sym:digimono_lfo_bgrp",
+   0
+  ],
+  [
+   ".run",
+   1324,
+   "abs32",
+   "sec:.bss",
+   0
+  ],
+  [
+   ".run",
+   1332,
+   "abs32",
+   "sym:ds_lfo_overview_name",
+   0
+  ],
+  [
+   ".run",
+   1338,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   1348,
+   "abs32",
+   "sym:ds_lfo_overview_name",
+   0
+  ],
+  [
+   ".run",
+   1388,
+   "abs32",
+   "sym:nb_layout",
+   0
+  ],
+  [
+   ".run",
+   1394,
+   "abs32",
+   "sym:core_zero",
+   0
+  ],
+  [
+   ".run",
+   1402,
+   "abs32",
+   "sec:.bss",
+   28
+  ],
+  [
+   ".run",
+   1416,
+   "abs32",
+   "sec:.bss",
+   20
+  ],
+  [
+   ".run",
+   1422,
+   "abs32",
+   "sec:.bss",
+   4
+  ],
+  [
+   ".run",
+   1428,
+   "abs32",
+   "sec:.bss",
+   12
+  ],
+  [
+   ".run",
+   1486,
+   "abs32",
+   "sec:.bss",
+   28
+  ],
+  [
+   ".run",
+   1506,
+   "abs32",
+   "sec:.bss",
+   20
+  ],
+  [
+   ".run",
+   1522,
+   "abs32",
+   "sec:.bss",
+   12
+  ],
+  [
+   ".run",
+   1528,
+   "abs32",
+   "sec:.bss",
+   4
+  ],
+  [
+   ".run",
+   1650,
+   "abs32",
+   "sec:.bss",
+   4
+  ],
+  [
+   ".run",
+   1780,
+   "abs32",
+   "sec:.bss",
+   4
+  ]
+ ],
+ "sites": [
+  {
+   "addr": "0x400657cc",
+   "len": 6,
+   "stock_sha256": "3b618e4eaaafbc05f3a3649b08bde56616971a07cc578ed13570b010e70bf072",
+   "new": "4ef900000000",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_layout",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x4000fe8a",
+   "len": 10,
+   "stock_sha256": "5a18bd3f39db0448ad3452128af8f9e63d1e9c011cafecfc54210fba10c19677",
+   "new": "4ef9000000004e714e71",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_lab_short",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x4000feac",
+   "len": 10,
+   "stock_sha256": "5a18bd3f39db0448ad3452128af8f9e63d1e9c011cafecfc54210fba10c19677",
+   "new": "4ef9000000004e714e71",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_lab_long",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x4000f324",
+   "len": 8,
+   "stock_sha256": "a04973fb79ed0896aa768e97902a85f61a10ad9d106955b3fe7a112c76d0e51f",
+   "new": "4ef9000000004e71",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_val_text",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x4000f2bc",
+   "len": 8,
+   "stock_sha256": "7357d174dda33b71e4d29ed8e6d02a3b96a76167a0a44ebe35f2a439406880f4",
+   "new": "4ef9000000004e71",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_knob_gfx",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x40065794",
+   "len": 10,
+   "stock_sha256": "6fac3f4794a986259c5b1076561f1b40f68fd968c6940bb6c785ee20e1334617",
+   "new": "4ef9000000004e714e71",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_ui_rec",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x400657ee",
+   "len": 10,
+   "stock_sha256": "6fac3f4794a986259c5b1076561f1b40f68fd968c6940bb6c785ee20e1334617",
+   "new": "4ef9000000004e714e71",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_pop_text",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x40077fba",
+   "len": 6,
+   "stock_sha256": "5181c52f3e1d44ffa7a732058855f98b3431533e9c7f38684d4739f47fe261aa",
+   "new": "4eb900000000",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_inject",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x4000ff20",
+   "len": 6,
+   "stock_sha256": "37ace07d53dc6aa9eba5ede1b616b09eb19800992fd652169e5fd1051c3ffde3",
+   "new": "4eb900000000",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_prange",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x400100c4",
+   "len": 6,
+   "stock_sha256": "37ace07d53dc6aa9eba5ede1b616b09eb19800992fd652169e5fd1051c3ffde3",
+   "new": "4eb900000000",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_prange",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x4000f534",
+   "len": 6,
+   "stock_sha256": "37ace07d53dc6aa9eba5ede1b616b09eb19800992fd652169e5fd1051c3ffde3",
+   "new": "4eb900000000",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_prange",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x4000f5fc",
+   "len": 6,
+   "stock_sha256": "d3c6f631568fb7f26a844c1e364989f7ebc04db477e5d6bf13b33bda9b26878e",
+   "new": "45f900000000",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_prange_f",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x4002a382",
+   "len": 6,
+   "stock_sha256": "56b34659cd862f9a3842db744fdc66748017e519f8030fced7aca6cb52630d30",
+   "new": "4eb900000000",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_mtype",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x40060b8e",
+   "len": 6,
+   "stock_sha256": "2089e24a3da4b21a87a1724df31552cb6f4ff6d713d2ff60a1750f391471e710",
+   "new": "4ef900000000",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_lfo_label",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x400a4374",
+   "len": 6,
+   "stock_sha256": "81ec6bd4f514d9f1ac3300455338b01169f581a9eba9bcbdb8c5d68c865084fa",
+   "new": "4ef900000000",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_lfo_list",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x400a43f0",
+   "len": 6,
+   "stock_sha256": "3900fb0c2d68aa3c036b14b69338b9c4498b92b1a090707f96375c14607b45ed",
+   "new": "4ef900000000",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_lfo_lshort",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x40065de6",
+   "len": 6,
+   "stock_sha256": "752240e3f074673bf7d0e6dba45d264fa097aba6578c196030eeeada3d7b5fd5",
+   "new": "4ef900000000",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_lfo_bgrp",
+     0
+    ]
+   ]
+  },
+  {
+   "addr": "0x40065e5e",
+   "len": 6,
+   "stock_sha256": "3052d36541b3f875a8fa1549052bd7ec72a4c292a68a49a3c57df6f06cc218e1",
+   "new": "4ef900000000",
+   "kind": "code",
+   "relocs": [
+    [
+     2,
+     "abs32",
+     "sym:digichain_lfo_bname",
+     0
+    ]
+   ]
+  }
+ ],
+ "collections": {},
+ "contribute": [
+  {
+   "to": "ev_tick",
+   "order": 50,
+   "data": "00000000",
+   "relocs": [
+    [
+     0,
+     "abs32",
+     "sym:digichain_tick",
+     0
+    ]
+   ],
+   "claims": []
+  }
+ ],
+ "copied": [],
+ "resources": {
+  "names": [
+   "param:SRC page hooks shared by SOPHIE, NEIGHBOR and DIGISLICER"
+  ]
+ },
+ "requires": [
+  "core"
+ ],
+ "conflicts": [],
+ "build": {
+  "sources": {
+   "chain.s": "5a3612231da4c679fd19a1cb5954d90e6a9380c6574b323b660abd1b125f250d",
+   "chain.c": "dd89525500545393432bbee6d8b7ef511494436178e5f68c65e3f727b2f6ff79"
+  }
+ },
+ "signature": null
+}

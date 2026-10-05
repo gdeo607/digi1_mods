@@ -27,25 +27,66 @@
  * TRIG page: while the active track is a POLY audio track, its TRIG page is the MIDI tracks' one
  * (NOT1..NOT4, VEL, LEN, PROB, LFO.T). Both are the same view class; only the page kind differs.
  */
+
+/* ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ---- */
+#ifdef OS154
+#define F_400c178a 0x400c19b2
+#define F_400c19a6 0x400c1bce
+#define F_400c257c 0x400c27a4
+#define F_400c2960 0x400c2b88
+#define F_400c9812 0x400c9a3a
+#define F_400d53dc 0x400d5604
+#define F_400d575e 0x400d5986
+#define F_400ee036 0x400ee25e
+#define F_400ee0a0 0x400ee2c8
+#define F_40200b0c 0x40200ebc
+#define F_4020c29c 0x4020c64c
+#define F_409bac18 0x409bbc18
+#define F_4197b6b4 0x4197c6b4
+#define F_4199dc44 0x4199ec44
+#define F_4199e47c 0x4199f47c
+#define F_421f7a3c 0x421f8a3c
+#define F_4399db54 0x4399eb54
+#else
+#define F_400c178a 0x400c178a
+#define F_400c19a6 0x400c19a6
+#define F_400c257c 0x400c257c
+#define F_400c2960 0x400c2960
+#define F_400c9812 0x400c9812
+#define F_400d53dc 0x400d53dc
+#define F_400d575e 0x400d575e
+#define F_400ee036 0x400ee036
+#define F_400ee0a0 0x400ee0a0
+#define F_40200b0c 0x40200b0c
+#define F_4020c29c 0x4020c29c
+#define F_409bac18 0x409bac18
+#define F_4197b6b4 0x4197b6b4
+#define F_4199dc44 0x4199dc44
+#define F_4199e47c 0x4199e47c
+#define F_421f7a3c 0x421f7a3c
+#define F_4399db54 0x4399db54
+#endif
+/* ---- end of the moved addresses ---- */
+
 typedef unsigned int u32;
 
 /* ---- firmware (OS 1.53) ---- */
 #define M(m, o)      (*(volatile int *)((char *)(m) + (o)))
-#define MSG_ALLOC()  ((char *)((u32 (*)(void))0x400ee036)())   /* pointers come back in d0 */
-#define MSG_COPY     ((void (*)(char *, char *))0x400ee0a0)   /* dst, src: 0x4c bytes, lock block ref counted */
+#define MSG_ALLOC()  ((char *)((u32 (*)(void))F_400ee036)())   /* pointers come back in d0 */
+#define MSG_COPY     ((void (*)(char *, char *))F_400ee0a0)   /* dst, src: 0x4c bytes, lock block ref counted */
 #define ENGINE_KIT   (*(unsigned char *volatile *)0x800019ac)
-#define UI_KIT       (*(unsigned char *volatile *)0x4199dc44)
-#define MUTES        (*(volatile unsigned short *)0x4199e47c)  /* bit t: track t muted */
-#define OWNER        ((volatile int *)0x4399db54)             /* voice -> id of the message holding it (2 = live) */
-#define ACTIVE_TRACK (*(volatile int *)0x4197b6b4)
-#define INVALIDATE   ((void (*)(void *))0x400c9812)
-#define FILLRECT     ((void (*)(void *, int, int, int, int, int))0x400c19a6)
-#define TEXT         ((void (*)(void *, const void *, int, int, int, const char *, ...))0x400c257c)
-#define FONT5        ((const void *)0x40200b0c)
-#define BLIT         ((void (*)(void *, const void *, int, int, int))0x400c2960)
-#define CHECKBOXES   (*(const char **)0x421f7a3c)   /* two bitmaps, 0x1c bytes each: empty, ticked */
+#define UI_KIT       (*(unsigned char *volatile *)F_4199dc44)
+#define MUTES        (*(volatile unsigned short *)F_4199e47c)  /* bit t: track t muted */
+#define OWNER        ((volatile int *)F_4399db54)             /* voice -> id of the message holding it (2 = live) */
+#define ACTIVE_TRACK (*(volatile int *)F_4197b6b4)
+#define INVALIDATE   ((void (*)(void *))F_400c9812)
+#define FILLRECT     ((void (*)(void *, int, int, int, int, int))F_400c19a6)
+#define TEXT         ((void (*)(void *, const void *, int, int, int, const char *, ...))F_400c257c)
+#define FONT5        ((const void *)F_40200b0c)
+#define BLIT         ((void (*)(void *, const void *, int, int, int))F_400c2960)
+#define CHECKBOXES   (*(const char **)F_421f7a3c)   /* two bitmaps, 0x1c bytes each: empty, ticked */
 
-#define POLY     4
+#define POLY     6                        /* its machine number (core 2.1; poly_ui.s) */
 #define TAG      0xc4
 #define NOTE_OFF 0x40                     /* NOT2..4: 0x40 = no note, else offset + 0x40 */
 
@@ -333,9 +374,9 @@ void digipoly_draw(void *a, void *b, void *bmp, int x, int y)
  * The panel calls liveNoteOn/liveNoteOff for the key (recorded as usual, one note); we add the chord's
  * other notes straight to the audio engine (0x40076b3c), so they sound without being recorded. */
 #define LIVE_BUILD ((void (*)(int *))0x40076b3c)
-#define LIVE_ON    ((void (*)(int, int, int, int, int, int, int))0x400d53dc)
-#define LIVE_OFF   ((void (*)(int, int, int))0x400d575e)
-#define PAT_TRACK(t) ((const unsigned char *)(0x409bac18 + (t) * 0x38f))
+#define LIVE_ON    ((void (*)(int, int, int, int, int, int, int))F_400d53dc)
+#define LIVE_OFF   ((void (*)(int, int, int))F_400d575e)
+#define PAT_TRACK(t) ((const unsigned char *)(F_409bac18 + (t) * 0x38f))
 
 static int chord_notes(int track, int note, int *out)    /* -> how many extra notes the track's chord has */
 {
@@ -398,7 +439,7 @@ void digipoly_prevoff(int track, int note, int a2)
  * the knob moves, as the stock pages do. The track levels are the high bytes of the words at
  * kit + 0x10 + 2 * track (0..127); the low bytes are the persistent map's bytes 0..7 (kitstore.h). */
 #define TRACK_LEVEL(kit, t) ((kit)[0x10 + 2 * (t)])
-#define FRAMERECT ((void (*)(void *, int, int, int, int, int))0x400c178a)
+#define FRAMERECT ((void (*)(void *, int, int, int, int, int))F_400c178a)
 
 static int lev_shown = -1;                          /* the level at the last draw */
 static int lev_hold;                                /* frames left showing the value instead of "LEV" */
@@ -460,7 +501,7 @@ int digipoly_trigenc(char *view, void *ev)
  * MIDI in sends one note-on each - and the whole chord is written again every time, lowest note in NOT1
  * and the others as their offsets from it, so a chord of up to four notes ends up in the piano roll.
  * The sequencer's record step is 0x4020c29c, 0..63 only while a note is being recorded. */
-#define REC_STEP (*(volatile int *)0x4020c29c)
+#define REC_STEP (*(volatile int *)F_4020c29c)
 #define NOT1     0x280                              /* the step arrays, 0x40 apart */
 
 static int rec_step[8], rec_n[8], rec_age[8];

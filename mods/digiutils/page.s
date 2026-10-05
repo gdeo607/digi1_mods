@@ -8,13 +8,26 @@
 | digiutils_adopt (page.c) points its vtables at copies whose draw/key/tick/knob/LED entries are ours. The Song
 | edit screen opened any other way (the popup's EDIT) keeps the stock vtables and works as stock.
 
+| ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ----
+        .ifdef  OS154
+        .equ    .LF_400af042, 0x400af26a
+        .equ    .LF_400c31f0, 0x400c3418
+        .equ    .LF_400eb218, 0x400eb440
+        .else
+        .equ    .LF_400af042, 0x400af042
+        .equ    .LF_400c31f0, 0x400c31f0
+        .equ    .LF_400eb218, 0x400eb218
+        .endif
+| ---- end of the moved addresses ----
+
+
         .text
 | 0x400aee4a, the SONG MODE popup's "..." handling (the popup is on top from the press on, so it gets the hold):
 | stock "lea 0x400eb218,a3", then: song mode on and a double press -> 0x400af042 (open / close the Song edit
 | screen), else 0x400af0d8. Here a long press (bit 5, without FUNC) goes to 0x400af042 too, marked as the page.
         .globl  digiutils_popkey
 digiutils_popkey:
-        lea     0x400eb218, %a3                 | displaced
+        lea     .LF_400eb218, %a3                 | displaced
         move.l  %d0, -(%sp)
         movea.l %d2, %a0                        | the key event (fp@(12), kept in d2)
         move.l  16(%a0), %d0                    | flags: bit 5 long press, bit 1 FUNC
@@ -26,8 +39,8 @@ digiutils_popkey:
         move.b  %d0, page_next
         move.l  (%sp)+, %d0
         movea.l %a3, %a5                        | as the stock code has them at 0x400af042
-        lea     0x400c31f0, %a4
-        lea     0x400af042, %a0
+        lea     .LF_400c31f0, %a4
+        lea     .LF_400af042, %a0
         move.l  %a0, (%sp)
         rts
 3:      move.l  (%sp)+, %d0

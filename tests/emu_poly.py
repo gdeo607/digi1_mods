@@ -156,7 +156,7 @@ def lockw(kit, t, v=None):                       # bit 7 of byte 6t + 3: track t
     return b >> 7
 
 
-def setup_kit(kit, machines=(4, 0, 0, 0, 0, 0, 0, 0), level=100):
+def setup_kit(kit, machines=(6, 0, 0, 0, 0, 0, 0, 0), level=100):   # POLY is machine 6
     uc.mem_write(kit, bytes(0x600))
     for t in range(8):
         uc.mem_write(sound(kit, t) + 0x7e, bytes([machines[t]]))
@@ -293,7 +293,7 @@ check(fills[1] == (6, 9, 8, 21, 1), "a full level does not fill 13 rows (%s)" % 
 setup_kit(KIT, level=0)
 fr, fills = fader()
 check(len(fills) == 1 + len(TICKS), "level 0 still draws a filled part (%s)" % (fills,))
-setup_kit(KIT, machines=(0, 4, 0, 0, 0, 0, 0, 0), level=0)   # a POLY track 2: its own level word
+setup_kit(KIT, machines=(0, 6, 0, 0, 0, 0, 0, 0), level=0)   # a POLY track 2: its own level word
 uc.mem_write(KIT + 0x12, bytes([127])); lockw(KIT, 1, 1); lockw(KIT, 2, 1)
 w32(0x4197b6b4, 1)
 fr, fills = fader()

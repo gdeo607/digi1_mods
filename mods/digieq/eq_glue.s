@@ -1,6 +1,15 @@
 | Digi EQ: where the EQ meets the render, the master pages and the GLOBAL FX/MIX list.
 | The logic is in eq.c and eq_dsp.s. Firmware addresses are OS 1.53's.
 
+| ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ----
+        .ifdef  OS154
+        .equ    .LF_4017ac20, 0x4017af20
+        .else
+        .equ    .LF_4017ac20, 0x4017ac20
+        .endif
+| ---- end of the moved addresses ----
+
+
         .text
 
 | ---------------- the render: the master mix, before it is handed out (0x400721e6) ------------------
@@ -51,7 +60,7 @@ row_label:
         pea     str_row
         move.l  %a0, %d2
         move.l  %a0, -(%sp)
-        jsr     0x4017ac20                      | std::string(this, const char*, alloc&)
+        jsr     .LF_4017ac20                      | std::string(this, const char*, alloc&)
         lea     12(%sp), %sp
         move.l  %d2, %d0
         move.l  -8(%a6), %d2
