@@ -1058,14 +1058,314 @@ static void particle_render(struct macro_voice *m, const uint8_t *p, uint32_t in
     svf_guard(&z->post);
 }
 
+/* ---- shared by the drums ------------------------------------------------------------------------------ */
+
+#define ONE_POLE(X, IN, C) ((X) += fmac1((IN) - (X), (C)))         /* C: Q31 */
+#define Q31(x) ((int32_t)((x) * 2147483648.0 + 0.5))                 /* a constant 0..1 as Q31 (compile time) */
+#define Q24(x) ((int32_t)((x) * 16777216.0 + ((x) < 0 ? -0.5 : 0.5)))
+
+/* y / (1 + |y|), Q24 in and out: tables (MACRO_RSAT_*), a division past |y| = 16 */
+static int32_t rsat24(int32_t y)
+{
+    int32_t u = iabs(y), r, i, f;
+    if (u < (1 << 24)) {
+        i = u >> 18;
+        f = (u >> 2) & 0xffff;
+        r = MACRO_RSAT_FINE[i] + (((MACRO_RSAT_FINE[i + 1] - MACRO_RSAT_FINE[i]) * f) >> 16);
+    } else if (u < (16 << 24)) {
+        u -= 1 << 24;
+        i = u >> 20;
+        f = (u >> 4) & 0xffff;
+        r = MACRO_RSAT_COARSE[i] + (((MACRO_RSAT_COARSE[i + 1] - MACRO_RSAT_COARSE[i]) * f) >> 16);
+    } else {
+        r = 32768 - (int32_t)(0x7fffffffu / (uint32_t)(((1 << 24) + (u > 0x7e000000 ? 0x7e000000 : u)) >> 8));
+    }
+    r <<= 9;
+    return y < 0 ? -r : r;
+}
+
+/* stmlib's SoftClip, Q24 */
+static int32_t softclip24(int32_t x)
+{
+    int32_t u = iabs(x), r, i, f;
+    if (u >= (3 << 24))
+        r = 1 << 24;
+    else {
+        u = fmac1(u, Q31(1.0 / 3.0)) << 7;                  /* x / 3, Q31 */
+        i = u >> 24;
+        f = (u >> 8) & 0xffff;
+        r = (MACRO_SOFTCLIP[i] + (((MACRO_SOFTCLIP[i + 1] - MACRO_SOFTCLIP[i]) * f) >> 16)) << 9;
+    }
+    return x < 0 ? -r : r;
+}
+
+/* AnalogBassDrum's Diode(): x, or 0.7 x 2x / (1 + |2x|) below 0 (Q24) */
+static inline int32_t diode24(int32_t x)
+{
+    if (x >= 0)
+        return x;
+    return fmac1(rsat24(x < -(60 << 24) ? -(120 << 24) : 2 * x), Q31(0.7));
+}
+
+/* A resonator's coefficients, FREQUENCY_DIRTY at f (Q31, <= 0.4) and damping k = 1 / (1 + qf) (qf: q f, Q8),
+ * as svf_coefs_g() gives them but from integers alone: 1/(1 + qf) a hardware division (16 bits, enough for
+ * k), 1/D one more and a Newton step (31 bits: the margin to instability, 2 g k / D, is 4e-5 at the longest
+ * decays). */
+static void reso_coefs(int32_t f31, int32_t qf8, int32_t *a1, int32_t *a2, int32_t *a3)
+{
+    int32_t f2 = fmac1(f31, f31), g27, den, z, k31, gk27, d27, r, e;
+    g27 = fmac1(f31, 421657428 + fmac1(1554770775, f2));                /* f (pi + 3.736e-1 pi^3 f^2), Q27 */
+    den = 256 + qf8;
+    z = clz32((uint32_t)den);                                               /* den < 2^24: z >= 8 */
+    {
+        uint32_t kk = (0x7fffffffu / ((uint32_t)(den << (z - 1)) >> 15)) << (z - 8);
+        k31 = kk > 0x7fffffffu ? 0x7fffffff : (int32_t)kk;
+    }
+    gk27 = fmac1(g27, k31);
+    d27 = (1 << 27) + (fmac1(g27, g27) << 4) + gk27;                       /* 1 + g^2 + g k */
+    {
+        uint32_t rr = (0x7fffffffu / (uint32_t)(d27 >> 12)) << 15;
+        r = rr > 0x7fffffffu ? 0x7fffffff : (int32_t)rr;
+    }
+    e = (1 << 27) - fmac1(d27, r);
+    e = fmac1(r, e * 16);
+    r = e > 0 && r > 0x7fffffff - e ? 0x7fffffff : r + e;
+    *a1 = r;
+    *a2 = fmac1(r, g27) << 4;
+    *a3 = fmac1(*a2, g27) << 4;
+}
+
+/* ---- BD: plaits/dsp/engine/bass_drum_engine.cc, drums/analog_bass_drum.h, drums/synthetic_bass_drum.h --- *
+ * OUT: the analog-style drum (a pulse into a resonator that its own output and an attack pulse bend in
+ * pitch, then the overdrive); AUX: the synthetic one (a distorted sine with a pitch envelope, a click and
+ * noise). HARM: attack FM, self FM, drive; TIMB: tone; MORP: decay. Accent is Plaits' unpatched 0.8; the
+ * drums are triggered (Plaits' patched trigger), never free-running. The resonator's pitch is updated
+ * every sample during the attack's pitch sweep (the first 7 ms), then every 4 samples (Plaits: every
+ * sample; measured: the decay's level within 1 dB); its other arithmetic is Plaits', in Q24. */
+
+static void bd_init(struct macro_bd *d)
+{
+    int32_t *w = &d->trig, *end = (int32_t *)(d + 1);
+    while (w < end)
+        *w++ = 0;
+}
+
+#ifndef BD_EVERY
+#define BD_EVERY 3
+#endif
+static void bd_analog(struct macro_bd *d, int32_t harm, int32_t timb, int32_t morph, uint32_t inc, int32_t *out,
+                      int n)
+{
+    int32_t f0 = (int32_t)(inc >> 1), lf0 = log2_q16(inc) - 32 * 65536, afm27, sfm31, q8, scale, tone_f, leak, i;
+    struct svf_c c;
+    /* HARMONICS: attack FM 1.7 min(4h, 1) (Q27), self FM 0.08 clamp(4h - 1, 0, 1) (Q31) */
+    afm27 = harm >= 16384 ? Q31(0.85) >> 3 : fmac1(harm << 17, Q31(0.85)) >> 3;
+    sfm31 = harm <= 16384 ? 0 : harm >= 32768 ? Q31(0.08) : fmac1((harm - 16384) << 17, Q31(0.08));
+    /* q = 1500 x 2^(80 MORPH / 12), x 256 */
+    q8 = (int32_t)inc_of_log2(691454 + (morph * 20) / 3 + 8 * 65536);           /* 691454: log2 1500 */
+    /* scale = 0.001 / f0, at most 5, Q28 */
+    scale = (int32_t)inc_of_log2(28 * 65536 - 653118 - lf0);                  /* 653118: -log2 0.001 */
+    if (scale > (5 << 28) || scale <= 0)
+        scale = 5 << 28;
+    /* tone: min(4 f0 2^(9 TIMBRE), 1), Q31; the exciter's leak 0.08 (TIMBRE + 0.25), Q31 */
+    {
+        uint32_t t = inc_of_log2(lf0 + 33 * 65536 + 9 * timb);
+        tone_f = t > 0x7fffffffu ? 0x7fffffff : (int32_t)t;
+    }
+    leak = (timb + 16384) * 2621;
+    if (d->trig) {
+        d->pulse_left = 48;                                 /* 1 ms */
+        d->fm_left = 288;                                   /* 6 ms */
+        d->lp_out = 0;
+    }
+    c.a1 = d->a1;
+    c.a2 = d->a2;
+    c.a3 = d->a3;
+    for (i = 0; i < n; i++) {
+        int32_t pulse, fm_pulse = 0, x, bp, lp;
+        if (d->pulse_left) {
+            d->pulse_left--;
+            pulse = d->pulse_left ? Q24(8.6) : Q24(7.6);    /* 3 + 7 accent, accent 0.8 */
+            d->pulse = pulse;
+        } else {
+            d->pulse = fmac1(d->pulse, Q31(1.0 - 1.0 / 9.6));
+            pulse = d->pulse;
+        }
+        ONE_POLE(d->pulse_lp, pulse, Q31(1.0 / 4.8));
+        pulse = diode24(pulse - d->pulse_lp + fmac1(pulse, Q31(0.044)));
+        if (d->fm_left) {
+            d->fm_left--;
+            fm_pulse = 0x7fffff00 >> 7;                     /* 1, Q24 */
+            d->retrig = d->fm_left ? 0 : -Q24(0.8);
+        } else {
+            d->retrig = fmac1(d->retrig, Q31(1.0 - 1.0 / 2400.0));
+        }
+        ONE_POLE(d->fm_lp, fm_pulse, Q31(1.0 / 4.8));
+        if (!(i & BD_EVERY) || d->fm_lp > Q24(0.004)) {    /* the resonator's pitch and q: every 4 samples,
+                                                               every sample while the attack FM sweeps */
+            int32_t lo = d->lp_out > Q24(12.0) ? Q24(12.0) : d->lp_out < -Q24(12.0) ? -Q24(12.0) : d->lp_out;
+            int32_t punch = Q24(0.7) + diode24(10 * lo - (1 << 24));
+            int32_t m27, f27;
+            if (punch > (100 << 24))
+                punch = 100 << 24;
+            m27 = fmac1(d->fm_lp << 7, afm27) + (fmac1(punch, sfm31) << 3);
+            f27 = (f0 >> 4) + fmac1(f0, m27);
+            if (f27 > (Q31(0.4) >> 4))
+                f27 = Q31(0.4) >> 4;
+            if (f27 < 16)
+                f27 = 16;
+            reso_coefs(f27 << 4, fmac1(f27 << 4, q8), &c.a1, &c.a2, &c.a3);
+        }
+        x = fmac1(pulse - fmac1(d->retrig, Q31(0.2)), scale) << 3;
+        x = x > Q24(100.0) ? Q24(100.0) : x < -Q24(100.0) ? -Q24(100.0) : x;
+        SVF_STEP(d->res, c, x, bp, lp);
+        d->lp_out = lp;
+        ONE_POLE(d->tone_lp, fmac1(pulse, leak) + bp, tone_f);
+        out[i] = d->tone_lp;
+    }
+    svf_guard(&d->res);
+    d->a1 = c.a1;
+    d->a2 = c.a2;
+    d->a3 = c.a3;
+}
+
+/* SyntheticBassDrum's DistortedSine: a triangle bent by t / (1 + |t|), towards a clean sine as
+ * dirtiness falls; the phase jittered by the phase noise. Q24 */
+static int32_t distorted_sine(uint32_t phase, int32_t pnoise, int32_t dirt31)
+{
+    int32_t t, tri, sine, clean;
+    phase += (uint32_t)(fmac1(pnoise, dirt31) * 256);
+    t = (int32_t)(phase < 0x80000000u ? phase : 0u - phase);     /* 0..0.5, Q32 */
+    tri = (int32_t)((uint32_t)t >> 6) - (1 << 24);                /* 4 t - 1, Q24 */
+    sine = 2 * rsat24(tri);
+    clean = sin32(phase + 0xc0000000u) << 9;
+    return sine + fmac1(clean - sine, 0x7fffffff - dirt31);
+}
+
+static void bd_synthetic(struct macro_bd *d, uint32_t *rng, int32_t harm, int32_t timb, int32_t morph, uint32_t inc,
+                         int32_t *aux, int n)
+{
+    int32_t f0 = (int32_t)(inc >> 1), lf0 = log2_q16(inc) - 32 * 65536, m2, dirt31, fm_amt, fmd, fm_decay, body_decay;
+    int32_t tone_f, tone15, i, df;
+    uint32_t t;
+    m2 = (int32_t)(((uint32_t)morph * (uint32_t)morph) >> 16);               /* decay^2, Q16 */
+    /* dirtiness (0.4 - 0.25 MORPH^2) max(1 - 8 f0, 0), Q31 */
+    df = 0x7fffffff - (f0 > (0x7fffffff >> 3) ? 0x7fffffff : f0 * 8);
+    dirt31 = fmac1((Q31(0.4) >> 0) - (m2 * 8192), df);
+    /* the FM envelope: amount min(2h, 1) x 3.5 (Q27), decay max(2h - 1, 0)^2 */
+    fm_amt = harm >= 32768 ? Q31(0.4375) : fmac1(harm << 16, Q31(0.4375));   /* 3.5/8: Q28 of 3.5 x amount */
+    fmd = harm <= 32768 ? 0 : (harm - 32768) * 2;                             /* Q16 */
+    fmd = (int32_t)(((uint32_t)fmd * (uint32_t)fmd) >> 16);
+    /* 1 - 1 / (384 (1 + 4 fmd^2)) */
+    fm_decay = 0x7fffffff - (int32_t)(0x7fffffffu / (uint32_t)(384 + ((384 * 4 * fmd) >> 16)));
+    /* 1 - 2^(-5 MORPH^2) / 960 */
+    body_decay = 0x7fffffff - fmac1((int32_t)exp2_q16(-5 * m2) << 14, 4473924);   /* 4473924: 2^32 / 960 */
+    t = inc_of_log2(lf0 + 33 * 65536 + 9 * timb);
+    tone_f = t > 0x7fffffffu ? 0x7fffffff : (int32_t)t;
+    tone15 = timb << 15;                                                      /* transient level, Q31 */
+    if (d->trig) {
+        d->fm = 0x7fffff00 >> 7;
+        d->body = d->trans = Q24(0.86);
+        d->body_pw = 48;
+        d->fm_pw = 62;
+    }
+    for (i = 0; i < n; i++) {
+        int32_t body, transient, mix, x, c_in, bp, lp;
+        struct svf_c ck;
+        ONE_POLE(d->pnoise, (int32_t)(rnd32(rng) >> 8) - Q24(0.5), Q31(0.002));
+        if (d->fm_pw) {
+            d->fm_pw--;
+            d->phase = 0x40000000u;
+        } else {
+            uint32_t step;
+            d->fm = fmac1(d->fm, fm_decay);
+            /* min(f0 (1 + 3.5 amount fm_lp), 0.5) */
+            step = (uint32_t)(f0 >> 3) + (uint32_t)fmac1(f0, fmac1(d->fm_lp2 << 7, fm_amt));   /* Q28 */
+            d->phase += step > 0x08000000u ? 0x80000000u : step << 4;
+        }
+        if (d->body_pw)
+            d->body_pw--;
+        else {
+            d->body = fmac1(d->body, body_decay);
+            d->trans = fmac1(d->trans, Q31(1.0 - 1.0 / 240.0));
+        }
+        ONE_POLE(d->body_lp, d->body, Q31(0.1));
+        ONE_POLE(d->trans_lp, d->trans, Q31(0.1));
+        ONE_POLE(d->fm_lp2, d->fm, Q31(0.1));
+        body = distorted_sine(d->phase, d->pnoise, dirt31);
+        /* the click: SLOPE (0.5 up, 0.1 down), a one-pole high-pass (0.04), a low-pass at 5 kHz, q 2 */
+        c_in = d->body_pw ? 0 : 0x7fffff00 >> 7;
+        x = c_in - d->click_lp;
+        d->click_lp += fmac1(x, x > 0 ? Q31(0.5) : Q31(0.1));
+        ONE_POLE(d->click_hp, d->click_lp, Q31(0.04));
+        ck.a1 = 1671397352;
+        ck.a2 = 567202663;
+        ck.a3 = 192484965;
+        SVF_STEP(d->click, ck, d->click_lp - d->click_hp, bp, lp);
+        (void)bp;
+        /* the noise: band-limited by two one-poles */
+        ONE_POLE(d->noise_lp, (int32_t)(rnd32(rng) >> 8), Q31(0.05));
+        ONE_POLE(d->noise_hp, d->noise_lp, Q31(0.005));
+        transient = lp + d->noise_lp - d->noise_hp;
+        /* TransistorVCA: s = (body - 0.6) gain; 3 s / (2 + |s|) + 0.3 gain */
+        x = fmac1(body - Q24(0.6), d->body_lp << 7);
+        mix = -(3 * rsat24(x >> 1) + fmac1(d->body_lp, Q31(0.3)));
+        mix -= fmac1(fmac1(transient, d->trans_lp << 7), tone15);
+        ONE_POLE(d->tone_lp2, mix, tone_f);
+        aux[i] = d->tone_lp2;
+    }
+    svf_guard(&d->click);
+}
+
+/* Plaits' Overdrive (on OUT): drive 0.5 + 0.5 max(2h - 1, 0) max(1 - 16 f0, 0) */
+static void bd_overdrive(int32_t harm, uint32_t inc, int32_t *x, int n)
+{
+    int32_t f0 = (int32_t)(inc >> 1), dv, d2, pa, pb, pre, sq, arg, sc, post, i;
+    int32_t lim = f0 > (0x7fffffff >> 4) ? 0 : 0x7fffffff - f0 * 16;
+    dv = harm <= 32768 ? 0 : fmac1((harm - 32768) << 9, lim);                 /* Q24 */
+    dv = Q24(0.5) + (dv >> 1);
+    d2 = fmac1(dv << 7, dv << 7);                                             /* Q31 */
+    pa = dv >> 1;                                                             /* Q24 */
+    pb = fmac1(fmac1(d2, d2), dv) * 24;                                       /* 24 dv^5, Q24 */
+    pre = pa + fmac1(pb - pa, d2);
+    sq = fmac1(dv << 7, (Q24(2.0) - dv) << 6) >> 6;                           /* dv (2 - dv), Q24 */
+    arg = Q24(0.33) + fmac1(sq << 6, pre - Q24(0.33)) * 2;
+    sc = softclip24(arg);
+    post = (int32_t)(0x7fffffffu / (uint32_t)(sc >> 7)) << 10;                /* 1/sc, Q24 */
+    for (i = 0; i < n; i++) {
+        int32_t v = fmac1(x[i], pre << 2);                                    /* pre x, Q19 */
+        v = softclip24((v > (7 << 18) ? 7 << 18 : v < -(7 << 18) ? -(7 << 18) : v) << 5);
+        x[i] = fmac1(v, post << 5) << 2;
+    }
+}
+
+static void bd_render(struct macro_voice *m, const uint8_t *p, uint32_t inc, int32_t *out, int32_t *aux, int n,
+                      int want_out, int want_aux)
+{
+    struct macro_bd *d = &m->e.bd;
+    int32_t harm = k16(p[MACRO_P_HARM]), timb = k16(p[MACRO_P_TIMB]), morph = k16(p[MACRO_P_MORPH]), i;
+    if (want_out) {
+        bd_analog(d, harm, timb, morph, inc, out, n);
+        bd_overdrive(harm, inc, out, n);
+        for (i = 0; i < n; i++)
+            out[i] >>= 9;                                   /* Q15 */
+    }
+    if (want_aux) {
+        bd_synthetic(d, &m->rng, harm, timb, morph, inc, aux, n);
+        for (i = 0; i < n; i++)
+            aux[i] >>= 9;
+    }
+    d->trig = 0;
+}
+
 /* ---- the machine ---------------------------------------------------------------------------------- */
 
 /* the gains Plaits' voice gives each engine's OUT and AUX (voice.cc, RegisterInstance), Q15. An engine
  * Plaits registers with a negative gain goes through its limiter (limit()) and then 0.8. */
-static const int16_t gain_out[MACRO_ENGINES] = {22938, 19661, 26214, 26214};  /* WSH .7, FM .6, NOISE, PART lim */
-static const int16_t gain_aux[MACRO_ENGINES] = {19661, 19661, 26214, 32767};  /* WSH .6, FM .6, NOISE lim, PART 1 */
+static const int16_t gain_out[MACRO_ENGINES] = {22938, 19661, 26214, 26214, 26214};  /* WSH .7, FM .6, NOISE, PART lim, BD .8 */
+static const int16_t gain_aux[MACRO_ENGINES] = {19661, 19661, 26214, 32767, 26214};  /* WSH .6, FM .6, NOISE lim, PART 1, BD .8 */
 
-const char *const macro_engine_name[MACRO_ENGINES] = {"WSHAPE", "2OP FM", "NOISE", "PARTCL"};
+const char *const macro_engine_name[MACRO_ENGINES] = {"WSHAPE", "2OP FM", "NOISE", "PARTCL", "BDRUM"};
 
 int macro_engine_of(int b)
 {
@@ -1081,6 +1381,7 @@ static void engine_init(struct macro_voice *m)
     case MACRO_FM:    fm_init(&m->e.fm); break;
     case MACRO_NOISE: noise_init(&m->e.noise); break;
     case MACRO_PARTICLE: particles_init(&m->e.part); break;
+    case MACRO_BD:    bd_init(&m->e.bd); break;
     default: break;
     }
 }
@@ -1126,6 +1427,8 @@ static void macro_render_e(struct macro_voice *m, const uint8_t *p, uint32_t inc
             m->e.noise.sync = 1;
         if (m->engine == MACRO_PARTICLE)
             m->e.part.sync = 1;
+        if (m->engine == MACRO_BD)
+            m->e.bd.trig = 1;
     }
     if (inc > INC_MAX)
         inc = INC_MAX;
@@ -1141,6 +1444,9 @@ static void macro_render_e(struct macro_voice *m, const uint8_t *p, uint32_t inc
             limit(&m->lim_out, o, n);
         if (mix > 0)
             limit(&m->lim_aux, a, n);
+        break;
+    case MACRO_BD:
+        bd_render(m, p, inc, o, a, n, mix < 32767, mix > 0);
         break;
     case MACRO_PARTICLE:
         particle_render(m, p, inc, o, a, n, mix > 0);

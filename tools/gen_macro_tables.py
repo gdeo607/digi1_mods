@@ -90,6 +90,18 @@ def main():
     for i in range(0, 65, 12):
         print("    " + ", ".join("%d" % v for v in vals[i:i + 12]) + ",")
     print("};\n")
+    # u / (1 + u): u = 0..1 in 64 steps, u = 1..16 in 240 steps (the drums' diodes and saturators), Q15;
+    # stmlib's SoftLimit x (27 + x^2) / (27 + 9 x^2) for x = 0..3 in 128 steps (SoftClip), Q15
+    def table(name, vals, typ="int16_t"):
+        print("#define %s_SIZE %d" % (name, len(vals)))
+        print("static const %s %s[%d] = {" % (typ, name, len(vals)))
+        for i in range(0, len(vals), 12):
+            print("    " + ", ".join("%d" % v for v in vals[i:i + 12]) + ",")
+        print("};\n")
+    q15 = lambda v: min(32767, int(round(v * 32768)))
+    table("MACRO_RSAT_FINE", [q15((i / 64.0) / (1 + i / 64.0)) for i in range(65)])
+    table("MACRO_RSAT_COARSE", [q15((1 + i / 16.0) / (2 + i / 16.0)) for i in range(241)])
+    table("MACRO_SOFTCLIP", [q15((lambda x: x * (27 + x * x) / (27 + 9 * x * x))(3.0 * i / 128)) for i in range(129)])
     print("#endif")
 
 

@@ -15,6 +15,7 @@ enum {
     MACRO_FM  = 1,          /* 2-operator FM with feedback, 4x oversampled (2x without feedback)    */
     MACRO_NOISE = 2,        /* clocked noise through a LP-to-HP filter (OUT), two band-passes (AUX)  */
     MACRO_PARTICLE = 3,     /* random impulses through resonant band-passes (OUT), the impulses (AUX) */
+    MACRO_BD = 4,           /* bass drums: an analog-style one (OUT), a synthetic one (AUX)            */
     MACRO_ENGINES
 };
 
@@ -88,6 +89,20 @@ struct macro_particles {
     int32_t sync;
 };
 
+/* Plaits' bass drum engine: AnalogBassDrum (OUT, Q24) and SyntheticBassDrum (AUX, Q24) */
+struct macro_bd {
+    int32_t trig;
+    /* analog */
+    int32_t pulse_left, fm_left, pulse, pulse_lp, fm_lp, retrig, lp_out, tone_lp;
+    struct macro_svf res;
+    int32_t a1, a2, a3;                             /* the resonator's coefficients now               */
+    /* synthetic */
+    uint32_t phase;
+    int32_t pnoise, fm, fm_lp2, body, body_lp, trans, trans_lp, tone_lp2;
+    int32_t click_lp, click_hp, noise_lp, noise_hp, body_pw, fm_pw;
+    struct macro_svf click;
+};
+
 struct macro_voice {
     uint8_t engine;                 /* the engine playing                                            */
     uint8_t latch;                  /* 1: take the engine from knob B at the next block              */
@@ -99,6 +114,7 @@ struct macro_voice {
         struct macro_fm fm;
         struct macro_noise noise;
         struct macro_particles part;
+        struct macro_bd bd;
     } e;
 };
 
