@@ -1,17 +1,18 @@
 {
  "id": "digimono",
- "version": "0.13b",
+ "version": "0.14",
  "title": "Digi Mono",
  "category": "Sound",
  "author": "gdeo607",
  "license": "MIT",
- "description": "Synth machines for the audio tracks, after the Monomachine's GND and SWAVE machines: MONO SIN, MONO NOISE, MONO SAW (unison, two sub-oscillators), MONO PULSE (PWM, unison, sub), MONO ENS (four oscillators at set intervals, chorus), MONO VO (a formant voice: vowel to vowel, consonants) and POLY SIN (three sines at set notes, a pitch envelope), in the FUNC+SRC machine list. They need no sample; the track's filter, amp, LFOs and effects work on them as on a sample. A clean-room engine: no Monomachine code or data. The SRC page shows each machine's own knobs (B, C, E, F, G, H); A is TUNE, D the (unused) sample slot. Needs digichain 1.6 or later, which elekloader ticks with it.",
+ "description": "Synth machines for the audio tracks, after the Monomachine's GND and SWAVE machines: MONO SIN, MONO NOISE, MONO SAW (unison, two sub-oscillators), MONO PULSE (PWM, unison, sub), MONO ENS (four oscillators at set intervals, chorus), MONO VO (a formant voice: vowel to vowel, consonants), POLY SIN (three sines at set notes, a pitch envelope) and MACRO (engines ported from Plaits by Emilie Gillet, MIT licence: knob B picks the engine, C/D/E are HARMONICS/TIMBRE/MORPH, F crossfades OUT to AUX), in the FUNC+SRC machine list. They need no sample; the track's filter, amp, LFOs and effects work on them as on a sample. The Monomachine-style machines are a clean-room engine (no Monomachine code or data). The SRC page shows each machine's own knobs (B, C, E, F, G, H); A is TUNE, D the (unused) sample slot. Needs digichain 1.6 or later, which elekloader ticks with it.",
  "device": "digitakt-mk1",
  "os": "1.53",
  "sources": [
   "glue.s",
   "digimono.c",
-  "mono.c"
+  "mono.c",
+  "macro.c"
  ],
  "sites": [
   {
@@ -178,6 +179,19 @@
      0
     ]
    ]
+  },
+  {
+   "to": "core_machines",
+   "order": 67,
+   "data": "00000000",
+   "relocs": [
+    [
+     0,
+     "abs32",
+     "sym:digimono_m27",
+     0
+    ]
+   ]
   }
  ],
  "requires": [
@@ -193,6 +207,7 @@
    "machine:24",
    "machine:25",
    "machine:26",
+   "machine:27",
    "render:voice blocks 0x40077fc2",
    "param:SLICE page names, ranges and values while a Digi Mono machine is active"
   ]

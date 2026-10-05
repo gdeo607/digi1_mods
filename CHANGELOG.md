@@ -3,6 +3,25 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Digi Mono 0.14: MACRO, Plaits' engines as one machine (HW: not yet)
+- **New machine MACRO** (machine 27, after POLY SIN): engines ported from **Plaits** (Emilie Gillet, MIT
+  licence) to 32-bit integer arithmetic for the ColdFire, which has no FPU. Knob **B (ENGN)** picks the
+  engine and shows its name; it is read at each note start, so **a p-lock on B changes the engine on that
+  trig**. **C / D / E** are Plaits' HARMONICS / TIMBRE / MORPH; **F (AUX)** crossfades Plaits' OUT to its AUX
+  output. Its own icon, SRC page names and LFO DEST names ("MACR:Harmonics").
+- **Engines so far:** WSHAPE (waveshaping: a slope oscillator through a waveshaper and a wavefolder) and
+  2OP FM (two-operator FM with feedback). More follow one by one: noise, particle, the drums, grain, speech.
+- **2OP FM** runs Plaits' 4x oversampling for a note with feedback (MORPH off its middle) and matches Plaits
+  there; a note without feedback runs 2x with a half-band decimator (same aliasing as Plaits' 4x, measured;
+  a little brighter in the top octave) for half the CPU. Chosen per note: no click when MORPH moves.
+- **Checked:** each engine against Plaits' own float code built for a PC (waveform after sub-sample
+  alignment, spectrum, partials); tests/emu_macro.py (new): the ColdFire build equals the PC build for 1,200
+  random blocks and its cost; tests/emu_mono.py with MACRO in its random voices; tests/digiemu_mono.py
+  `--machine MACRO` in the firmware on OS 1.54. Details: mods/digimono/MACRO.md.
+- **Cost** (estimated cycles a voice a block, of 166,667): WSHAPE ~6,900; FM ~10,500 without feedback,
+  ~16,000 with; blending AUX in costs more (up to ~24,800 for FM). Play a few MACRO tracks at once, not eight.
+- tools/gen_macro_tables.py makes mods/digimono/macro_tables.h from Plaits' resources.cc.
+
 ## Digi Mono 0.13b: POLY SIN's NOT3 on the top row (HW: not yet)
 - POLY SIN's page is now TUNE NOT1 NOT2 **NOT3** on top (NOT3 on knob D), **EDEP ESPD** under them (knobs
   E, F); G and H are empty. The sound is the same: only which knob sets what moved. A POLY SIN sound saved

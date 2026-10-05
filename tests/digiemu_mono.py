@@ -28,7 +28,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ap = argparse.ArgumentParser()
 ap.add_argument("--digiemu", required=True)
 ap.add_argument("--fw", required=True)
-ap.add_argument("--machine", default="SAW", choices=["SIN", "NOIS", "SAW", "PULS", "ENS", "VO", "PSIN"])
+ap.add_argument("--machine", default="SAW", choices=["SIN", "NOIS", "SAW", "PULS", "ENS", "VO", "PSIN", "MACRO"])
 ap.add_argument("--knobs", default="", help="knob turns, e.g. B:+20,E:-5 (notches)")
 ap.add_argument("--png", default="")
 ap.add_argument("--wav", default="")
@@ -62,10 +62,11 @@ MODEL = H.NAMES.index(a.machine)
 KNOBS = "BCEFGHD"                                   # Digi Mono's knobs (digimono.c knob_slot, knob_p)
 SLOTS = [18, 19, 21, 22, 23, 24, 20]
 DEFAULTS = [[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 40, 0, 0, 0, 0, 0], [0, 40, 0, 64, 0, 40, 0],
-            [63, 63, 63, 0, 0, 127, 0], [43, 113, 64, 0, 40, 100, 0], [63, 63, 64, 64, 0, 0, 63]]
+            [63, 63, 63, 0, 0, 127, 0], [43, 113, 64, 0, 40, 100, 0], [63, 63, 64, 64, 0, 0, 63],
+            [0, 64, 64, 0, 0, 0, 64]]
 KNOB_P = [[-1] * 7, [0, 1, 2, -1, -1, -1, -1], [0, 1, 2, 4, 5, 6, -1], [0, 1, 2, 4, 5, 6, 3],
-          [0, 1, 2, 3, 5, 6, 4], [0, 1, 2, 4, 5, 6, 3], [0, 1, 3, 4, -1, -1, 2]]
-MACH_FIRST = 20                                     # digimono's machine ids: 20..26
+          [0, 1, 2, 3, 5, 6, 4], [0, 1, 2, 4, 5, 6, 3], [0, 1, 3, 4, -1, -1, 2], [0, 1, 3, 4, -1, -1, 2]]
+MACH_FIRST = 20                                     # digimono machine ids: 20..27
 TURNS = []
 for s in filter(None, a.knobs.split(",")):
     k, n = s.split(":")

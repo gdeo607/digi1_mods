@@ -39,7 +39,10 @@ def check(ok, what):
 def build():
     work = tempfile.mkdtemp(prefix="digimono_cf_")
     obj, elf, binf = (os.path.join(work, n) for n in ("mono.o", "mono.elf", "mono.bin"))
-    subprocess.check_call(["m68k-linux-gnu-gcc"] + CFLAGS + ["-c", H.SRC, "-o", obj])
+    objm = os.path.join(work, "macro.o")
+    subprocess.check_call(["m68k-linux-gnu-gcc"] + CFLAGS + ["-c", H.SRC, "-o", objm.replace("macro.o", "mono1.o")])
+    subprocess.check_call(["m68k-linux-gnu-gcc"] + CFLAGS + ["-c", H.SRC_MACRO, "-o", objm])
+    subprocess.check_call(["m68k-linux-gnu-ld", "-r", "-o", obj, objm.replace("macro.o", "mono1.o"), objm])
     und = subprocess.check_output(["m68k-linux-gnu-nm", "-u", obj], text=True).split()
     check(not und, "the ColdFire object needs nothing from outside (undefined: %s)" % (und or "none"))
     subprocess.check_call(["m68k-linux-gnu-ld", "-Ttext=0x%x" % TEXT, "-e", "mono_render", "-o", elf, obj])
@@ -127,7 +130,7 @@ def main():
     cases = blocks = 0
     same = kept_all = True
     for case in range(80):
-        m = rnd.randrange(7) if case % 10 else 7                  # 7: out of range, must be silence
+        m = rnd.randrange(8) if case % 10 else 8                  # 8: out of range, must be silence
         cf.init()
         hv = H.Voice()
         H.LIB.mono_init(ctypes.byref(hv))

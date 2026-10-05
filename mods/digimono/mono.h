@@ -13,6 +13,7 @@
 #define MONO_H
 
 #include <stdint.h>
+#include "macro.h"
 
 /* The machines. Numbered for this engine only; the SRC machine list maps onto them. */
 enum {
@@ -23,6 +24,7 @@ enum {
     MONO_ENS  = 4,      /* SWAVE-ENS   four oscillators at set intervals, saw..pulse, chorus      */
     MONO_VO   = 5,      /* VO-6        a formant voice: vowel 1 -> vowel 2, consonants              */
     MONO_PSIN = 6,      /* (GND-SIN)   three sines at set notes, a pitch envelope: POLY SIN         */
+    MONO_MACRO = 7,     /* MACRO       engines ported from Plaits (macro.c); knob B picks one         */
     MONO_MACHINES
 };
 
@@ -37,6 +39,7 @@ enum {
  *   ENS      PCH2  PCH3  PCH4  WAVE  PW    CHRL  CHRW
  *   VO       VOC1  VOC2  V-SW  VOIC  CONS  CLEN  CVOL
  *   PSIN     NOT1  NOT2  NOT3  EDEP  ESPD  -     -
+ *   MACRO    ENGN  HARM  TIMB  MORP  AUX   -     -     (macro.h)
  */
 #define MONO_PARAMS 7
 
@@ -61,6 +64,7 @@ struct mono_voice {
     int32_t  glp;                   /* VO: the glottal source's low-pass                             */
     uint32_t age;                   /* VO: samples since the note started, saturating                */
     uint32_t env;                   /* PSIN: the pitch envelope, Q30: 1 at the note's start, decaying */
+    struct macro_voice macro;       /* MACRO: the engine playing and its state                       */
 };
 
 /* Clear a voice. */

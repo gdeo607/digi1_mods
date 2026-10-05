@@ -17,6 +17,7 @@ after the Monomachine's GND and SWAVE machines:
 | `MONO ENS`   | SWAVE-ENS  | four oscillators at set intervals, saw..pulse, with a chorus |
 | `MONO VO`    | VO-6       | a formant voice: vowel 1 gliding to vowel 2, consonants at the note's start |
 | `POLY SIN`   | (GND-SIN)  | three sines at set notes (a chord on one track), with a pitch envelope |
+| `MACRO`      | (Plaits)   | engines ported from Plaits, the engine on knob B: see MACRO.md (not clean-room: MIT-licensed code) |
 
 They are picked like any machine: FUNC+SRC, after SLICE. A Digi Mono track needs no sample. Its trigs,
 note locks, TUNE, the FLTR, AMP and LFO pages, the sends, p-locks and the track level work on it as on a
