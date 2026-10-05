@@ -250,6 +250,7 @@ starts = sum(b[0] for b in blocks)
 secs = len(blocks) * 32 / 48000.0
 check(0.6 * secs / 0.5 <= starts <= 1.4 * secs / 0.5 + 2,
       "voice 0 started %d times in %.1f s (a trig every 4 steps at 120 BPM: every 0.5 s)" % (starts, secs))
+import collections; print("  machines seen:", collections.Counter(b[4] for b in blocks).most_common(4))
 mine = [b for b in blocks if b[4] == MACH_FIRST + MODEL]
 check(len(mine) > len(blocks) * 0.9, "voice 0 plays machine %d in %d of %d blocks" % (MACH_FIRST + MODEL, len(mine), len(blocks)))
 

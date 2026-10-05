@@ -562,7 +562,7 @@ static uint32_t shift_inc(uint32_t inc, int32_t e)
     if (e <= -16 * 1536 || e >= 16 * 1536)
         return e < 0 ? 0 : MONO_INC_MAX;
     u = (uint32_t)(e + 16 * 1536);
-    o = u / 1536;
+    o = (u * 43691u) >> 26;                         /* u / 1536, exact for u < 2^16 */
     r = u - o * 1536;
     inc = scale_up(scale_up(inc, MONO_SEMI_UP[r >> 7]), MONO_FINE[r & 127]);
     sh = (int32_t)o - 16;
@@ -574,6 +574,14 @@ static uint32_t shift_inc(uint32_t inc, int32_t e)
         inc <<= sh;
     }
     return inc > MONO_INC_MAX ? MONO_INC_MAX : inc;
+}
+
+/* the sine table read at phase q, linear between entries */
+static inline int32_t sini(uint32_t q)
+{
+    uint32_t x = q >> 23;
+    int32_t a = MONO_SINE[x], b = MONO_SINE[x + 1];
+    return a + (((b - a) * (int32_t)((q >> 7) & 0xffff)) >> 16);
 }
 
 static void render_psin(struct mono_voice *v, const uint8_t *p, uint32_t inc, int16_t *out, int n)
@@ -599,21 +607,30 @@ static void render_psin(struct mono_voice *v, const uint8_t *p, uint32_t inc, in
             off1 = (dep * (int32_t)((spd > 0 ? e1 : (1u << 30) - e1) >> 15)) >> 15;
         }
         for (i = 0; i < 3; i++) {
-            uint32_t a = shift_inc(inc, note[i] + off0), b = shift_inc(inc, note[i] + off1);
+            uint32_t a = shift_inc(inc, note[i] + off0);
             cur[i] = a;
-            step[i] = ((int32_t)b - (int32_t)a) / c;
+            step[i] = spd ? ((int32_t)shift_inc(inc, note[i] + off1) - (int32_t)a) / c : 0;
             ph[i] = v->ph[i];
         }
-        for (j = 0; j < c; j++) {
-            int32_t sum = 0;
-            for (i = 0; i < 3; i++) {
-                uint32_t q = ph[i], x = q >> 23, f = (q >> 7) & 0xffff;
-                int32_t a = MONO_SINE[x], b = MONO_SINE[x + 1];
-                sum += a + (((b - a) * (int32_t)f) >> 16);
-                ph[i] = q + cur[i];
-                cur[i] += (uint32_t)step[i];
+        {
+            /* the three in locals (the CPU's registers); without the envelope the steps stay */
+            uint32_t q0 = ph[0], q1 = ph[1], q2 = ph[2], c0 = cur[0], c1 = cur[1], c2 = cur[2];
+            if (spd) {
+                const uint32_t t0 = (uint32_t)step[0], t1 = (uint32_t)step[1], t2 = (uint32_t)step[2];
+                for (j = 0; j < c; j++) {
+                    int32_t sum = sini(q0) + sini(q1) + sini(q2);
+                    q0 += c0; q1 += c1; q2 += c2;
+                    c0 += t0; c1 += t1; c2 += t2;
+                    out[j] = (int16_t)((sum * 21845) >> 16);  /* / 3 */
+                }
+            } else {
+                for (j = 0; j < c; j++) {
+                    int32_t sum = sini(q0) + sini(q1) + sini(q2);
+                    q0 += c0; q1 += c1; q2 += c2;
+                    out[j] = (int16_t)((sum * 21845) >> 16);
+                }
             }
-            out[j] = (int16_t)((sum * 21845) >> 16);  /* / 3 */
+            ph[0] = q0; ph[1] = q1; ph[2] = q2;
         }
         for (i = 0; i < 3; i++)
             v->ph[i] = ph[i];
