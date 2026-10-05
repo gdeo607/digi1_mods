@@ -95,6 +95,7 @@ struct macro_particles {
 /* Plaits' bass drum engine: AnalogBassDrum (OUT, Q24) and SyntheticBassDrum (AUX, Q24) */
 struct macro_bd {
     int32_t trig;
+    int32_t idle[2];                                /* OUT's, AUX's drum has died away: nothing computed */
     /* analog */
     int32_t pulse_left, fm_left, pulse, pulse_lp, fm_lp, retrig, lp_out, tone_lp;
     struct macro_svf res;
@@ -109,6 +110,7 @@ struct macro_bd {
 /* Plaits' snare drum engine: AnalogSnareDrum (OUT) and SyntheticSnareDrum (AUX), Q24 */
 struct macro_sd {
     int32_t trig;
+    int32_t idle[2];
     /* analog: five modes' resonators, the noise's band-pass; coefficients kept for the block's knobs */
     int32_t pulse_left, pulse, pulse_lp, noise_env;
     struct macro_svf mode[5], nf;
@@ -124,6 +126,7 @@ struct macro_sd {
 /* Plaits' hi-hat engine: two HiHats (OUT: SquareNoise, AUX: RingModNoise), Q24 */
 struct macro_hh {
     int32_t trig;
+    int32_t idle[2];
     int32_t env[2];
     uint32_t nclk[2];
     int32_t nsmp[2];

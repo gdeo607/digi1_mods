@@ -49,6 +49,12 @@ static inline int32_t fmac1(int32_t a, int32_t x)                              /
                       : "=d"(r) : "r"(a), "r"(x), "r"(h));
     return r;
 }
+static inline int32_t fmac1t(int32_t a, int32_t x)                             /* a x / 2^31, truncated */
+{
+    int32_t r;
+    __asm__ volatile ("mac.l %1,%2,%%acc0\n\tmovclr.l %%acc0,%0" : "=d"(r) : "r"(a), "r"(x));
+    return r;
+}
 struct emac_save { int32_t macsr, acc0, ext01; };
 static inline void emac_enter(struct emac_save *e)
 {
@@ -70,6 +76,10 @@ static inline int32_t fmac2(int32_t a, int32_t x, int32_t b, int32_t y)
 static inline int32_t fmac1(int32_t a, int32_t x)
 {
     return (int32_t)(((((int64_t)a * x) >> 23) + 128) >> 8);
+}
+static inline int32_t fmac1t(int32_t a, int32_t x)
+{
+    return (int32_t)((((int64_t)a * x) >> 23) >> 8);
 }
 struct emac_save { int32_t unused; };
 static inline void emac_enter(struct emac_save *e) { (void)e; }
@@ -424,7 +434,7 @@ static COLD void slope_init(struct macro_slope *o)
 }
 
 /* pw: Q16, already kept in 2f..1-2f. out: Q15. */
-static void slope_render(struct macro_slope *o, uint32_t inc, int32_t pw, int32_t *out, int n)
+static void slope_render(struct macro_slope *__restrict o, uint32_t inc, int32_t pw, int32_t *__restrict out, int n)
 {
     uint32_t pw32 = (uint32_t)pw << 16;
     int32_t rup = (int32_t)(0x80000000u / (uint32_t)pw);            /* 1/pw, Q15       */
@@ -487,7 +497,7 @@ static COLD void slope_skip(struct macro_slope *o, uint32_t inc, int n)
     o->next = o->high ? (int32_t)(o->phase >> 15) : 131072 - (int32_t)(o->phase >> 15);
 }
 
-static void wsh_render(struct macro_wsh *w, const uint8_t *p, uint32_t inc, int32_t *out, int32_t *aux, int n,
+static void wsh_render(struct macro_wsh *__restrict w, const uint8_t *p, uint32_t inc, int32_t *__restrict out, int32_t *__restrict aux, int n,
                        int want_out, int want_aux)
 {
     int32_t harm = k16(p[MACRO_P_HARM]), timb = k15(p[MACRO_P_TIMB]), morph = k16(p[MACRO_P_MORPH]);
@@ -598,7 +608,7 @@ static COLD void fm_trig(struct macro_fm *f, const uint8_t *p)
 
 /* the half-band decimator: x[] holds six samples of history and then 2n new ones; out[i] is centred on
  * x[2i + 4] */
-static void halfband(const int32_t *x, int32_t *out, int n)
+static void halfband(const int32_t *__restrict x, int32_t *__restrict out, int n)
 {
     int i;
     for (i = 0; i < n; i++) {
@@ -611,7 +621,7 @@ static void halfband(const int32_t *x, int32_t *out, int n)
 static COLD uint32_t fm_controls(struct macro_fm *f, const uint8_t *p, uint32_t inc, uint32_t c_inc, struct ramp *amount,
                             struct ramp *feedback, int n);
 
-static void fm_render2(struct macro_fm *f, const uint8_t *p, uint32_t inc, int32_t *out, int32_t *aux, int n,
+static void fm_render2(struct macro_fm *__restrict f, const uint8_t *p, uint32_t inc, int32_t *__restrict out, int32_t *__restrict aux, int n,
                        int want_aux)
 {
     uint32_t c_inc = inc >> 1, m_inc;                   /* 2x oversampled: half the step */
@@ -650,10 +660,8 @@ static void fm_render2(struct macro_fm *f, const uint8_t *p, uint32_t inc, int32
         int32_t amt = ramp_next(&amount), fb = ramp_next(&feedback);
         int32_t pfb = fb < 0 ? (fb * fb) >> 16 : 0;                 /* phase feedback, 0.5 fb^2 */
         int32_t mfb = fb > 0 ? (fb * fb) >> 17 : 0;                 /* self modulation, 0.25 fb^2 */
-        if (want_aux)                               /* the general step: the same sums, with zeros */
+        if (want_aux || pfb || mfb)                 /* the general step (also feedback turned up in a 2x note) */
             FM_LOOP(1, 1, 1);
-        else if (pfb || mfb)                        /* feedback turned up during a 2x note */
-            FM_LOOP(1, 1, 0);
         else                                        /* the usual 2x note: no feedback, OUT only */
             FM_LOOP(0, 0, 0);
     }
@@ -696,7 +704,7 @@ static COLD uint32_t fm_controls(struct macro_fm *f, const uint8_t *p, uint32_t 
     return m_inc;
 }
 
-static void fm_render4(struct macro_fm *f, const uint8_t *p, uint32_t inc, int32_t *out, int32_t *aux, int n,
+static void fm_render4(struct macro_fm *__restrict f, const uint8_t *p, uint32_t inc, int32_t *__restrict out, int32_t *__restrict aux, int n,
                        int want_aux)
 {
     uint32_t c_inc = inc >> 2, m_inc;                   /* 4x oversampled: a quarter of the step */
@@ -745,11 +753,7 @@ static void fm_render4(struct macro_fm *f, const uint8_t *p, uint32_t inc, int32
         int32_t mfb = fb > 0 ? (fb * fb) >> 17 : 0;
         if (want_aux)                               /* the general step: the same sums, with zeros */
             FM_SAMPLE(1, 1, 1);
-        else if (pfb)
-            FM_SAMPLE(1, 0, 0);
-        else if (mfb)
-            FM_SAMPLE(0, 1, 0);
-        else                                        /* MORPH back near its middle during a 4x note */
+        else                                        /* OUT: phase feedback or self modulation (or neither) */
             FM_SAMPLE(1, 1, 0);
     }
 #undef FM_SAMPLE
@@ -780,7 +784,7 @@ static void fm_render(struct macro_fm *f, const uint8_t *p, uint32_t inc, int32_
  * Plaits' trigger: both clocks restart, TIMBRE spans its patched range (-24..128). The filters' controls
  * are the block's (Plaits glides them over the block). */
 
-static void cnoise_render(struct macro_cnoise *c, uint32_t *rng, int sync, uint32_t finc, int32_t *out, int n)
+static void cnoise_render(struct macro_cnoise *__restrict c, uint32_t *__restrict rng, int sync, uint32_t finc, int32_t *__restrict out, int n)
 {
     uint32_t phase = c->phase;
     int32_t sample = c->sample, next = c->next, raw_amount = 0, i;
@@ -827,8 +831,8 @@ static void noise_init(struct macro_noise *z)
     z->sync = 0;
 }
 
-static void noise_render(struct macro_noise *z, uint32_t *rng, const uint8_t *p, uint32_t inc, int32_t *out,
-                         int32_t *aux, int n, int want_aux)
+static void noise_render(struct macro_noise *__restrict z, uint32_t *__restrict rng, const uint8_t *p, uint32_t inc, int32_t *__restrict out,
+                         int32_t *__restrict aux, int n, int want_aux)
 {
     int32_t harm = k16(p[MACRO_P_HARM]), timb = k16(p[MACRO_P_TIMB]), morph = k16(p[MACRO_P_MORPH]);
     int32_t l0 = log2_q16(inc), lc, lv, cb, cx, use_hp, gm, gsh, i;
@@ -956,7 +960,7 @@ static COLD void particle_coefs(struct macro_particle *q, int32_t lf, struct coe
     q->c2s = c2.s;
 }
 
-static void particle_render(struct macro_voice *m, const uint8_t *p, uint32_t inc, int32_t *out, int32_t *aux,
+static void particle_render(struct macro_voice *__restrict m, const uint8_t *p, uint32_t inc, int32_t *__restrict out, int32_t *__restrict aux,
                             int n, int want_aux)
 {
     struct macro_particles *z = &m->e.part;
@@ -1063,7 +1067,7 @@ static void particle_render(struct macro_voice *m, const uint8_t *p, uint32_t in
 
 /* ---- shared by the drums ------------------------------------------------------------------------------ */
 
-#define ONE_POLE(X, IN, C) ((X) += fmac1((IN) - (X), (C)))         /* C: Q31 */
+#define ONE_POLE(X, IN, C) ((X) += fmac1t((IN) - (X), (C)))        /* C: Q31 (truncated: a smoother) */
 #define Q31(x) ((int32_t)((x) * 2147483648.0 + 0.5))                 /* a constant 0..1 as Q31 (compile time) */
 #define Q24(x) ((int32_t)((x) * 16777216.0 + ((x) < 0 ? -0.5 : 0.5)))
 
@@ -1101,6 +1105,12 @@ static int32_t softclip24(int32_t x)
     }
     return x < 0 ? -r : r;
 }
+
+/* A drum's sound has died away when every state that feeds its output is below -96 dB (Q24): from then on
+ * until the next trig its output is silence and nothing of it is computed. */
+#define TINY(x) ((uint32_t)((x) + 256) < 512u)
+/* (a resonator rounding to a fixed point a few hundred LSBs off zero at a low frequency: -72 dB counts) */
+#define TINYR(x) ((uint32_t)((x) + 4096) < 8192u)
 
 /* AnalogBassDrum's Diode(): x, or 0.7 x 2x / (1 + |2x|) below 0 (Q24) */
 static inline int32_t diode24(int32_t x)
@@ -1189,7 +1199,7 @@ static void bd_init(struct macro_bd *d)
 #ifndef BD_EVERY
 #define BD_EVERY 3
 #endif
-static void bd_analog(struct macro_bd *d, int32_t harm, int32_t timb, int32_t morph, uint32_t inc, int32_t *out,
+static void bd_analog(struct macro_bd *__restrict d, int32_t harm, int32_t timb, int32_t morph, uint32_t inc, int32_t *__restrict out,
                       int n)
 {
     int32_t f0 = (int32_t)(inc >> 1), lf0 = log2_q16(inc) - 32 * 65536, afm27, sfm31, q8, scale, tone_f, leak, i;
@@ -1224,7 +1234,7 @@ static void bd_analog(struct macro_bd *d, int32_t harm, int32_t timb, int32_t mo
             pulse = d->pulse_left ? Q24(8.6) : Q24(7.6);    /* 3 + 7 accent, accent 0.8 */
             d->pulse = pulse;
         } else {
-            d->pulse = fmac1(d->pulse, Q31(1.0 - 1.0 / 9.6));
+            d->pulse = fmac1t(d->pulse, Q31(1.0 - 1.0 / 9.6));
             pulse = d->pulse;
         }
         ONE_POLE(d->pulse_lp, pulse, Q31(1.0 / 4.8));
@@ -1234,7 +1244,7 @@ static void bd_analog(struct macro_bd *d, int32_t harm, int32_t timb, int32_t mo
             fm_pulse = 0x7fffff00 >> 7;                     /* 1, Q24 */
             d->retrig = d->fm_left ? 0 : -Q24(0.8);
         } else {
-            d->retrig = fmac1(d->retrig, Q31(1.0 - 1.0 / 2400.0));
+            d->retrig = (uint32_t)(d->retrig + 4096) < 8192u ? 0 : fmac1(d->retrig, Q31(1.0 - 1.0 / 2400.0));
         }
         ONE_POLE(d->fm_lp, fm_pulse, Q31(1.0 / 4.8));
         if (!(i & BD_EVERY) || d->fm_lp > Q24(0.004)) {    /* the resonator's pitch and q: every 4 samples,
@@ -1278,8 +1288,8 @@ static int32_t distorted_sine(uint32_t phase, int32_t pnoise, int32_t dirt31)
     return sine + fmac1(clean - sine, 0x7fffffff - dirt31);
 }
 
-static void bd_synthetic(struct macro_bd *d, uint32_t *rng, int32_t harm, int32_t timb, int32_t morph, uint32_t inc,
-                         int32_t *aux, int n)
+static void bd_synthetic(struct macro_bd *__restrict d, uint32_t *__restrict rng, int32_t harm, int32_t timb, int32_t morph, uint32_t inc,
+                         int32_t *__restrict aux, int n)
 {
     int32_t f0 = (int32_t)(inc >> 1), lf0 = log2_q16(inc) - 32 * 65536, m2, dirt31, fm_amt, fmd, fm_decay, body_decay;
     int32_t tone_f, tone15, i, df;
@@ -1314,7 +1324,7 @@ static void bd_synthetic(struct macro_bd *d, uint32_t *rng, int32_t harm, int32_
             d->phase = 0x40000000u;
         } else {
             uint32_t step;
-            d->fm = fmac1(d->fm, fm_decay);
+            d->fm = fmac1t(d->fm, fm_decay);
             /* min(f0 (1 + 3.5 amount fm_lp), 0.5) */
             step = (uint32_t)(f0 >> 3) + (uint32_t)fmac1(f0, fmac1(d->fm_lp2 << 7, fm_amt));   /* Q28 */
             d->phase += step > 0x08000000u ? 0x80000000u : step << 4;
@@ -1322,8 +1332,8 @@ static void bd_synthetic(struct macro_bd *d, uint32_t *rng, int32_t harm, int32_
         if (d->body_pw)
             d->body_pw--;
         else {
-            d->body = fmac1(d->body, body_decay);
-            d->trans = fmac1(d->trans, Q31(1.0 - 1.0 / 240.0));
+            d->body = fmac1t(d->body, body_decay);
+            d->trans = fmac1t(d->trans, Q31(1.0 - 1.0 / 240.0));
         }
         ONE_POLE(d->body_lp, d->body, Q31(0.1));
         ONE_POLE(d->trans_lp, d->trans, Q31(0.1));
@@ -1354,7 +1364,7 @@ static void bd_synthetic(struct macro_bd *d, uint32_t *rng, int32_t harm, int32_
 }
 
 /* Plaits' Overdrive (on OUT): drive 0.5 + 0.5 max(2h - 1, 0) max(1 - 16 f0, 0) */
-static void bd_overdrive(int32_t harm, uint32_t inc, int32_t *x, int n)
+static void bd_overdrive(int32_t harm, uint32_t inc, int32_t *__restrict x, int n)
 {
     int32_t f0 = (int32_t)(inc >> 1), dv, d2, pa, pb, pre, sq, arg, sc, post, i;
     int32_t lim = f0 > (0x7fffffff >> 4) ? 0 : 0x7fffffff - f0 * 16;
@@ -1380,16 +1390,31 @@ static void bd_render(struct macro_voice *m, const uint8_t *p, uint32_t inc, int
 {
     struct macro_bd *d = &m->e.bd;
     int32_t harm = k16(p[MACRO_P_HARM]), timb = k16(p[MACRO_P_TIMB]), morph = k16(p[MACRO_P_MORPH]), i;
+    if (d->trig)
+        d->idle[0] = d->idle[1] = 0;
     if (want_out) {
-        bd_analog(d, harm, timb, morph, inc, out, n);
-        bd_overdrive(harm, inc, out, n);
-        for (i = 0; i < n; i++)
-            out[i] >>= 9;                                   /* Q15 */
+        if (d->idle[0])
+            for (i = 0; i < n; i++)
+                out[i] = 0;
+        else {
+            bd_analog(d, harm, timb, morph, inc, out, n);
+            bd_overdrive(harm, inc, out, n);
+            for (i = 0; i < n; i++)
+                out[i] >>= 9;                               /* Q15 */
+            d->idle[0] = !d->pulse_left && !d->fm_left && TINY(d->pulse) && TINY(d->pulse_lp) && TINY(d->retrig)
+                         && TINYR(d->res.s1) && TINYR(d->res.s2) && TINYR(d->tone_lp);
+        }
     }
     if (want_aux) {
-        bd_synthetic(d, &m->rng, harm, timb, morph, inc, aux, n);
-        for (i = 0; i < n; i++)
-            aux[i] >>= 9;
+        if (d->idle[1])
+            for (i = 0; i < n; i++)
+                aux[i] = 0;
+        else {
+            bd_synthetic(d, &m->rng, harm, timb, morph, inc, aux, n);
+            for (i = 0; i < n; i++)
+                aux[i] >>= 9;
+            d->idle[1] = !d->body_pw && TINY(d->body) && TINY(d->body_lp) && TINY(d->trans_lp) && TINY(d->tone_lp2);
+        }
     }
     d->trig = 0;
 }
@@ -1410,8 +1435,8 @@ static void sd_init(struct macro_sd *d)
 
 static const int32_t sd_ratio28[5] = {268435456, 536870912, 853624750, 1116691497, 1508608262};   /* 1, 2, 3.18, 4.16, 5.62 */
 
-static void sd_analog(struct macro_sd *d, uint32_t *rng, int32_t harm, int32_t timb, int32_t morph, uint32_t inc,
-                      int32_t *out, int n)
+static void sd_analog(struct macro_sd *__restrict d, uint32_t *__restrict rng, int32_t harm, int32_t timb, int32_t morph, uint32_t inc,
+                      int32_t *__restrict out, int n)
 {
     int32_t f0 = (int32_t)(inc >> 1), dxt, snappy, leak31, gain28[5], one_minus_snappy, ned, i, j, nm;
     /* decay_xt = d (1 + d (d - 1)), Q16 */
@@ -1469,50 +1494,90 @@ static void sd_analog(struct macro_sd *d, uint32_t *rng, int32_t harm, int32_t t
         d->pulse_left = 48;
         d->noise_env = Q24(2.0);
     }
-    for (i = 0; i < n; i++) {
-        int32_t pulse, shell21 = 0, noise, x0, x1, bp, lp;
-        if (d->pulse_left) {
-            d->pulse_left--;
-            pulse = d->pulse_left ? Q24(8.6) : Q24(7.6);
-            d->pulse = pulse;
+    /* the excitation (while the trigger pulse and its tail last) */
+    {
+        int32_t pl = d->pulse_left, pu = d->pulse, plp = d->pulse_lp, active = pl || !TINY(pu) || !TINY(plp);
+        int32_t x0[32], x1[32], shell[32];
+        for (i = 0; i < n; i++)
+            shell[i] = 0;
+        if (active) {
+            for (i = 0; i < n; i++) {
+                int32_t pulse;
+                if (pl) {
+                    pl--;
+                    pulse = pl ? Q24(8.6) : Q24(7.6);
+                    pu = pulse;
+                } else {
+                    pu = fmac1t(pu, Q31(1.0 - 1.0 / 4.8));
+                    pulse = pu;
+                }
+                ONE_POLE(plp, pulse, Q31(0.75));
+                x0[i] = pulse - plp + fmac1(pulse, Q31(0.006));
+                x1[i] = fmac1(pulse, Q31(0.026));
+            }
+            d->pulse_left = pl;
+            d->pulse = pu;
+            d->pulse_lp = plp;
         } else {
-            d->pulse = fmac1(d->pulse, Q31(1.0 - 1.0 / 4.8));
-            pulse = d->pulse;
+            d->pulse = d->pulse_lp = 0;
         }
-        ONE_POLE(d->pulse_lp, pulse, Q31(0.75));
-        x0 = pulse - d->pulse_lp + fmac1(pulse, Q31(0.006));
-        x1 = fmac1(pulse, Q31(0.026));
+        /* the shell: each mode over the block (its states and coefficients in registers) */
         for (j = 0; j < nm; j++) {
+            struct macro_svf f = d->mode[j];
             struct svf_c c;
-            int32_t ex = j ? x1 : x0;
+            int32_t g = gain28[j], bp, lp;
+            const int32_t *ex = j ? x1 : x0;
             c.a1 = d->ma1[j];
             c.a2 = d->ma2[j];
             c.a3 = d->ma3[j];
-            SVF_STEP(d->mode[j], c, ex, bp, lp);
+            if (active)
+                for (i = 0; i < n; i++) {
+                    SVF_STEP(f, c, ex[i], bp, lp);
+                    shell[i] += fmac1(bp + fmac1(ex[i], leak31), g);          /* Q21 */
+                }
+            else if (!TINY(f.s1) || !TINY(f.s2))
+                for (i = 0; i < n; i++) {
+                    SVF_STEP(f, c, 0, bp, lp);
+                    shell[i] += fmac1(bp, g);
+                }
             (void)lp;
-            shell21 += fmac1(bp + fmac1(ex, leak31), gain28[j]);           /* Q21 */
+            svf_guard(&f);
+            d->mode[j] = f;
         }
-        shell21 = shell21 > (7 << 20) ? 7 << 20 : shell21 < -(7 << 20) ? -(7 << 20) : shell21;
-        x0 = softclip24(shell21 << 3);
-        /* the noise: 2u - 1 kept above 0, the envelope, snappy x 2, a band-pass at 16 f0 */
-        noise = (int32_t)(rnd32(rng) >> 7) - (1 << 24);
-        if (noise < 0)
-            noise = 0;
-        d->noise_env = fmac1(d->noise_env, ned);
-        noise = fmac1(fmac1(noise, d->noise_env << 5) << 2, snappy) << 1;  /* x the envelope (Q29: up to 2) x snappy x 2 */
-        {
-            struct svf_c c;
-            c.a1 = d->na1;
-            c.a2 = d->na2;
-            c.a3 = d->na3;
-            SVF_STEP(d->nf, c, noise, bp, lp);
-            (void)lp;
+        for (i = 0; i < n; i++) {
+            int32_t s21 = shell[i];
+            s21 = s21 > (7 << 20) ? 7 << 20 : s21 < -(7 << 20) ? -(7 << 20) : s21;
+            out[i] = fmac1(softclip24(s21 << 3), one_minus_snappy);
         }
-        out[i] = bp + fmac1(x0, one_minus_snappy);
     }
-    for (j = 0; j < 5; j++)
-        svf_guard(&d->mode[j]);
-    svf_guard(&d->nf);
+    /* the noise: 2u - 1 kept above 0, the envelope, snappy x 2, a band-pass at 16 f0 (none without snappy) */
+    if (snappy || !TINY(d->nf.s1) || !TINY(d->nf.s2)) {
+        struct macro_svf f = d->nf;
+        struct svf_c c;
+        int32_t env = d->noise_env, bp, lp;
+        uint32_t r = *rng;
+        c.a1 = d->na1;
+        c.a2 = d->na2;
+        c.a3 = d->na3;
+        for (i = 0; i < n; i++) {
+            int32_t noise;
+            r = r * 1664525u + 1013904223u;
+            noise = (int32_t)(r >> 7) - (1 << 24);
+            if (noise < 0)
+                noise = 0;
+            env = fmac1t(env, ned);
+            noise = fmac1(fmac1(noise, env << 5) << 2, snappy) << 1;   /* x the envelope (Q29: up to 2) x snappy x 2 */
+            SVF_STEP(f, c, noise, bp, lp);
+            out[i] += bp;
+        }
+        (void)lp;
+        *rng = r;
+        d->noise_env = env;
+        svf_guard(&f);
+        d->nf = f;
+    } else
+        for (i = 0; i < n; i++)
+            d->noise_env = fmac1t(d->noise_env, ned);
 }
 
 /* SyntheticSnareDrum's DistortedSine: t = 4 p - 1.3 (p mirrored past 0.5), 2 t / (1 + |t|); p Q28 */
@@ -1522,8 +1587,8 @@ static inline int32_t sd_dsine(int32_t p28)
     return 2 * rsat24(4 * t - Q24(1.3));
 }
 
-static void sd_synthetic(struct macro_sd *d, uint32_t *rng, int32_t harm, int32_t timb, int32_t morph, uint32_t inc,
-                         int32_t *aux, int n)
+static void sd_synthetic(struct macro_sd *__restrict d, uint32_t *__restrict rng, int32_t harm, int32_t timb, int32_t morph, uint32_t inc,
+                         int32_t *__restrict aux, int n)
 {
     int32_t f0 = (int32_t)(inc >> 1), dxt, fm2, drum_decay, snare_decay, sn, drum_level, snare_level, rna, i;
     int32_t g_hp, g_dlp, f, fmin, fmax, a1, a2, a3, k31, f28, fm4;
@@ -1569,12 +1634,12 @@ static void sd_synthetic(struct macro_sd *d, uint32_t *rng, int32_t harm, int32_
     for (i = 0; i < n; i++) {
         int32_t rn, drum, noise, snare, lp, bp;
         if (d->drum_amp > Q24(0.03) || !((n - 1 - i) & 1))
-            d->drum_amp = fmac1(d->drum_amp, drum_decay);
+            d->drum_amp = fmac1t(d->drum_amp, drum_decay);
         if (d->hold)
             d->hold--;
         else
-            d->snare_amp = fmac1(d->snare_amp, snare_decay);
-        d->fm = fmac1(d->fm, Q31(1.0 - 1.0 / 336.0));
+            d->snare_amp = fmac1t(d->snare_amp, snare_decay);
+        d->fm = fmac1t(d->fm, Q31(1.0 - 1.0 / 336.0));
         rn = (d->ph0 > (1 << 27) ? -1 : 1) + (d->ph1 > (1 << 27) ? -1 : 1);
         rn = fmac1(rn << 28, fmac1(rna, Q31(0.025)));                      /* Q28 */
         f28 = (f0 >> 3) + (fmac1(f0, fmac1(d->fm << 7, fm4)) << 1);        /* f0 (1 + 4 fm^2 fm), Q28 */
@@ -1613,15 +1678,33 @@ static void sd_render(struct macro_voice *m, const uint8_t *p, uint32_t inc, int
 {
     struct macro_sd *d = &m->e.sd;
     int32_t harm = k16(p[MACRO_P_HARM]), timb = k16(p[MACRO_P_TIMB]), morph = k16(p[MACRO_P_MORPH]), i;
+    if (d->trig)
+        d->idle[0] = d->idle[1] = 0;
     if (want_out) {
-        sd_analog(d, &m->rng, harm, timb, morph, inc, out, n);
-        for (i = 0; i < n; i++)
-            out[i] >>= 9;
+        if (d->idle[0])
+            for (i = 0; i < n; i++)
+                out[i] = 0;
+        else {
+            int j, q = 1;
+            sd_analog(d, &m->rng, harm, timb, morph, inc, out, n);
+            for (i = 0; i < n; i++)
+                out[i] >>= 9;
+            for (j = 0; j < 5; j++)
+                q &= TINYR(d->mode[j].s1) && TINYR(d->mode[j].s2);
+            d->idle[0] = q && !d->pulse_left && TINY(d->pulse) && TINY(d->pulse_lp) && TINY(d->noise_env)
+                         && TINY(d->nf.s1) && TINY(d->nf.s2);
+        }
     }
     if (want_aux) {
-        sd_synthetic(d, &m->rng, harm, timb, morph, inc, aux, n);
-        for (i = 0; i < n; i++)
-            aux[i] >>= 9;
+        if (d->idle[1])
+            for (i = 0; i < n; i++)
+                aux[i] = 0;
+        else {
+            sd_synthetic(d, &m->rng, harm, timb, morph, inc, aux, n);
+            for (i = 0; i < n; i++)
+                aux[i] >>= 9;
+            d->idle[1] = !d->hold && TINY(d->drum_amp) && TINY(d->snare_amp) && TINY(d->fm) && TINY(d->drum_lp);
+        }
     }
     d->trig = 0;
 }
@@ -1651,46 +1734,7 @@ static inline int32_t blep_q15(int32_t t)                    /* 0.5 t^2, t Q16 *
     return ((t >> 1) * (t >> 1)) >> 16;
 }
 
-static int32_t hh_saw(struct macro_hh *d, int i, uint32_t inc)
-{
-    int32_t this_s = d->next[i], next = 0;
-    uint32_t old = d->ph[i];
-    d->ph[i] += inc;
-    if (d->ph[i] < old) {
-        int32_t t = sub_sample(d->ph[i], inc);
-        this_s -= blep_q15(t);
-        next += blep_q15(65536 - t);
-    }
-    next += (int32_t)(d->ph[i] >> 17);
-    d->next[i] = next;
-    return 2 * this_s - 32768;
-}
-
-static int32_t hh_square(struct macro_hh *d, int i, uint32_t inc)
-{
-    int32_t this_s = d->next[i], next = 0, above, wrapped;
-    uint32_t old = d->ph[i];
-    d->ph[i] += inc;
-    wrapped = d->ph[i] < old;
-    above = wrapped || d->ph[i] >= 0x80000000u;               /* past the pulse width (0.5) */
-    if (d->high[i] ^ above) {                                  /* up (frequencies <= 0.25: never with a wrap) */
-        int32_t t = sub_sample(d->ph[i] - 0x80000000u, inc);
-        this_s += blep_q15(t);
-        next -= blep_q15(65536 - t);
-        d->high[i] = above;
-    }
-    if (wrapped) {                                             /* down: a new cycle */
-        int32_t t = sub_sample(d->ph[i], inc);
-        this_s -= blep_q15(t);
-        next += blep_q15(65536 - t);
-        d->high[i] = 0;
-    }
-    next += d->ph[i] >= 0x80000000u ? 32768 : 0;
-    d->next[i] = next;
-    return 2 * this_s - 32768;
-}
-
-static void hh_render(struct macro_voice *m, const uint8_t *p, uint32_t inc, int32_t *out, int32_t *aux, int n,
+static void hh_render(struct macro_voice *__restrict m, const uint8_t *p, uint32_t inc, int32_t *__restrict out, int32_t *__restrict aux, int n,
                       int want_out, int want_aux)
 {
     struct macro_hh *d = &m->e.hh;
@@ -1716,6 +1760,13 @@ static void hh_render(struct macro_voice *m, const uint8_t *p, uint32_t inc, int
         int32_t *x = h ? aux : out;
         if (!(h ? want_aux : want_out))
             continue;
+        if (d->trig)
+            d->idle[h] = 0;
+        if (d->idle[h]) {
+            for (i = 0; i < n; i++)
+                x[i] = 0;
+            continue;
+        }
         if (d->trig)                                       /* (1.5 + 0.5 (1 - MORPH)) x 0.86 */
             d->env[h] = Q24(0.86 * 2.0) - (fmac1(morph << 15, Q31(0.43)) >> 7);
         if (h == 0) {                                      /* SquareNoise at 2 f0 */
@@ -1724,13 +1775,25 @@ static void hh_render(struct macro_voice *m, const uint8_t *p, uint32_t inc, int
                 uint32_t f = (uint32_t)fmac1(f0, (int32_t)hh_sq_ratio28[j]);       /* Q28 of f0 r */
                 sinc[j] = f >= (Q31(0.499) >> 4) ? (uint32_t)Q31(0.499) << 1 : f << 5;  /* 2 f0 r, Q32 */
             }
-            for (i = 0; i < n; i++) {
-                int32_t c = 0;
-                for (j = 0; j < 6; j++) {
-                    d->sq[j] += sinc[j];
-                    c += (int32_t)(d->sq[j] >> 31);
+            {
+                uint32_t p0 = d->sq[0], p1 = d->sq[1], p2 = d->sq[2], p3 = d->sq[3], p4 = d->sq[4], p5 = d->sq[5];
+                for (i = 0; i < n; i++) {
+                    int32_t c;
+                    p0 += sinc[0];
+                    p1 += sinc[1];
+                    p2 += sinc[2];
+                    p3 += sinc[3];
+                    p4 += sinc[4];
+                    p5 += sinc[5];
+                    c = (int32_t)((p0 >> 31) + (p1 >> 31) + (p2 >> 31) + (p3 >> 31) + (p4 >> 31) + (p5 >> 31));
+                    x[i] = c * Q24(0.33) - Q24(1.0);
                 }
-                x[i] = c * Q24(0.33) - Q24(1.0);
+                d->sq[0] = p0;
+                d->sq[1] = p1;
+                d->sq[2] = p2;
+                d->sq[3] = p3;
+                d->sq[4] = p4;
+                d->sq[5] = p5;
             }
             {                                              /* resonant: q = 3 + 3 TIMBRE */
                 int32_t r = recip_q((3 << 24) + timb * 768, 24);
@@ -1746,38 +1809,86 @@ static void hh_render(struct macro_voice *m, const uint8_t *p, uint32_t inc, int
                     f = 0x40000000u;                       /* kMaxFrequency 0.25 */
                 rinc[j] = f;
             }
-            for (i = 0; i < n; i++) {
-                int32_t acc = 0;
-                for (j = 0; j < 6; j += 2)
-                    acc += (hh_square(d, j, rinc[j]) * hh_saw(d, j + 1, rinc[j + 1])) >> 6;   /* Q30 -> Q24 */
-                x[i] = acc;
+            for (i = 0; i < n; i++)
+                x[i] = 0;
+            for (j = 0; j < 6; j += 2) {                   /* a pair over the block: square x saw */
+                uint32_t pa = d->ph[j], pb = d->ph[j + 1], ia = rinc[j], ib = rinc[j + 1];
+                int32_t na = d->next[j], nb = d->next[j + 1], hi = d->high[j];
+                for (i = 0; i < n; i++) {
+                    int32_t ta = na, tb = nb, above, t;
+                    uint32_t old = pa;
+                    na = 0;
+                    pa += ia;
+                    above = pa < old || pa >= 0x80000000u;
+                    if (hi ^ above) {                      /* the square up */
+                        t = sub_sample(pa - 0x80000000u, ia);
+                        ta += blep_q15(t);
+                        na -= blep_q15(65536 - t);
+                        hi = above;
+                    }
+                    if (pa < old) {                        /* and down: a new cycle */
+                        t = sub_sample(pa, ia);
+                        ta -= blep_q15(t);
+                        na += blep_q15(65536 - t);
+                        hi = 0;
+                    }
+                    na += pa >= 0x80000000u ? 32768 : 0;
+                    old = pb;
+                    nb = 0;
+                    pb += ib;
+                    if (pb < old) {                        /* the saw's reset */
+                        t = sub_sample(pb, ib);
+                        tb -= blep_q15(t);
+                        nb += blep_q15(65536 - t);
+                    }
+                    nb += (int32_t)(pb >> 17);
+                    x[i] += ((2 * ta - 32768) * (2 * tb - 32768)) >> 6;    /* Q30 -> Q24 */
+                }
+                d->ph[j] = pa;
+                d->ph[j + 1] = pb;
+                d->next[j] = na;
+                d->next[j + 1] = nb;
+                d->high[j] = hi;
             }
             svf_coefs(&kbp, cutoff, coef_norm(1, 0));      /* q 1 */
         }
-        for (i = 0; i < n; i++) {
-            int32_t bp, lp, s;
-            SVF_STEP(d->bp[h], kbp, x[i], bp, lp);
-            (void)lp;
-            {
-                uint32_t old = d->nclk[h];
-                d->nclk[h] += nclk_inc;
-                if (d->nclk[h] < old)
-                    d->nsmp[h] = (int32_t)(rnd32(&m->rng) >> 8) - Q24(0.5);
+        {
+            struct macro_svf fb = d->bp[h], fh = d->hp[h];
+            uint32_t clk = d->nclk[h], r = m->rng;
+            int32_t smp = d->nsmp[h], env = d->env[h], bp, lp, s;
+            for (i = 0; i < n; i++) {
+                SVF_STEP(fb, kbp, x[i], bp, lp);
+                if (noisiness) {                           /* the clocked noise, mixed in by HARMONICS^2 */
+                    uint32_t old = clk;
+                    clk += nclk_inc;
+                    if (clk < old) {
+                        r = r * 1664525u + 1013904223u;
+                        smp = (int32_t)(r >> 8) - Q24(0.5);
+                    }
+                    s = bp + fmac1(smp - bp, noisiness);
+                } else
+                    s = bp;
+                if (h == 0) {                              /* SwingVCA, one-stage envelope */
+                    env = fmac1t(env, env_decay);
+                    s = s > 0 ? (s > Q24(30.0) ? Q24(120.0) : s * 4) : fmac1(s, Q31(0.1));
+                    s = fmac1(rsat24(s) + Q24(0.1), env << 6) << 1;
+                } else {                                   /* LinearVCA, two stages */
+                    env = fmac1t(env, env > Q24(0.5) ? env_decay : cut_decay);
+                    s = fmac1(s, env << 6) << 1;
+                }
+                SVF_STEP(fh, khp, s, bp, lp);
+                x[i] = SVF_HP(khp, s, bp, lp) >> 9;        /* Q15 */
             }
-            s = bp + fmac1(d->nsmp[h] - bp, noisiness);
-            if (h == 0) {                                  /* SwingVCA, one-stage envelope */
-                d->env[0] = fmac1(d->env[0], env_decay);
-                s = s > 0 ? (s > Q24(30.0) ? Q24(120.0) : s * 4) : fmac1(s, Q31(0.1));
-                s = fmac1(rsat24(s) + Q24(0.1), d->env[0] << 6) << 1;
-            } else {                                       /* LinearVCA, two stages */
-                d->env[1] = fmac1(d->env[1], d->env[1] > Q24(0.5) ? env_decay : cut_decay);
-                s = fmac1(s, d->env[1] << 6) << 1;
-            }
-            SVF_STEP(d->hp[h], khp, s, bp, lp);
-            x[i] = SVF_HP(khp, s, bp, lp) >> 9;            /* Q15 */
+            d->bp[h] = fb;
+            d->hp[h] = fh;
+            d->nclk[h] = clk;
+            d->nsmp[h] = smp;
+            d->env[h] = env;
+            m->rng = r;
         }
         svf_guard(&d->bp[h]);
         svf_guard(&d->hp[h]);
+        d->idle[h] = TINY(d->env[h]) && TINY(d->hp[h].s1) && TINY(d->hp[h].s2);
     }
     d->trig = 0;
 }
@@ -1849,7 +1960,7 @@ static inline int32_t carrier24(const struct carrier_c *c, uint32_t p)
     return (sine24(w) + (1 << 24)) >> 2;
 }
 
-static void grain_render(struct macro_grain *z, const uint8_t *p, uint32_t inc, int32_t *out, int32_t *aux, int n,
+static void grain_render(struct macro_grain *__restrict z, const uint8_t *p, uint32_t inc, int32_t *__restrict out, int32_t *__restrict aux, int n,
                          int want_out, int want_aux)
 {
     int32_t harm = k16(p[MACRO_P_HARM]), timb = k16(p[MACRO_P_TIMB]), morph = k16(p[MACRO_P_MORPH]), i, j;
@@ -2057,7 +2168,8 @@ static void macro_render_e(struct macro_voice *m, const uint8_t *p, uint32_t inc
         inc = INC_MAX;
     if (inc < INC_MIN)
         inc = INC_MIN;
-    mix = k15(p[MACRO_P_AUX]);
+    /* F: OUT up to 55, AUX from 72, a crossfade between (only there are both outputs computed) */
+    mix = p[MACRO_P_AUX] <= 55 ? 0 : p[MACRO_P_AUX] >= 72 ? 32767 : (p[MACRO_P_AUX] - 55) * 1927;
     switch (m->engine) {
     case MACRO_WSH: wsh_render(&m->e.wsh, p, inc, o, a, n, mix < 32767, mix > 0); break;
     case MACRO_FM:  fm_render(&m->e.fm, p, inc, o, a, n, mix > 0); break;

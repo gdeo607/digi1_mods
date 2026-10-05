@@ -9,8 +9,9 @@ ColdFire V4e.
 2. Bit-exact: random voices (engine, knobs, pitch, re-trigs) rendered block by block on the emulated
    ColdFire and by a PC build of the same file: every sample must be the same. So what
    tests/macro_vs_plaits.py measures on the PC is what the unit plays.
-3. Cost per 32-frame block and voice: instructions, and estimated cycles (divide 35, multiply 4, an
-   instruction that reads or writes memory 2, a taken branch 2, others 1). The stock render is about
+3. Cost per 32-frame block and voice: instructions, and estimated cycles (divide 35, multiply 4, an EMAC
+   MAC 1 and reading its accumulator 4, an instruction that reads or writes memory 2, a taken branch 2,
+   others 1). The stock render is about
    84,000 instructions a block; a block is 166,667 cycles at 250 MHz.
 """
 import ctypes, os, random, struct, subprocess, sys, tempfile
@@ -87,7 +88,11 @@ class CF:
             ops = ins.op_str if ins else ""
             if m.startswith("div") or m.startswith("rem"):
                 w = 35
-            elif m.startswith("mul") or m.startswith("mac"):
+            elif m.startswith("mac") or m.startswith("msac"):
+                w = 1                         # the EMAC issues a MAC a cycle (its pipeline runs alongside)
+            elif m.startswith("movclr") or "acc" in ops:
+                w = 4                         # reading an accumulator waits for the MAC pipeline (3 cycles)
+            elif m.startswith("mul"):
                 w = 4
             elif "(" in ops or m.startswith("movem"):
                 w = 2
