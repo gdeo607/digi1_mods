@@ -17,6 +17,7 @@ enum {
     MACRO_PARTICLE = 3,     /* random impulses through resonant band-passes (OUT), the impulses (AUX) */
     MACRO_BD = 4,           /* bass drums: an analog-style one (OUT), a synthetic one (AUX)            */
     MACRO_SD = 5,           /* snare drums: an analog-style one (OUT), a synthetic one (AUX)           */
+    MACRO_HH = 6,           /* hi-hats: six square oscillators (OUT), three ring-modulated pairs (AUX) */
     MACRO_ENGINES
 };
 
@@ -119,6 +120,18 @@ struct macro_sd {
     struct macro_svf snare_lp;
 };
 
+/* Plaits' hi-hat engine: two HiHats (OUT: SquareNoise, AUX: RingModNoise), Q24 */
+struct macro_hh {
+    int32_t trig;
+    int32_t env[2];
+    uint32_t nclk[2];
+    int32_t nsmp[2];
+    struct macro_svf bp[2], hp[2];
+    uint32_t sq[6];                                 /* SquareNoise's phases                             */
+    uint32_t ph[6];                                 /* RingModNoise's oscillators: phase, next sample,  */
+    int32_t next[6], high[6];                       /* and the square's state                          */
+};
+
 struct macro_voice {
     uint8_t engine;                 /* the engine playing                                            */
     uint8_t latch;                  /* 1: take the engine from knob B at the next block              */
@@ -132,6 +145,7 @@ struct macro_voice {
         struct macro_particles part;
         struct macro_bd bd;
         struct macro_sd sd;
+        struct macro_hh hh;
     } e;
 };
 

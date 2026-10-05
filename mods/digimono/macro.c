@@ -1623,14 +1623,170 @@ static void sd_render(struct macro_voice *m, const uint8_t *p, uint32_t inc, int
     d->trig = 0;
 }
 
+/* ---- HH: plaits/dsp/engine/hi_hat_engine.cc, drums/hi_hat.h ------------------------------------------- *
+ * OUT: 808-style metallic noise (six square oscillators), a resonant band-pass, clocked noise mixed in by
+ * HARMONICS, a "swing" VCA and a high-pass; AUX: three ring-modulated square x saw pairs, a band-pass, a
+ * linear VCA with a two-stage envelope, a high-pass. TIMB: tone (the filters' frequency); MORP: decay. */
+
+static void hh_init(struct macro_hh *d)
+{
+    int32_t *w = &d->trig, *end = (int32_t *)(d + 1), i;
+    while (w < end)
+        *w++ = 0;
+    for (i = 0; i < 6; i++) {
+        d->ph[i] = 0x80000000u;                             /* Oscillator::Init: phase 0.5, high */
+        d->high[i] = 1;
+    }
+}
+
+static const uint32_t hh_sq_ratio28[6] = {268435456, 350039835, 393526378, 479694160, 518617301, 680752316};
+static const uint32_t hh_rm_inc[6] = {17895697, 673772995, 45634028, 722538769, 65319294, 939524096};
+
+/* Plaits' Oscillator, SQUARE (pw 0.5) or SAW, one sample, Q15 (band-limited steps: polyBLEP) */
+static inline int32_t blep_q15(int32_t t)                    /* 0.5 t^2, t Q16 */
+{
+    return ((t >> 1) * (t >> 1)) >> 16;
+}
+
+static int32_t hh_saw(struct macro_hh *d, int i, uint32_t inc)
+{
+    int32_t this_s = d->next[i], next = 0;
+    uint32_t old = d->ph[i];
+    d->ph[i] += inc;
+    if (d->ph[i] < old) {
+        int32_t t = sub_sample(d->ph[i], inc);
+        this_s -= blep_q15(t);
+        next += blep_q15(65536 - t);
+    }
+    next += (int32_t)(d->ph[i] >> 17);
+    d->next[i] = next;
+    return 2 * this_s - 32768;
+}
+
+static int32_t hh_square(struct macro_hh *d, int i, uint32_t inc)
+{
+    int32_t this_s = d->next[i], next = 0, above, wrapped;
+    uint32_t old = d->ph[i];
+    d->ph[i] += inc;
+    wrapped = d->ph[i] < old;
+    above = wrapped || d->ph[i] >= 0x80000000u;               /* past the pulse width (0.5) */
+    if (d->high[i] ^ above) {                                  /* up (frequencies <= 0.25: never with a wrap) */
+        int32_t t = sub_sample(d->ph[i] - 0x80000000u, inc);
+        this_s += blep_q15(t);
+        next -= blep_q15(65536 - t);
+        d->high[i] = above;
+    }
+    if (wrapped) {                                             /* down: a new cycle */
+        int32_t t = sub_sample(d->ph[i], inc);
+        this_s -= blep_q15(t);
+        next += blep_q15(65536 - t);
+        d->high[i] = 0;
+    }
+    next += d->ph[i] >= 0x80000000u ? 32768 : 0;
+    d->next[i] = next;
+    return 2 * this_s - 32768;
+}
+
+static void hh_render(struct macro_voice *m, const uint8_t *p, uint32_t inc, int32_t *out, int32_t *aux, int n,
+                      int want_out, int want_aux)
+{
+    struct macro_hh *d = &m->e.hh;
+    int32_t harm = k16(p[MACRO_P_HARM]), timb = k16(p[MACRO_P_TIMB]), morph = k16(p[MACRO_P_MORPH]);
+    int32_t f0 = (int32_t)(inc >> 1), noisiness, nf25, env_decay, cut_decay, i, j, h;
+    uint32_t cutoff, nclk_inc;
+    struct svf_c kbp, khp;
+    noisiness = (int32_t)(((uint32_t)harm * (uint32_t)harm) >> 16) << 15;   /* HARMONICS^2, Q31 */
+    /* 1 - 0.003 x 2^(-7 MORPH), 1 - 0.0025 x 2^(-3 MORPH) */
+    env_decay = 0x7fffffff - fmac1((int32_t)exp2_q16(-7 * morph) << 14, 12884902);
+    cut_decay = 0x7fffffff - fmac1((int32_t)exp2_q16(-3 * morph) << 14, 10737418);
+    /* the filters at 150 Hz x 2^(6 TIMBRE), 16 kHz at most */
+    cutoff = inc_of_log2(1551766 + 6 * timb);
+    if (cutoff > 0x55555555u)
+        cutoff = 0x55555555u;
+    svf_coefs(&khp, cutoff, coef_norm(2, 0));
+    /* the clocked noise: f0 (32 - 16 HARMONICS^2), at most 0.5 */
+    {
+        nf25 = fmac1(f0, (32 << 25) - ((noisiness >> 15) << 13));           /* Q25 */
+        nclk_inc = nf25 >= (1 << 24) ? 0x80000000u : (uint32_t)nf25 << 7;
+    }
+    for (h = 0; h < 2; h++) {
+        int32_t *x = h ? aux : out;
+        if (!(h ? want_aux : want_out))
+            continue;
+        if (d->trig)                                       /* (1.5 + 0.5 (1 - MORPH)) x 0.86 */
+            d->env[h] = Q24(0.86 * 2.0) - (fmac1(morph << 15, Q31(0.43)) >> 7);
+        if (h == 0) {                                      /* SquareNoise at 2 f0 */
+            uint32_t sinc[6];
+            for (j = 0; j < 6; j++) {
+                uint32_t f = (uint32_t)fmac1(f0, (int32_t)hh_sq_ratio28[j]);       /* Q28 of f0 r */
+                sinc[j] = f >= (Q31(0.499) >> 4) ? (uint32_t)Q31(0.499) << 1 : f << 5;  /* 2 f0 r, Q32 */
+            }
+            for (i = 0; i < n; i++) {
+                int32_t c = 0;
+                for (j = 0; j < 6; j++) {
+                    d->sq[j] += sinc[j];
+                    c += (int32_t)(d->sq[j] >> 31);
+                }
+                x[i] = c * Q24(0.33) - Q24(1.0);
+            }
+            {                                              /* resonant: q = 3 + 3 TIMBRE */
+                int32_t r = recip_q((3 << 24) + timb * 768, 24);
+                svf_coefs(&kbp, cutoff, coef_norm((uint32_t)r, 31));
+            }
+        } else {                                           /* RingModNoise at 2 f0: ratio 2f0 / (0.01 + 2f0) */
+            /* 1 - 0.01 / (0.01 + 2 f0) = 1 - 1 / (1 + 200 f0) */
+            int32_t ratio = 0x7fffffff - recip_q((1 << 24) + (f0 >> 7) * 200, 24);
+            uint32_t rinc[6];
+            for (j = 0; j < 6; j++) {
+                uint32_t f = (uint32_t)fmac1((int32_t)(hh_rm_inc[j] >> 1), ratio) << 1;
+                if (f > 0x40000000u)
+                    f = 0x40000000u;                       /* kMaxFrequency 0.25 */
+                rinc[j] = f;
+            }
+            for (i = 0; i < n; i++) {
+                int32_t acc = 0;
+                for (j = 0; j < 6; j += 2)
+                    acc += (hh_square(d, j, rinc[j]) * hh_saw(d, j + 1, rinc[j + 1])) >> 6;   /* Q30 -> Q24 */
+                x[i] = acc;
+            }
+            svf_coefs(&kbp, cutoff, coef_norm(1, 0));      /* q 1 */
+        }
+        for (i = 0; i < n; i++) {
+            int32_t bp, lp, s;
+            SVF_STEP(d->bp[h], kbp, x[i], bp, lp);
+            (void)lp;
+            {
+                uint32_t old = d->nclk[h];
+                d->nclk[h] += nclk_inc;
+                if (d->nclk[h] < old)
+                    d->nsmp[h] = (int32_t)(rnd32(&m->rng) >> 8) - Q24(0.5);
+            }
+            s = bp + fmac1(d->nsmp[h] - bp, noisiness);
+            if (h == 0) {                                  /* SwingVCA, one-stage envelope */
+                d->env[0] = fmac1(d->env[0], env_decay);
+                s = s > 0 ? (s > Q24(30.0) ? Q24(120.0) : s * 4) : fmac1(s, Q31(0.1));
+                s = fmac1(rsat24(s) + Q24(0.1), d->env[0] << 6) << 1;
+            } else {                                       /* LinearVCA, two stages */
+                d->env[1] = fmac1(d->env[1], d->env[1] > Q24(0.5) ? env_decay : cut_decay);
+                s = fmac1(s, d->env[1] << 6) << 1;
+            }
+            SVF_STEP(d->hp[h], khp, s, bp, lp);
+            x[i] = SVF_HP(khp, s, bp, lp) >> 9;            /* Q15 */
+        }
+        svf_guard(&d->bp[h]);
+        svf_guard(&d->hp[h]);
+    }
+    d->trig = 0;
+}
+
 /* ---- the machine ---------------------------------------------------------------------------------- */
 
 /* the gains Plaits' voice gives each engine's OUT and AUX (voice.cc, RegisterInstance), Q15. An engine
  * Plaits registers with a negative gain goes through its limiter (limit()) and then 0.8. */
-static const int16_t gain_out[MACRO_ENGINES] = {22938, 19661, 26214, 26214, 26214, 26214};  /* WSH .7, FM .6, NOISE, PART lim; BD, SD .8 */
-static const int16_t gain_aux[MACRO_ENGINES] = {19661, 19661, 26214, 32767, 26214, 26214};  /* WSH .6, FM .6, NOISE lim, PART 1; BD, SD .8 */
+static const int16_t gain_out[MACRO_ENGINES] = {22938, 19661, 26214, 26214, 26214, 26214, 26214};  /* WSH .7, FM .6, NOISE, PART lim; drums .8 */
+static const int16_t gain_aux[MACRO_ENGINES] = {19661, 19661, 26214, 32767, 26214, 26214, 26214};  /* WSH .6, FM .6, NOISE lim, PART 1; drums .8 */
 
-const char *const macro_engine_name[MACRO_ENGINES] = {"WSHAPE", "2OP FM", "NOISE", "PARTCL", "BDRUM", "SNARE"};
+const char *const macro_engine_name[MACRO_ENGINES] = {"WSHAPE", "2OP FM", "NOISE", "PARTCL", "BDRUM", "SNARE", "HIHAT"};
 
 int macro_engine_of(int b)
 {
@@ -1648,6 +1804,7 @@ static void engine_init(struct macro_voice *m)
     case MACRO_PARTICLE: particles_init(&m->e.part); break;
     case MACRO_BD:    bd_init(&m->e.bd); break;
     case MACRO_SD:    sd_init(&m->e.sd); break;
+    case MACRO_HH:    hh_init(&m->e.hh); break;
     default: break;
     }
 }
@@ -1699,6 +1856,8 @@ static void macro_render_e(struct macro_voice *m, const uint8_t *p, uint32_t inc
             m->e.bd.trig = 1;
         if (m->engine == MACRO_SD)
             m->e.sd.trig = 1;
+        if (m->engine == MACRO_HH)
+            m->e.hh.trig = 1;
     }
     if (inc > INC_MAX)
         inc = INC_MAX;
@@ -1720,6 +1879,9 @@ static void macro_render_e(struct macro_voice *m, const uint8_t *p, uint32_t inc
         break;
     case MACRO_SD:
         sd_render(m, p, inc, o, a, n, mix < 32767, mix > 0);
+        break;
+    case MACRO_HH:
+        hh_render(m, p, inc, o, a, n, mix < 32767, mix > 0);
         break;
     case MACRO_PARTICLE:
         particle_render(m, p, inc, o, a, n, mix > 0);
