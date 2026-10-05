@@ -18,6 +18,7 @@ enum {
     MACRO_BD = 4,           /* bass drums: an analog-style one (OUT), a synthetic one (AUX)            */
     MACRO_SD = 5,           /* snare drums: an analog-style one (OUT), a synthetic one (AUX)           */
     MACRO_HH = 6,           /* hi-hats: six square oscillators (OUT), three ring-modulated pairs (AUX) */
+    MACRO_GRAIN = 7,        /* granular formants: two grainlets (OUT), a Z oscillator (AUX)            */
     MACRO_ENGINES
 };
 
@@ -132,6 +133,15 @@ struct macro_hh {
     int32_t next[6], high[6];                       /* and the square's state                          */
 };
 
+/* Plaits' grain engine: GrainletOscillator x 2 (OUT), ZOscillator (AUX), Q24 samples */
+struct macro_grain {
+    uint32_t gc[2], gf[2];                          /* the grainlets' carrier and formant phases (Q32)  */
+    int32_t gnext[2];
+    uint32_t zc, zd, zf;                            /* Z: carrier, discontinuity (Q31), formant (Q32)  */
+    int32_t znext;
+    int32_t dc[2];                                  /* the DC blockers' states                         */
+};
+
 struct macro_voice {
     uint8_t engine;                 /* the engine playing                                            */
     uint8_t latch;                  /* 1: take the engine from knob B at the next block              */
@@ -146,6 +156,7 @@ struct macro_voice {
         struct macro_bd bd;
         struct macro_sd sd;
         struct macro_hh hh;
+        struct macro_grain grain;
     } e;
 };
 

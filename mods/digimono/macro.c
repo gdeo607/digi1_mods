@@ -25,6 +25,9 @@
 #include "macro.h"
 #include "macro_tables.h"
 
+/* code run once a block or less (coefficients, starts): built for size, the mod's RAM is short */
+#define COLD __attribute__((noinline, optimize("Os")))
+
 /* ---- the multiply-accumulate unit ------------------------------------------------------------------- *
  * The filters multiply on the ColdFire's EMAC: signed fractional, truncating (MACSR 0x20), ACC0 only. Two
  * 32-bit products summed come out as (floor(a x / 2^23) + floor(b y / 2^23)) >> 8, which a PC build
@@ -121,7 +124,7 @@ static inline int32_t sine15(int32_t ph)
 }
 
 /* waveshaping_engine.cc's Tame(): how much of a control to keep as the fundamental rises, Q15 */
-static int32_t tame(int32_t f0_q16, int32_t mult_q8, int order)
+static COLD int32_t tame(int32_t f0_q16, int32_t mult_q8, int order)
 {
     int32_t f = (f0_q16 * mult_q8) >> 8, max_f = 32768 / order, denom = 32768 - max_f, a;
     if (f <= max_f)
@@ -180,7 +183,7 @@ static int32_t log2_q16(uint32_t x)
 }
 
 /* The MIDI note of a phase increment, Q8 (note 69 = 440 Hz at 48 kHz) */
-static int32_t note_q8(uint32_t inc)
+static COLD int32_t note_q8(uint32_t inc)
 {
     return 69 * 256 + (((log2_q16(inc) - 1653513) * 3) >> 6);   /* 12 x 256 / 65536 = 3 / 64 */
 }
@@ -288,7 +291,7 @@ static int32_t shift_q(int32_t t, int sh)                     /* t x 2^sh, sh -3
 /* a1 = 1/D to 31 bits (a hardware division to 16, one Newton step on the EMAC), a2 = g a1, a3 = g a2 with
  * the same g: a filter as stable as the float one up to q 512 at the top of the band (where 1 - |pole|^2
  * is 5e-4 and a1, a2, a3 rounded to 15 bits each were not). */
-static void svf_coefs_g(struct svf_c *c, struct coef g, struct coef r)
+static COLD void svf_coefs_g(struct svf_c *c, struct coef g, struct coef r)
 {
     int32_t g27, k27, d23, rc, e;
     g = coef_fit(g);
@@ -309,7 +312,7 @@ static void svf_coefs_g(struct svf_c *c, struct coef g, struct coef r)
 }
 
 /* g = tan(pi f), FREQUENCY_ACCURATE (Plaits' polynomial, tabulated as tan(pi f) / f), f up to 0.5 */
-static struct coef tan_accurate(uint32_t finc)
+static COLD struct coef tan_accurate(uint32_t finc)
 {
     uint32_t i, f, t;
     if (finc > 0x80000000u)
@@ -321,7 +324,7 @@ static struct coef tan_accurate(uint32_t finc)
 }
 
 /* g = tan(pi f), FREQUENCY_DIRTY: f (pi + 3.736e-1 pi^3 f^2), f up to 0.25 */
-static struct coef tan_dirty(uint32_t finc)
+static COLD struct coef tan_dirty(uint32_t finc)
 {
     uint32_t f16;
     if (finc > 0x40000000u)
@@ -331,7 +334,7 @@ static struct coef tan_dirty(uint32_t finc)
 }
 
 /* stmlib's Svf::set_f_q<FREQUENCY_ACCURATE>: the frequency as a phase increment, the damping r = 1/q */
-static void svf_coefs(struct svf_c *k, uint32_t finc, struct coef r)
+static COLD void svf_coefs(struct svf_c *k, uint32_t finc, struct coef r)
 {
     svf_coefs_g(k, tan_accurate(finc), r);
 }
@@ -413,7 +416,7 @@ static inline int32_t sin32(uint32_t ph)
 
 /* ---- the slope oscillator: plaits/dsp/oscillator/oscillator.h, OSCILLATOR_SHAPE_SLOPE ------------ */
 
-static void slope_init(struct macro_slope *o)
+static COLD void slope_init(struct macro_slope *o)
 {
     o->phase = 0x80000000u;
     o->next = 0;
@@ -466,7 +469,7 @@ static const int16_t *const ws_table[6] = {
     MACRO_WS_DOUBLE_BUMP,
 };
 
-static void wsh_init(struct macro_wsh *w)
+static COLD void wsh_init(struct macro_wsh *w)
 {
     slope_init(&w->slope);
     slope_init(&w->tri);
@@ -477,7 +480,7 @@ static void wsh_init(struct macro_wsh *w)
 
 /* Keep a slope oscillator's phase running over n samples without rendering them (the AUX path of an
  * engine while the AUX knob is at 0): the next sample starts from the plain slope, without a blep. */
-static void slope_skip(struct macro_slope *o, uint32_t inc, int n)
+static COLD void slope_skip(struct macro_slope *o, uint32_t inc, int n)
 {
     o->phase += inc * (uint32_t)n;
     o->high = o->phase < 0x80000000u;
@@ -587,7 +590,7 @@ static void fm_init(struct macro_fm *f)
 
 /* At a note start: 4x for a note with feedback (MORPH off its middle), 2x without. Chosen per note, so a
  * MORPH turned during a note keeps the note's rate (no switch, no click); a p-lock lands on a trig. */
-static void fm_trig(struct macro_fm *f, const uint8_t *p)
+static COLD void fm_trig(struct macro_fm *f, const uint8_t *p)
 {
     int32_t fb = k16(p[MACRO_P_MORPH]) - 32768;
     f->os4 = fb > 1024 || fb < -1024;
@@ -605,7 +608,7 @@ static void halfband(const int32_t *x, int32_t *out, int n)
     }
 }
 
-static uint32_t fm_controls(struct macro_fm *f, const uint8_t *p, uint32_t inc, uint32_t c_inc, struct ramp *amount,
+static COLD uint32_t fm_controls(struct macro_fm *f, const uint8_t *p, uint32_t inc, uint32_t c_inc, struct ramp *amount,
                             struct ramp *feedback, int n);
 
 static void fm_render2(struct macro_fm *f, const uint8_t *p, uint32_t inc, int32_t *out, int32_t *aux, int n,
@@ -673,7 +676,7 @@ static void fm_render2(struct macro_fm *f, const uint8_t *p, uint32_t inc, int32
 }
 
 /* the controls both rates share: the modulator's increment (at c_inc's rate), the amount and feedback ramps */
-static uint32_t fm_controls(struct macro_fm *f, const uint8_t *p, uint32_t inc, uint32_t c_inc, struct ramp *amount,
+static COLD uint32_t fm_controls(struct macro_fm *f, const uint8_t *p, uint32_t inc, uint32_t c_inc, struct ramp *amount,
                             struct ramp *feedback, int n)
 {
     int32_t harm = k16(p[MACRO_P_HARM]), timb = k15(p[MACRO_P_TIMB]), morph = k16(p[MACRO_P_MORPH]);
@@ -925,7 +928,7 @@ static int32_t exp_wait(uint32_t *rng)
  * filter is linear, so an impulse x adds to the step without it: bp and lp by a2 x and a3 x, s1 and s2 by
  * twice those (c1, c2: pre_gain a2, pre_gain a3). Pre_gain itself reaches the thousands at low
  * frequencies, c1 and c2 stay small. */
-static struct coef coef_cap(struct coef c)             /* c x (Q15) >> (s - 9) stays a shift of 0..31 */
+static COLD struct coef coef_cap(struct coef c)             /* c x (Q15) >> (s - 9) stays a shift of 0..31 */
 {
     if (c.s < 9) {
         c.m = 32767;
@@ -937,7 +940,7 @@ static struct coef coef_cap(struct coef c)             /* c x (Q15) >> (s - 9) s
     return c;
 }
 
-static void particle_coefs(struct macro_particle *q, int32_t lf, struct coef k, int32_t lpre)
+static COLD void particle_coefs(struct macro_particle *q, int32_t lf, struct coef k, int32_t lpre)
 {
     struct svf_c c;
     struct coef pre = coef_of_log2(lpre), c1, c2;
@@ -1134,7 +1137,7 @@ static int32_t recip_q(int32_t x, int q)
 
 /* An Svf's coefficients (struct svf_c, k2 left out) from g and g k (Q27): a1 = 1/D to 31 bits (the margin to instability, 2 g k / D, is 4e-5 at the longest
  * decays), a2 = g a1, a3 = g a2. */
-static void svf_coefs_gk(int32_t g27, int32_t gk27, int32_t *a1, int32_t *a2, int32_t *a3)
+static COLD void svf_coefs_gk(int32_t g27, int32_t gk27, int32_t *a1, int32_t *a2, int32_t *a3)
 {
     int32_t r = recip_q((1 << 24) + (fmac1(g27, g27) << 1) + (gk27 >> 3), 24);   /* 1 / (1 + g^2 + g k), D < 128 */
     *a1 = r;
@@ -1143,7 +1146,7 @@ static void svf_coefs_gk(int32_t g27, int32_t gk27, int32_t *a1, int32_t *a2, in
 }
 
 /* k = 1 / (1 + q f) (qf: q f, Q8), Q31 */
-static int32_t k_of_qf(int32_t qf8)
+static COLD int32_t k_of_qf(int32_t qf8)
 {
     int32_t den = 256 + (qf8 < 0 || qf8 > 0x3fffffff ? 0x3fffffff : qf8), z = clz32((uint32_t)den);
     uint32_t kk = 0x7fffffffu / ((uint32_t)(den << (z - 1)) >> 15);
@@ -1159,7 +1162,7 @@ static void reso_coefs(int32_t f31, int32_t qf8, int32_t *a1, int32_t *a2, int32
 }
 
 /* stmlib's OnePole (FREQUENCY_FAST at f): G = g / (1 + g), Q31; lp = s + G (in - s), s = 2 lp - s */
-static int32_t onepole_G(int32_t f31)
+static COLD int32_t onepole_G(int32_t f31)
 {
     return 0x7fffffff - recip27((1 << 27) + tan_fast27(f31));
 }
@@ -1779,14 +1782,204 @@ static void hh_render(struct macro_voice *m, const uint8_t *p, uint32_t inc, int
     d->trig = 0;
 }
 
+/* ---- GRAIN: plaits/dsp/engine/grain_engine.cc, oscillator/grainlet_oscillator.h, z_oscillator.h ------ *
+ * OUT: two "grainlets" (a sine formant hard-synced to a shaped carrier), the second's formant HARMONICS
+ * away (-2..+2 octaves), summed, DC-blocked; AUX: the Z oscillator (a formant with a sine discontinuity).
+ * TIMB: formant frequency; MORP: carrier shape; HARM: formant ratio and carrier bleed (OUT), the
+ * discontinuity's shape (AUX). Controls are the block's (Plaits glides them over the block). */
+
+static void grain_init(struct macro_grain *z)
+{
+    int32_t *w = (int32_t *)z, *end = (int32_t *)(z + 1);
+    while (w < end)
+        *w++ = 0;
+}
+
+/* a sine of a Q32 phase, Q24 */
+static inline int32_t sine24(uint32_t ph)
+{
+    return sin32(ph) << 9;
+}
+
+struct carrier_c { int32_t seg, m27, bp31, a22, b31; };
+
+/* GrainletOscillator::Carrier for a block's shape: the warped phase's parameters */
+static void carrier_coefs(struct carrier_c *c, int32_t shape16)
+{
+    int32_t s3 = shape16 * 3, fr = s3 & 0xffff, t = 65536 - fr, t3;
+    c->m27 = c->bp31 = c->a22 = c->b31 = 0;
+    c->seg = s3 >> 16;
+    if (c->seg >= 2)
+        t = fr;                                             /* (segment 2: t = 1 - t) */
+    t = t > 65535 ? 65535 : t;
+    t3 = (int32_t)(((((uint32_t)t * (uint32_t)t) >> 16) * (uint32_t)t) >> 16);   /* Q16 */
+    if (c->seg == 0)
+        c->m27 = (1 << 27) + t3 * 15 * 2048;                /* 1 + 15 t^3 */
+    else if (c->seg == 1) {
+        int32_t bp = Q31(0.001) + fmac1(t3 << 15, Q31(0.499));
+        c->bp31 = bp;
+        {
+            uint32_t q = (0x7fffffffu / ((uint32_t)bp >> 11)) << 10;           /* 0.5 / bp, Q22 */
+            c->a22 = q > 0x7fffffffu ? 0x7fffffff : (int32_t)q;
+        }
+        c->b31 = (int32_t)(0x40000000u / ((uint32_t)(0x80000000u - (uint32_t)bp) >> 16)) << 15;   /* 0.5 / (1 - bp) */
+        if (c->b31 < 0)
+            c->b31 = 0x7fffffff;
+    } else
+        c->m27 = (1 << 26) + t3 * 29 * 1024;                /* 0.5 + 14.5 t^3 */
+}
+
+/* the carrier, Q24: (Sine(warped phase) + 1) / 4; p: Q31, 0..1 inclusive */
+static inline int32_t carrier24(const struct carrier_c *c, uint32_t p)
+{
+    uint32_t w;
+    if (c->seg == 0) {
+        int32_t v = fmac1((int32_t)(p >> 1), c->m27);       /* Q26 */
+        w = (v >= (1 << 26) ? 0x80000000u : (uint32_t)v << 5) * 2 + 0xc0000000u;
+    } else if (c->seg == 1) {
+        if (p < (uint32_t)c->bp31)
+            w = (uint32_t)fmac1((int32_t)p, c->a22) << 10;                        /* p 0.5 / bp, Q32 */
+        else
+            w = 0x80000000u + ((uint32_t)fmac1((int32_t)(p - (uint32_t)c->bp31), c->b31) << 1);
+        w += 0xc0000000u;
+    } else {
+        int32_t v = fmac1((int32_t)(p >> 1), c->m27);       /* Q26 */
+        w = v >= (1 << 25) ? 0xc0000000u : 0x40000000u + ((uint32_t)v << 6);
+    }
+    return (sine24(w) + (1 << 24)) >> 2;
+}
+
+static void grain_render(struct macro_grain *z, const uint8_t *p, uint32_t inc, int32_t *out, int32_t *aux, int n,
+                         int want_out, int want_aux)
+{
+    int32_t harm = k16(p[MACRO_P_HARM]), timb = k16(p[MACRO_P_TIMB]), morph = k16(p[MACRO_P_MORPH]), i, j;
+    int32_t lf0 = log2_q16(inc), G;
+    uint32_t c_inc = inc > 0x20000000u ? 0x20000000u : inc;      /* the carrier: at most 0.125 */
+    {
+        uint32_t f = inc >> 1;                                     /* 0.3 f0: the DC blockers */
+        G = 0x7fffffff - recip27((1 << 27) + tan_dirty27(fmac1((int32_t)f, Q31(0.3))));
+    }
+    if (want_out) {
+        struct carrier_c cc;
+        int32_t bleed, inv, shape, lim;
+        uint32_t f_inc[2];
+        /* f1 = NoteToFrequency(24 + 84 TIMBRE); the second x 2^((48 HARMONICS - 24) / 12) */
+        f_inc[0] = inc_of_log2(1653513 + ((84 * timb - 45 * 65536) / 12));
+        f_inc[1] = inc_of_log2(1653513 + ((84 * timb - 45 * 65536) / 12) + 4 * harm - 2 * 65536);
+        for (j = 0; j < 2; j++)
+            if (f_inc[j] > 0x40000000u)
+                f_inc[j] = 0x40000000u;
+        /* bleed: cb (2 - cb), cb = 1 - 2 HARMONICS below the middle; the grainlet's 1 / (1 + bleed) */
+        bleed = harm < 32768 ? (32768 - harm) * 2 - (harm == 0) : 0;          /* cb, Q16 (65535 at most) */
+        bleed = (int32_t)(((uint32_t)bleed * (uint32_t)(131072 - bleed)) >> 16) << 8;   /* Q24 */
+        inv = recip_q((1 << 24) + bleed, 24);
+        /* shape 0.33 + (MORPH - 0.33) max(1 - 24 f0, 0) */
+        lim = inc >= 0x0aaaaaaau ? 0 : 65536 - (int32_t)((inc >> 12) * 24 >> 4);
+        shape = 21627 + (((morph - 21627) * (lim >> 1)) >> 15);
+        carrier_coefs(&cc, shape < 0 ? 0 : shape > 65535 ? 65535 : shape);
+        for (i = 0; i < n; i++)
+            out[i] = 0;
+        for (j = 0; j < 2; j++) {
+            uint32_t fi = f_inc[j];
+            for (i = 0; i < n; i++) {
+                int32_t this_s = z->gnext[j], next = 0, g;
+                uint32_t old = z->gc[j];
+                z->gc[j] += c_inc;
+                if (z->gc[j] < old) {                            /* the carrier restarts: the formant too */
+                    int32_t rt = sub_sample(z->gc[j], c_inc), before, after, disc;
+                    before = fmac1(carrier24(&cc, 0x80000000u) << 7,
+                                   sine24(z->gf[j] + mul_inc(fi, (uint32_t)(65536 - rt))) + bleed);
+                    after = fmac1(carrier24(&cc, 0) << 7, bleed);
+                    disc = fmac1(after - before, inv);
+                    this_s += fmac1(disc, blep_q15(rt) << 16);
+                    next -= fmac1(disc, blep_q15(65536 - rt) << 16);
+                    z->gf[j] = mul_inc(fi, (uint32_t)rt);
+                } else
+                    z->gf[j] += fi;
+                g = fmac1(carrier24(&cc, z->gc[j] >> 1) << 7, sine24(z->gf[j]) + bleed);
+                next += fmac1(g, inv);
+                z->gnext[j] = next;
+                out[i] += this_s;
+            }
+        }
+        for (i = 0; i < n; i++) {                               /* the DC blocker (a one-pole high-pass) */
+            int32_t lp;
+            ONEPOLE_LP(z->dc[0], G, out[i], lp);
+            out[i] = (out[i] - lp) >> 9;
+        }
+    }
+    if (want_aux) {
+        /* the formant: NoteToFrequency(note + 96 TIMBRE), at most 0.25; the shape MORPH; the mode HARMONICS */
+        uint32_t fi = inc_of_log2(lf0 + 8 * timb), ps;
+        int32_t offset, s2 = 0, lowshape = morph < 32768, i2;
+        if (fi > 0x40000000u)
+            fi = 0x40000000u;
+        if (harm < 21823) {                                     /* 0.333 */
+            offset = 1 << 24;
+            ps = 0x40000000u + (uint32_t)harm * 98304u;          /* 0.25 + 1.5 mode */
+        } else {
+            ps = 0xbfdf3b64u - (uint32_t)(harm - 21627) * 49152u;   /* 0.7495 - 0.75 (mode - 0.33) */
+            offset = harm < 43647 ? -sine24(ps) : Q24(0.001);
+        }
+        if (lowshape)
+            s2 = morph << 16;                                     /* 2 shape, Q31 */
+#define ZFN(C, D, F, R) do {                                                                       \
+            int32_t rd_ = (sine24(((uint32_t)(D)) + 0x40000000u) + (1 << 24)) >> 1;               \
+            int32_t ct_;                                                                           \
+            if (lowshape) {                                                                        \
+                if ((C) >= 0x40000000u)                                                            \
+                    rd_ = fmac1(rd_, s2);                                                          \
+                ct_ = (1 << 24) + fmac1(sine24(((uint32_t)(C) << 1) + 0x40000000u) - (1 << 24), s2); \
+            } else                                                                                 \
+                ct_ = sine24(((uint32_t)(C) << 1) + ((uint32_t)morph << 15));                     \
+            R = fmac1((fmac1(rd_ << 7, offset + sine24((F) + ps)) - offset), ct_ << 6) << 1;       \
+        } while (0)
+        for (i = 0; i < n; i++) {
+            int32_t this_s = z->znext, next = 0, v;
+            uint32_t zi = c_inc >> 1;                             /* f0, Q31 */
+            z->zd += c_inc;                                       /* 2 f0 */
+            z->zc += zi;
+            if (z->zd >= 0x80000000u) {
+                int32_t rt, before, after, disc;
+                uint32_t cb, ca;
+                z->zd -= 0x80000000u;
+                rt = sub_sample(z->zd, c_inc);
+                cb = z->zc >= 0x80000000u ? 0x80000000u : 0x40000000u;
+                ca = z->zc >= 0x80000000u ? 0u : 0x40000000u;
+                ZFN(cb, 0x80000000u, z->zf + mul_inc(fi, (uint32_t)(65536 - rt)), before);
+                ZFN(ca, 0u, 0u, after);
+                disc = after - before;
+                this_s += fmac1(disc, blep_q15(rt) << 16);
+                next -= fmac1(disc, blep_q15(65536 - rt) << 16);
+                z->zf = mul_inc(fi, (uint32_t)rt);
+                if (z->zc > 0x80000000u)
+                    z->zc = z->zd >> 1;
+            } else
+                z->zf += fi;
+            if (z->zc >= 0x80000000u)
+                z->zc -= 0x80000000u;
+            ZFN(z->zc, z->zd, z->zf, v);
+            next += v;
+            z->znext = next;
+            aux[i] = this_s;
+        }
+#undef ZFN
+        for (i2 = 0; i2 < n; i2++) {
+            int32_t lp;
+            ONEPOLE_LP(z->dc[1], G, aux[i2], lp);
+            aux[i2] = (aux[i2] - lp) >> 9;
+        }
+    }
+}
+
 /* ---- the machine ---------------------------------------------------------------------------------- */
 
 /* the gains Plaits' voice gives each engine's OUT and AUX (voice.cc, RegisterInstance), Q15. An engine
  * Plaits registers with a negative gain goes through its limiter (limit()) and then 0.8. */
-static const int16_t gain_out[MACRO_ENGINES] = {22938, 19661, 26214, 26214, 26214, 26214, 26214};  /* WSH .7, FM .6, NOISE, PART lim; drums .8 */
-static const int16_t gain_aux[MACRO_ENGINES] = {19661, 19661, 26214, 32767, 26214, 26214, 26214};  /* WSH .6, FM .6, NOISE lim, PART 1; drums .8 */
+static const int16_t gain_out[MACRO_ENGINES] = {22938, 19661, 26214, 26214, 26214, 26214, 26214, 22938};  /* WSH .7, FM .6, NOISE, PART lim; drums .8; GRAIN .7 */
+static const int16_t gain_aux[MACRO_ENGINES] = {19661, 19661, 26214, 32767, 26214, 26214, 26214, 19661};  /* WSH .6, FM .6, NOISE lim, PART 1; drums .8; GRAIN .6 */
 
-const char *const macro_engine_name[MACRO_ENGINES] = {"WSHAPE", "2OP FM", "NOISE", "PARTCL", "BDRUM", "SNARE", "HIHAT"};
+const char *const macro_engine_name[MACRO_ENGINES] = {"WSHAPE", "2OP FM", "NOISE", "PARTCL", "BDRUM", "SNARE", "HIHAT", "GRAIN"};
 
 int macro_engine_of(int b)
 {
@@ -1805,6 +1998,7 @@ static void engine_init(struct macro_voice *m)
     case MACRO_BD:    bd_init(&m->e.bd); break;
     case MACRO_SD:    sd_init(&m->e.sd); break;
     case MACRO_HH:    hh_init(&m->e.hh); break;
+    case MACRO_GRAIN: grain_init(&m->e.grain); break;
     default: break;
     }
 }
@@ -1882,6 +2076,9 @@ static void macro_render_e(struct macro_voice *m, const uint8_t *p, uint32_t inc
         break;
     case MACRO_HH:
         hh_render(m, p, inc, o, a, n, mix < 32767, mix > 0);
+        break;
+    case MACRO_GRAIN:
+        grain_render(&m->e.grain, p, inc, o, a, n, mix < 32767, mix > 0);
         break;
     case MACRO_PARTICLE:
         particle_render(m, p, inc, o, a, n, mix > 0);
