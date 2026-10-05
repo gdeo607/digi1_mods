@@ -1186,8 +1186,8 @@ static COLD int32_t onepole_G(int32_t f31)
  * pitch, then the overdrive); AUX: the synthetic one (a distorted sine with a pitch envelope, a click and
  * noise). HARM: attack FM, self FM, drive; TIMB: tone; MORP: decay. Accent is Plaits' unpatched 0.8; the
  * drums are triggered (Plaits' patched trigger), never free-running. The resonator's pitch is updated
- * every sample during the attack's pitch sweep (the first 7 ms), then every 4 samples (Plaits: every
- * sample; measured: the decay's level within 1 dB); its other arithmetic is Plaits', in Q24. */
+ * every sample during the attack's pitch sweep (the first 7 ms), then every 8 samples (Plaits: every
+ * sample; measured: the decay's level within 0.3 dB); its other arithmetic is Plaits', in Q24. */
 
 static void bd_init(struct macro_bd *d)
 {
@@ -1197,7 +1197,7 @@ static void bd_init(struct macro_bd *d)
 }
 
 #ifndef BD_EVERY
-#define BD_EVERY 3
+#define BD_EVERY 7                                    /* the resonator's pitch: every 8 samples after the attack */
 #endif
 static void bd_analog(struct macro_bd *__restrict d, int32_t harm, int32_t timb, int32_t morph, uint32_t inc, int32_t *__restrict out,
                       int n)
@@ -1227,47 +1227,91 @@ static void bd_analog(struct macro_bd *__restrict d, int32_t harm, int32_t timb,
     c.a1 = d->a1;
     c.a2 = d->a2;
     c.a3 = d->a3;
-    for (i = 0; i < n; i++) {
-        int32_t pulse, fm_pulse = 0, x, bp, lp;
-        if (d->pulse_left) {
-            d->pulse_left--;
-            pulse = d->pulse_left ? Q24(8.6) : Q24(7.6);    /* 3 + 7 accent, accent 0.8 */
-            d->pulse = pulse;
-        } else {
-            d->pulse = fmac1t(d->pulse, Q31(1.0 - 1.0 / 9.6));
-            pulse = d->pulse;
-        }
-        ONE_POLE(d->pulse_lp, pulse, Q31(1.0 / 4.8));
-        pulse = diode24(pulse - d->pulse_lp + fmac1(pulse, Q31(0.044)));
-        if (d->fm_left) {
-            d->fm_left--;
-            fm_pulse = 0x7fffff00 >> 7;                     /* 1, Q24 */
-            d->retrig = d->fm_left ? 0 : -Q24(0.8);
-        } else {
-            d->retrig = (uint32_t)(d->retrig + 4096) < 8192u ? 0 : fmac1(d->retrig, Q31(1.0 - 1.0 / 2400.0));
-        }
-        ONE_POLE(d->fm_lp, fm_pulse, Q31(1.0 / 4.8));
-        if (!(i & BD_EVERY) || d->fm_lp > Q24(0.004)) {    /* the resonator's pitch and q: every 4 samples,
-                                                               every sample while the attack FM sweeps */
-            int32_t lo = d->lp_out > Q24(12.0) ? Q24(12.0) : d->lp_out < -Q24(12.0) ? -Q24(12.0) : d->lp_out;
-            int32_t punch = Q24(0.7) + diode24(10 * lo - (1 << 24));
-            int32_t m27, f27;
-            if (punch > (100 << 24))
-                punch = 100 << 24;
-            m27 = fmac1(d->fm_lp << 7, afm27) + (fmac1(punch, sfm31) << 3);
-            f27 = (f0 >> 4) + fmac1(f0, m27);
-            if (f27 > (Q31(0.4) >> 4))
-                f27 = Q31(0.4) >> 4;
-            if (f27 < 16)
-                f27 = 16;
+    {
+        int32_t xin[32], xleak[32], fml[32], active, sweep = 0, fixed = 0;
+        int32_t pl = d->pulse_left, fl = d->fm_left, pu = d->pulse, plp = d->pulse_lp, rt = d->retrig, fmlp = d->fm_lp;
+        int32_t s1 = d->res.s1, s2 = d->res.s2, lpo = d->lp_out, tl = d->tone_lp, bp, lp;
+        /* the trigger pulse, the FM pulse and the retrigger pulse (while they last) */
+        active = pl || fl || !TINY(pu) || !TINY(plp) || rt || fmlp > 16;
+        if (active && !pl && !fl && TINY(pu) && TINY(plp) && fmlp <= 16) {
+            /* only the retrigger pulse's slow tail: the input alone */
+            pu = plp = fmlp = 0;
+            for (i = 0; i < n; i++) {
+                rt = (uint32_t)(rt + 4096) < 8192u ? 0 : fmac1(rt, Q31(1.0 - 1.0 / 2400.0));
+                xin[i] = fmac1(-fmac1(rt, Q31(0.2)), scale) << 3;
+                xleak[i] = 0;
+                fml[i] = 0;
+            }
+        } else if (active) {
+            for (i = 0; i < n; i++) {
+                int32_t pulse, fm_pulse = 0;
+                if (pl) {
+                    pl--;
+                    pulse = pl ? Q24(8.6) : Q24(7.6);          /* 3 + 7 accent, accent 0.8 */
+                    pu = pulse;
+                } else {
+                    pu = fmac1t(pu, Q31(1.0 - 1.0 / 9.6));
+                    pulse = pu;
+                }
+                ONE_POLE(plp, pulse, Q31(1.0 / 4.8));
+                pulse = diode24(pulse - plp + fmac1(pulse, Q31(0.044)));
+                if (fl) {
+                    fl--;
+                    fm_pulse = 0x7fffff00 >> 7;                 /* 1, Q24 */
+                    rt = fl ? 0 : -Q24(0.8);
+                } else
+                    rt = (uint32_t)(rt + 4096) < 8192u ? 0 : fmac1(rt, Q31(1.0 - 1.0 / 2400.0));
+                ONE_POLE(fmlp, fm_pulse, Q31(1.0 / 4.8));
+                fml[i] = fmlp;
+                xin[i] = fmac1(pulse - fmac1(rt, Q31(0.2)), scale) << 3;
+                xin[i] = xin[i] > Q24(100.0) ? Q24(100.0) : xin[i] < -Q24(100.0) ? -Q24(100.0) : xin[i];
+                xleak[i] = fmac1(pulse, leak);
+            }
+            sweep = fmlp > Q24(0.004) || fl;
+        } else
+            pu = plp = rt = fmlp = 0;
+        d->pulse_left = pl;
+        d->fm_left = fl;
+        d->pulse = pu;
+        d->pulse_lp = plp;
+        d->retrig = rt;
+        d->fm_lp = fmlp;
+        /* the resonator's pitch: from the attack FM and the self FM (its own output); without self FM and
+         * after the attack, the block's */
+        if (!sfm31 && !active) {
+            int32_t f27 = f0 >> 4;
+            f27 = f27 > (Q31(0.4) >> 4) ? Q31(0.4) >> 4 : f27 < 16 ? 16 : f27;
             reso_coefs(f27 << 4, fmac1(f27 << 4, q8), &c.a1, &c.a2, &c.a3);
+            fixed = 1;
         }
-        x = fmac1(pulse - fmac1(d->retrig, Q31(0.2)), scale) << 3;
-        x = x > Q24(100.0) ? Q24(100.0) : x < -Q24(100.0) ? -Q24(100.0) : x;
-        SVF_STEP(d->res, c, x, bp, lp);
-        d->lp_out = lp;
-        ONE_POLE(d->tone_lp, fmac1(pulse, leak) + bp, tone_f);
-        out[i] = d->tone_lp;
+        for (i = 0; i < n; i++) {
+            if (!fixed && (!(i & BD_EVERY) || (sweep && !(i & 1) && fml[i] > Q24(0.004)))) {
+                int32_t lo = lpo > Q24(12.0) ? Q24(12.0) : lpo < -Q24(12.0) ? -Q24(12.0) : lpo;
+                int32_t punch = Q24(0.7) + diode24(10 * lo - (1 << 24));
+                int32_t m27, f27;
+                if (punch > (100 << 24))
+                    punch = 100 << 24;
+                m27 = (active ? fmac1(fml[i] << 7, afm27) : 0) + (fmac1(punch, sfm31) << 3);
+                f27 = (f0 >> 4) + fmac1(f0, m27);
+                f27 = f27 > (Q31(0.4) >> 4) ? Q31(0.4) >> 4 : f27 < 16 ? 16 : f27;
+                reso_coefs(f27 << 4, fmac1(f27 << 4, q8), &c.a1, &c.a2, &c.a3);
+            }
+            {
+                struct macro_svf f;
+                f.s1 = s1;
+                f.s2 = s2;
+                SVF_STEP(f, c, active ? xin[i] : 0, bp, lp);
+                s1 = f.s1;
+                s2 = f.s2;
+            }
+            lpo = lp;
+            ONE_POLE(tl, (active ? xleak[i] : 0) + bp, tone_f);
+            out[i] = tl;
+        }
+        d->res.s1 = s1;
+        d->res.s2 = s2;
+        d->lp_out = lpo;
+        d->tone_lp = tl;
     }
     svf_guard(&d->res);
     d->a1 = c.a1;
@@ -1723,6 +1767,7 @@ static void hh_init(struct macro_hh *d)
         d->ph[i] = 0x80000000u;                             /* Oscillator::Init: phase 0.5, high */
         d->high[i] = 1;
     }
+    d->key_timb = -1;
 }
 
 static const uint32_t hh_sq_ratio28[6] = {268435456, 350039835, 393526378, 479694160, 518617301, 680752316};
@@ -1747,10 +1792,20 @@ static void hh_render(struct macro_voice *__restrict m, const uint8_t *p, uint32
     env_decay = 0x7fffffff - fmac1((int32_t)exp2_q16(-7 * morph) << 14, 12884902);
     cut_decay = 0x7fffffff - fmac1((int32_t)exp2_q16(-3 * morph) << 14, 10737418);
     /* the filters at 150 Hz x 2^(6 TIMBRE), 16 kHz at most */
-    cutoff = inc_of_log2(1551766 + 6 * timb);
-    if (cutoff > 0x55555555u)
-        cutoff = 0x55555555u;
-    svf_coefs(&khp, cutoff, coef_norm(2, 0));
+    if (d->key_timb != timb) {                             /* (computed again only when TIMBRE moves) */
+        struct svf_c k;
+        cutoff = inc_of_log2(1551766 + 6 * timb);
+        if (cutoff > 0x55555555u)
+            cutoff = 0x55555555u;
+        svf_coefs(&k, cutoff, coef_fit(coef_norm((uint32_t)recip_q((3 << 24) + timb * 768, 24), 31)));   /* q 3 + 3 TIMBRE */
+        d->kc[0][0] = k.a1; d->kc[0][1] = k.a2; d->kc[0][2] = k.a3; d->kc[0][3] = k.k2;
+        svf_coefs(&k, cutoff, coef_norm(1, 0));                                                          /* q 1 */
+        d->kc[1][0] = k.a1; d->kc[1][1] = k.a2; d->kc[1][2] = k.a3; d->kc[1][3] = k.k2;
+        svf_coefs(&k, cutoff, coef_norm(2, 0));                                                          /* q 0.5 */
+        d->kc[2][0] = k.a1; d->kc[2][1] = k.a2; d->kc[2][2] = k.a3; d->kc[2][3] = k.k2;
+        d->key_timb = timb;
+    }
+    khp.a1 = d->kc[2][0]; khp.a2 = d->kc[2][1]; khp.a3 = d->kc[2][2]; khp.k2 = d->kc[2][3];
     /* the clocked noise: f0 (32 - 16 HARMONICS^2), at most 0.5 */
     {
         nf25 = fmac1(f0, (32 << 25) - ((noisiness >> 15) << 13));           /* Q25 */
@@ -1795,10 +1850,7 @@ static void hh_render(struct macro_voice *__restrict m, const uint8_t *p, uint32
                 d->sq[4] = p4;
                 d->sq[5] = p5;
             }
-            {                                              /* resonant: q = 3 + 3 TIMBRE */
-                int32_t r = recip_q((3 << 24) + timb * 768, 24);
-                svf_coefs(&kbp, cutoff, coef_norm((uint32_t)r, 31));
-            }
+            kbp.a1 = d->kc[0][0]; kbp.a2 = d->kc[0][1]; kbp.a3 = d->kc[0][2]; kbp.k2 = d->kc[0][3];
         } else {                                           /* RingModNoise at 2 f0: ratio 2f0 / (0.01 + 2f0) */
             /* 1 - 0.01 / (0.01 + 2 f0) = 1 - 1 / (1 + 200 f0) */
             int32_t ratio = 0x7fffffff - recip_q((1 << 24) + (f0 >> 7) * 200, 24);
@@ -1850,7 +1902,7 @@ static void hh_render(struct macro_voice *__restrict m, const uint8_t *p, uint32
                 d->next[j + 1] = nb;
                 d->high[j] = hi;
             }
-            svf_coefs(&kbp, cutoff, coef_norm(1, 0));      /* q 1 */
+            kbp.a1 = d->kc[1][0]; kbp.a2 = d->kc[1][1]; kbp.a3 = d->kc[1][2]; kbp.k2 = d->kc[1][3];
         }
         {
             struct macro_svf fb = d->bp[h], fh = d->hp[h];

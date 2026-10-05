@@ -134,6 +134,8 @@ struct macro_hh {
     uint32_t sq[6];                                 /* SquareNoise's phases                             */
     uint32_t ph[6];                                 /* RingModNoise's oscillators: phase, next sample,  */
     int32_t next[6], high[6];                       /* and the square's state                          */
+    int32_t key_timb;                               /* the filters' coefficients for this TIMBRE:      */
+    int32_t kc[3][4];                               /* OUT's band-pass, AUX's, the high-pass (svf_c)    */
 };
 
 /* Plaits' grain engine: GrainletOscillator x 2 (OUT), ZOscillator (AUX), Q24 samples */
