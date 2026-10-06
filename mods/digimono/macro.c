@@ -621,12 +621,37 @@ static void halfband(const int32_t *__restrict x, int32_t *__restrict out, int n
 static COLD uint32_t fm_controls(struct macro_fm *f, const uint8_t *p, uint32_t inc, uint32_t c_inc, struct ramp *amount,
                             struct ramp *feedback, int n);
 
+/* fm_render2's usual case: no feedback, OUT only. A step at a time, so that its values fit the registers */
+static void fm2_plain(uint32_t *carp, uint32_t *modp, int32_t *prevp, uint32_t c_inc, uint32_t m_inc,
+                      struct ramp *amount, int32_t *__restrict pc, int n)
+{
+    uint32_t car = *carp, mod = *modp;
+    int32_t prev = *prevp, v = amount->v, d = amount->d, amt = 0, j;
+    for (j = 0; j < 2 * n; j++) {
+        int32_t m_, c_;
+        if (!(j & 1)) {
+            v += d;
+            amt = v >> 8;
+        }
+        mod += m_inc;
+        car += c_inc;
+        m_ = sin32(mod);
+        c_ = sin32(car + ((uint32_t)(amt * m_) << 3));
+        prev += ((c_ - prev) * 3195) >> 15;
+        *pc++ = c_;
+    }
+    amount->v = v;
+    *carp = car;
+    *modp = mod;
+    *prevp = prev;
+}
+
 static void fm_render2(struct macro_fm *__restrict f, const uint8_t *p, uint32_t inc, int32_t *__restrict out, int32_t *__restrict aux, int n,
                        int want_aux)
 {
     uint32_t c_inc = inc >> 1, m_inc;                   /* 2x oversampled: half the step */
     uint32_t car = f->carrier, mod = f->modulator, sub = f->sub;
-    int32_t prev = f->prev, xc[64 + 6], xs[64 + 6], *pc = xc + 6, *ps = xs + 6, i;
+    int32_t prev = f->prev, xc[64 + 6], xs[64 + 6], *pc = xc + 6, *ps = xs + 6, i, fast;
     struct ramp amount, feedback;
     m_inc = fm_controls(f, p, inc, c_inc, &amount, &feedback, n);
     for (i = 0; i < 6; i++) {
@@ -656,14 +681,18 @@ static void fm_render2(struct macro_fm *__restrict f, const uint8_t *p, uint32_t
         FM_STEP(PFB, MFB, SUB);                                                                    \
         FM_STEP(PFB, MFB, SUB);                                                                    \
     } while (0)
-    for (i = 0; i < n; i++) {
-        int32_t amt = ramp_next(&amount), fb = ramp_next(&feedback);
-        int32_t pfb = fb < 0 ? (fb * fb) >> 16 : 0;                 /* phase feedback, 0.5 fb^2 */
-        int32_t mfb = fb > 0 ? (fb * fb) >> 17 : 0;                 /* self modulation, 0.25 fb^2 */
-        if (want_aux || pfb || mfb)                 /* the general step (also feedback turned up in a 2x note) */
+    /* MORPH still at its middle, OUT only (the usual 2x note): no feedback, no sub; else the general step,
+     * every term (zeros where off; the sub then runs anyway) */
+    fast = feedback.d == 0 && !want_aux && (feedback.v >> 8) <= 362 && (feedback.v >> 8) > -256;   /* fb^2 terms 0 */
+    if (fast) {
+        fm2_plain(&car, &mod, &prev, c_inc, m_inc, &amount, pc, n);
+    } else {
+        for (i = 0; i < n; i++) {
+            int32_t amt = ramp_next(&amount), fb = ramp_next(&feedback);
+            int32_t pfb = fb < 0 ? (fb * fb) >> 16 : 0;             /* phase feedback, 0.5 fb^2 */
+            int32_t mfb = fb > 0 ? (fb * fb) >> 17 : 0;             /* self modulation, 0.25 fb^2 */
             FM_LOOP(1, 1, 1);
-        else                                        /* the usual 2x note: no feedback, OUT only */
-            FM_LOOP(0, 0, 0);
+        }
     }
 #undef FM_LOOP
 #undef FM_STEP
@@ -674,7 +703,7 @@ static void fm_render2(struct macro_fm *__restrict f, const uint8_t *p, uint32_t
         halfband(xs, aux, n);
         for (i = 0; i < 6; i++)
             f->hs[i] = xs[2 * n + i];
-    } else {
+    } else if (fast) {
         sub += (c_inc >> 1) * 2 * (uint32_t)n;
     }
     f->carrier = car;
@@ -1075,7 +1104,13 @@ static void particle_render(struct macro_voice *__restrict m, const uint8_t *p, 
 #define Q31(x) ((int32_t)((x) * 2147483648.0 + 0.5))                 /* a constant 0..1 as Q31 (compile time) */
 #define Q24(x) ((int32_t)((x) * 16777216.0 + ((x) < 0 ? -0.5 : 0.5)))
 
-/* y / (1 + |y|), Q24 in and out: tables (MACRO_RSAT_*), a division past |y| = 16 */
+/* y / (1 + |y|), Q24 in and out: tables (MACRO_RSAT_*), a division past |y| = 16 (rsat_far). Inline: it
+ * runs a sample in the drums' loops. */
+static COLD int32_t rsat_far(int32_t u)
+{
+    return 32768 - (int32_t)(0x7fffffffu / (uint32_t)(((1 << 24) + (u > 0x7e000000 ? 0x7e000000 : u)) >> 8));
+}
+
 static int32_t rsat24(int32_t y)
 {
     int32_t u = iabs(y), r, i, f;
@@ -1089,14 +1124,14 @@ static int32_t rsat24(int32_t y)
         f = (u >> 4) & 0xffff;
         r = MACRO_RSAT_COARSE[i] + (((MACRO_RSAT_COARSE[i + 1] - MACRO_RSAT_COARSE[i]) * f) >> 16);
     } else {
-        r = 32768 - (int32_t)(0x7fffffffu / (uint32_t)(((1 << 24) + (u > 0x7e000000 ? 0x7e000000 : u)) >> 8));
+        r = rsat_far(u);
     }
     r <<= 9;
     return y < 0 ? -r : r;
 }
 
-/* stmlib's SoftClip, Q24 */
-static int32_t softclip24(int32_t x)
+/* stmlib's SoftClip, Q24 (inline: a sample in the drums' loops) */
+static inline __attribute__((always_inline)) int32_t softclip24(int32_t x)
 {
     int32_t u = iabs(x), r, i, f;
     if (u >= (3 << 24))
@@ -1834,7 +1869,35 @@ static void hh_render(struct macro_voice *__restrict m, const uint8_t *p, uint32
                 uint32_t f = (uint32_t)fmac1(f0, (int32_t)hh_sq_ratio28[j]);       /* Q28 of f0 r */
                 sinc[j] = f >= (Q31(0.499) >> 4) ? (uint32_t)Q31(0.499) << 1 : f << 5;  /* 2 f0 r, Q32 */
             }
-            {
+            if ((sinc[0] | sinc[1] | sinc[2] | sinc[3] | sinc[4] | sinc[5]) < (1u << 26)) {
+                /* Up to ~700 Hz the squares turn over at most twice a block each: the count of squares up
+                 * changes only there, so it is built from those turns (a division each) rather than six
+                 * phases a sample. The same samples as the loop below. */
+                int32_t dc[32], c = 0;
+                for (i = 0; i < n; i++)
+                    dc[i] = 0;
+                for (j = 0; j < 6; j++) {
+                    uint32_t q = d->sq[j], si = sinc[j];
+                    int m = 0;
+                    c += (int32_t)(q >> 31);
+                    if (si)
+                        for (;;) {
+                            uint32_t dist = (q & 0x80000000u) ? 0u - q : 0x80000000u - q;   /* to the next half */
+                            uint32_t k;
+                            if (dist > (uint32_t)(n - m) * si)
+                                break;
+                            k = (dist - 1) / si + 1;          /* steps until the top bit turns */
+                            m += (int)k;
+                            dc[m - 1] += (q & 0x80000000u) ? -1 : 1;
+                            q += k * si;
+                        }
+                    d->sq[j] += (uint32_t)n * si;
+                }
+                for (i = 0; i < n; i++) {
+                    c += dc[i];
+                    x[i] = c * Q24(0.33) - Q24(1.0);
+                }
+            } else {
                 uint32_t p0 = d->sq[0], p1 = d->sq[1], p2 = d->sq[2], p3 = d->sq[3], p4 = d->sq[4], p5 = d->sq[5];
                 for (i = 0; i < n; i++) {
                     int32_t c;
