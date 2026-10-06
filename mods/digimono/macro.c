@@ -1010,38 +1010,42 @@ static void particle_render(struct macro_voice *__restrict m, const uint8_t *p, 
         c.a1 = q->a1;
         c.a2 = q->a2;
         c.a3 = q->a3;
-        for (i = 0; i < n; i++) {
-            int32_t bp, lp;
-            if (i == at) {                                      /* an impulse */
-                s = (sync && fresh) ? 32768 : (int32_t)(rnd32(&m->rng) >> 17);
-                if (fresh) {                                    /* the band-pass's frequency for this block */
-                    int32_t u = (int32_t)(rnd32(&m->rng) >> 16) - 32768;      /* -1..1, Q15 */
-                    int32_t lf = lf0 + (((spread >> 2) * u) >> 13);
-                    lf = lf > -2 * 65536 ? -2 * 65536 : lf < -16 * 65536 ? -16 * 65536 : lf;   /* f: 2^-16..0.25 */
-                    particle_coefs(q, lf, k, lpre_base - (lf >> 1));
-                    c.a1 = q->a1;
-                    c.a2 = q->a2;
-                    c.a3 = q->a3;
-                    fresh = 0;
-                }
-                if (want_aux)
-                    aux[i] += s;
-                q->e = exp_wait(&m->rng);
-                at = q->e < pd * (n - i - 1) ? i + 1 + q->e / pd : n;
-                if (at >= n)
-                    q->e -= pd * (n - i - 1);
+        i = 0;
+        for (;;) {
+            int32_t bp, lp, *a = acc + i, e = at < n ? at : n;
+            for (; i < e; i++) {                                /* ringing, up to the next impulse */
                 SVF_STEP(f, c, 0, bp, lp);
-                lp = (q->c1m * s) >> (q->c1s - 9);              /* Q15 -> Q24 */
-                bp += lp;
-                f.s1 += 2 * lp;
-                lp = (q->c2m * s) >> (q->c2s - 9);
-                f.s2 += 2 * lp;
-                acc[i] += bp;
-                continue;
+                *a++ += bp;
+                (void)lp;
             }
+            if (i >= n)
+                break;
+            /* an impulse */
+            s = (sync && fresh) ? 32768 : (int32_t)(rnd32(&m->rng) >> 17);
+            if (fresh) {                                        /* the band-pass's frequency for this block */
+                int32_t u = (int32_t)(rnd32(&m->rng) >> 16) - 32768;      /* -1..1, Q15 */
+                int32_t lf = lf0 + (((spread >> 2) * u) >> 13);
+                lf = lf > -2 * 65536 ? -2 * 65536 : lf < -16 * 65536 ? -16 * 65536 : lf;   /* f: 2^-16..0.25 */
+                particle_coefs(q, lf, k, lpre_base - (lf >> 1));
+                c.a1 = q->a1;
+                c.a2 = q->a2;
+                c.a3 = q->a3;
+                fresh = 0;
+            }
+            if (want_aux)
+                aux[i] += s;
+            q->e = exp_wait(&m->rng);
+            at = q->e < pd * (n - i - 1) ? i + 1 + q->e / pd : n;
+            if (at >= n)
+                q->e -= pd * (n - i - 1);
             SVF_STEP(f, c, 0, bp, lp);
+            lp = (q->c1m * s) >> (q->c1s - 9);                  /* Q15 -> Q24 */
+            bp += lp;
+            f.s1 += 2 * lp;
+            lp = (q->c2m * s) >> (q->c2s - 9);
+            f.s2 += 2 * lp;
             acc[i] += bp;
-            (void)lp;
+            i++;
         }
         svf_guard(&f);
         if (iabs(f.s1) < 512 && iabs(f.s2) < 512)

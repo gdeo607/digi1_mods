@@ -14,32 +14,37 @@ FS = 48000
 BLOCK = 32                                  # frames in one render block of the Digitakt
 SIN, NOIS, SAW, PULS, ENS, VO, PSIN, MACRO = range(8)
 NAMES = ["SIN", "NOIS", "SAW", "PULS", "ENS", "VO", "PSIN", "MACRO"]
-# struct mono_voice (mono.h): 11 32-bit words, a 16-bit word, 2 bytes, the 16-bit chorus line, 11 32-bit
-# words (VO, PSIN), then MACRO's state (struct macro_voice, macro.h). The same layout on the ColdFire
-# (big-endian) and on this PC (little-endian). MONO_STATE: where MACRO's starts: four bytes, then 32-bit
-# words only (macro.h).
-MONO_STATE = 1116
-_LAYOUT = [(0, 44, 4), (44, 46, 2), (46, 48, 1), (48, 1072, 2), (1072, 1116, 4)]
+# struct mono_voice (mono.h): 11 32-bit words, a 16-bit word, 2 bytes, a byte and 3 spare, 11 32-bit words
+# (VO, PSIN), then a part the chorus line (16-bit) and MACRO's state (struct macro_voice, macro.h: four
+# bytes, then 32-bit words) share. The same layout on the ColdFire (big-endian) and on this PC
+# (little-endian). SHARED: where the shared part starts.
+SHARED = 96
+_LAYOUT = [(0, 44, 4), (44, 46, 2), (46, 52, 1), (52, SHARED, 4)]
 
 
 def _voice_size():
     d = tempfile.mkdtemp(prefix="digimono_size_")
     c, exe = os.path.join(d, "s.c"), os.path.join(d, "s")
-    open(c, "w").write('#include "mono.h"\n#include <stdio.h>\nint main(void){printf("%u", (unsigned)sizeof(struct mono_voice));return 0;}\n')
+    open(c, "w").write('#include "mono.h"\n#include <stdio.h>\nint main(void){printf("%u %u", (unsigned)sizeof(struct mono_voice), (unsigned)sizeof(struct macro_voice));return 0;}\n')
     subprocess.check_call(["gcc", "-I", os.path.dirname(SRC), c, "-o", exe])
-    return int(subprocess.check_output([exe]))
+    return tuple(int(x) for x in subprocess.check_output([exe]).split())
 
 
-VOICE_SIZE = _voice_size()
+VOICE_SIZE, MACRO_SIZE = _voice_size()
 
 
 def swap_state(b):
-    """A struct mono_voice's bytes in the other byte order (either way)."""
+    """A struct mono_voice's bytes in the other byte order (either way). The shared part is MACRO's state
+    when the voice holds that (own, the byte at 48, is 2), else the chorus line."""
     out = bytearray()
     for lo, hi, w in _LAYOUT:
         out += b"".join(b[i:i + w][::-1] for i in range(lo, hi, w))
-    out += bytes(b[MONO_STATE:MONO_STATE + 4])
-    out += b"".join(b[i:i + 4][::-1] for i in range(MONO_STATE + 4, len(b), 4))
+    lo = SHARED
+    if b[48] == 2:
+        out += bytes(b[SHARED:SHARED + 4])
+        out += b"".join(b[i:i + 4][::-1] for i in range(SHARED + 4, SHARED + MACRO_SIZE, 4))
+        lo = SHARED + MACRO_SIZE
+    out += b"".join(b[i:i + 2][::-1] for i in range(lo, len(b), 2))
     return bytes(out)
 
 

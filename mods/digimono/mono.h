@@ -1,8 +1,8 @@
 /* Digi Mono: a synth engine for the Digitakt's audio tracks, after the Monomachine's machines.
  *
  * A clean-room engine: written from the Monomachine's public manual (machine names, parameter names and
- * what each is described to do), not from its firmware. It contains no Elektron code or data and does not
- * try to be sample-exact; see mods/digimono/DESIGN.md.
+ * what each is described to do), not from its firmware. It contains no code or data of the original and
+ * does not try to be sample-exact; see mods/digimono/DESIGN.md.
  *
  * It renders one voice's oscillator into a block of 16-bit mono samples, the form a sample voice's data
  * has, so the Digitakt's own filter, amp envelope, LFOs and effects follow it unchanged. Plain C with 32-bit
@@ -46,8 +46,9 @@ enum {
 #define MONO_CHO_LEN 512            /* the ENS chorus delay line, samples (10.7 ms); a power of two */
 #define MONO_INC_MAX 0x40000000u    /* 12 kHz: the highest fundamental the oscillators play         */
 
-/* One voice's state. Zero it once (or call mono_init); mono_trig starts a note. 1,116 bytes: 48 of
- * 32-bit words and bytes, the chorus line (16-bit), then the VO's and PSIN's state (32-bit words only). */
+/* One voice's state. Zero it once (or call mono_init); mono_trig starts a note. 1,120 bytes: 96 of 32-bit
+ * words and bytes, then the chorus line (16-bit) or MACRO's state, which share their memory: a voice plays
+ * one machine at a time, and the one it turns to starts that part afresh (own). */
 struct mono_voice {
     uint32_t ph[4];                 /* oscillator phases: main + unison (SAW, PULS), osc 1..4 (ENS)  */
     uint32_t lfo;                   /* PULS: the PWM LFO; ENS: the chorus LFO                         */
@@ -57,14 +58,18 @@ struct mono_voice {
     int32_t  hold, thold, red;      /* NOIS: held values, the red (low-pass) filter's state          */
     uint16_t wr;                    /* ENS: chorus write position                                    */
     uint8_t  sub;                   /* SAW, PULS: main-oscillator wraps, bit 0 / bits 0-1 = sub 1 / 2 */
-    uint8_t  pad;
-    int16_t  dl[MONO_CHO_LEN];      /* ENS: chorus delay line                                        */
+    uint8_t  pad;                   /* VO: bit 0, which sample of a 24 kHz pair is next              */
+    uint8_t  own;                   /* what the shared part holds: 0 nothing yet, 1 the chorus line, 2 MACRO */
+    uint8_t  spare[3];
     int32_t  f_lo[3], f_bp[3];      /* VO: the three formant resonators                              */
     int32_t  c_lo, c_bp;            /* VO: the consonant's noise band                                */
     int32_t  glp;                   /* VO: the glottal source's low-pass                             */
     uint32_t age;                   /* VO: samples since the note started, saturating                */
     uint32_t env;                   /* PSIN: the pitch envelope, Q30: 1 at the note's start, decaying */
-    struct macro_voice macro;       /* MACRO: the engine playing and its state                       */
+    union {
+        int16_t  dl[MONO_CHO_LEN];  /* ENS (and the machines but MACRO): chorus delay line            */
+        struct macro_voice macro;   /* MACRO: the engine playing and its state                       */
+    };
 };
 
 /* Clear a voice. */

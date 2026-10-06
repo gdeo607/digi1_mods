@@ -30,10 +30,10 @@ The Monomachine's machines are DSP56300 assembly inside the Monomachine OS file.
 instructions a second for one voice. The Digitakt mk1 has no DSP. Its render runs on the main ColdFire,
 about 80 % loaded as it is (72 % with digihealth's FAST AUDIO, measured on a unit). So running the
 original code even for one voice would cost several times the CPU there is. It would also mean
-distributing, or building from the user's file, code derived from Elektron's DSP program.
+distributing, or building from the user's file, code derived from the original's DSP program.
 
 This engine is written from scratch in plain C. Its only source is the Monomachine manual: the machine
-names, the parameter names and what each is described to do. It contains no Elektron code or data, and it
+names, the parameter names and what each is described to do. It contains no code or data of the original, and it
 is not sample-exact to a Monomachine. Where the manual leaves a parameter's behaviour open, the choices
 below are this engine's own. Check them by ear against a Monomachine, or against Monomodule running your
 own Monomachine OS file (`tools/mono_render.py` has the A/B commands).

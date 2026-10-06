@@ -130,7 +130,22 @@ void mono_init(struct mono_voice *v)
     for (i = 0; i < sizeof *v; i++)
         b[i] = 0;
     v->rng = 0x6d2b79f5u;
-    macro_init(&v->macro);
+}
+
+/* The shared part (mono.h) for machine: MACRO's state, or the chorus line, set up when the voice turns to it */
+static void own_part(struct mono_voice *v, int machine)
+{
+    int o = machine == MONO_MACRO ? 2 : 1, i;
+    if (v->own == o)
+        return;
+    if (o == 2) {
+        macro_init(&v->macro);
+    } else {
+        for (i = 0; i < MONO_CHO_LEN; i++)
+            v->dl[i] = 0;
+        v->wr = 0;
+    }
+    v->own = (uint8_t)o;
 }
 
 void mono_trig(struct mono_voice *v, int machine)
@@ -138,6 +153,7 @@ void mono_trig(struct mono_voice *v, int machine)
     int i;
     if (v->rng == 0)
         v->rng = 0x6d2b79f5u;
+    own_part(v, machine);
     v->ph[0] = 0;                                   /* every oscillator here reads 0 at phase 0 */
     for (i = 1; i < 4; i++)
         v->ph[i] = rnd(v);                          /* unison / ensemble: free, like analog ones */
@@ -890,6 +906,7 @@ void mono_render(struct mono_voice *v, int machine, const uint8_t *p, uint32_t i
 {
     if (inc > MONO_INC_MAX)
         inc = MONO_INC_MAX;
+    own_part(v, machine);
     switch (machine) {
     case MONO_SIN:  render_sin(v, inc, out, n); break;
     case MONO_NOIS: render_nois(v, p, inc, out, n); break;
