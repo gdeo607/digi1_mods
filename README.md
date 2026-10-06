@@ -15,8 +15,8 @@ your OS file from your own official one.
 - **Digi Poly**: chords on any audio track, from its own trigs, by borrowing other tracks' voices.
 - **Digi Mono**: seven synth machines in the FUNC+SRC list (sine, noise, saw, pulse, an ensemble, a formant
   voice, and POLY SIN: three sines, a chord on one track), each with its own icon and its own SRC page,
-  values in their units; and **MACRO**: engines ported from Plaits (waveshaping and 2-op FM so far), the
-  engine on knob B, so p-locks can change it per step.
+  values in their units; and **MACRO**: eight engines ported from Plaits (waveshaping, 2-op FM, noise,
+  particles, kick, snare, hi-hat, grains), the engine on knob B, so p-locks can change it per step.
 - **Digi Matrix**: any track's LFO to any parameter of any track, 8 slots, per pattern.
 - **Digi Utilities**: waveform, spectrum and X-Y scope, a tuner and track activity, on a held "...".
 - **Digi EQ**: a 4-band master EQ on every output, main outs, headphones and USB.
@@ -38,7 +38,7 @@ your OS file from your own official one.
 
 | mod | what it adds | version | hardware |
 |---|---|---|---|
-| [Digi Mono](#digi-mono) (`digimono`) | synth machines: MONO SIN, NOISE, SAW, PULSE, ENS, VO, POLY SIN, and MACRO (Plaits' engines) | 0.14 | not yet tested |
+| [Digi Mono](#digi-mono) (`digimono`) | synth machines: MONO SIN, NOISE, SAW, PULSE, ENS, VO, POLY SIN, and MACRO (Plaits' engines) | 0.16 | not yet tested |
 | [Digi Matrix](#digi-matrix) (`digimatrix`) | an LFO modulation matrix, 8 cross-track slots | 1.0b | not yet tested |
 | [Digi Utilities](#digi-utilities) (`digiutils`) | waveform, spectrum and X-Y pages, tuner, track activity | 1.9a | stand-alone 1.5d confirmed |
 | [Digi EQ](#digi-eq) (`digieq`) | a 4-band master EQ on every output | 1.0b | not yet tested |
@@ -66,22 +66,24 @@ pattern is renamed "DEMO". Only screenshots are published here - no firmware, an
 
 ## Digi Mono
 
-**Digi Mono** (elekloader mod `digimono`, 0.14, needs core 2.1 and digichain 1.6) - seven synth machines after the Monomachine, and MACRO
+**Digi Mono** (elekloader mod `digimono`, 0.16, needs core 2.1 and digichain 1.6) - seven synth machines after the Monomachine, and MACRO
 - **Seven new machines in the FUNC+SRC list**, each with its own icon: **MONO SIN**, **MONO NOISE** (sample and
   hold, red noise), **MONO SAW** (unison, two sub-oscillators), **MONO PULSE** (PWM, unison, subs), **MONO ENS**
   (four oscillators at set intervals, saw to pulse, chorus), **MONO VO** (a formant voice: vowel to vowel,
   consonants) and **POLY SIN** (three sines at set notes - a chord on one track - with a pitch envelope). They need no sample; the track's filter, amp, LFOs, sends and p-locks work on them as on a
   sample.
-- **MACRO** (0.14): engines from **Plaits** (Emilie Gillet, MIT licence), ported to integer arithmetic: WSHAPE
-  (waveshaping) and 2OP FM so far, more one by one. Knob B picks the engine (p-lockable: it switches on the
-  trig), C / D / E are HARMONICS / TIMBRE / MORPH, F crossfades Plaits' OUT to AUX. Each engine is checked
+- **MACRO** (0.16): engines from **Plaits** (Emilie Gillet, MIT licence), ported to integer arithmetic:
+  WSHAPE, 2OP FM, NOISE, PARTCL, BDRUM, SNARE, HIHAT and GRAIN. Knob B picks the engine in zones of 8
+  (p-lockable: it switches on the trig), C / D / E are HARMONICS / TIMBRE / MORPH, F plays OUT (0-55) or
+  AUX (72-127), crossfading between (only there are both computed). Each engine is checked
   against Plaits' own code; [mods/digimono/MACRO.md](mods/digimono/MACRO.md).
 - **Their own SRC page**: knobs B-H are the machine's parameters, named and shown in their own units
   (semitones, %, ms, vowels, consonants). A stays TUNE; D is a parameter too (no sample list), and the
   volume is the track's LEVEL and AMP page.
 - **Tick it in elekloader** and digichain is ticked with it; it combines with every other mod here, Digi Poly
   included, and with digisophie, digineighbor and digislicer (their `-chain` builds).
-- **Light enough for a few tracks at once**: 0.10 and 0.11 made VO 16-19 % and ENS 20-29 % lighter (ENS starts with its chorus
+- **Light enough for a few tracks at once**: 0.16 made SAW and PULSE about three times lighter at full unison, ENS
+  and POLY SIN 12-28 % and the MACRO engines 5-25 %; 0.10 and 0.11 made VO 16-19 % and ENS 20-29 % lighter (ENS starts with its chorus
   off, CHRL 0: the chorus is its costliest part). On a unit
   the stock render already takes about 80 % of each block, so keep to a few playing Digi Mono tracks
   (VO, ENS and PULSE cost the most) and check with digihealth's SYSTEM INFO; [docs/USAGE.md](docs/USAGE.md)
