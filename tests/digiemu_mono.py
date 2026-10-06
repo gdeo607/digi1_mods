@@ -155,6 +155,7 @@ st = {"n": 0, "rec": False, "state": None, "init": None, "ins": 0}
 cost = []                                            # instructions in the mods' code, per render block
 blocks = []                                          # (start bit, note word, 8 SRC words, 32 samples)
 master = []
+master_late = []                                     # the master pair as voice 0's block is made: the block before
 knobs = {}
 
 
@@ -171,6 +172,7 @@ def after(u, ad, s, d):
                    struct.unpack(">32i", u.mem_read(0x80001a18, 128)),
                    u.mem_read(TRACK_MACH, 1)[0],
                    struct.unpack(">2i", u.mem_read(fw(0x4199df54), 8))))   # voice 0's amp phase and level
+    master_late.append(struct.unpack(">64i", u.mem_read(0x8000ea70, 256)))
 
 
 def mst(u, ad, s, d):
@@ -305,6 +307,11 @@ check(diff == 0 and same > 100, "%d blocks after the first start equal the engin
       " blocks of a voice not playing are silence%s" % (same, skipped, "" if not diff else
                                                        "; %d differ, first %s" % (diff, first_bad)))
 
+if not master and master_late:
+    # a build with FAST AUDIO (digihealth) runs the mixer from its SRAM copy, past the hook on the stock
+    # code: the master pair read as each next block starts instead (one block late, the same stream)
+    print("  the master hook did not run (FAST AUDIO?): the master read a block late")
+    master = master_late
 mm = np.array(master, dtype=np.float64).reshape(-1, 2) / 2 ** 31
 seg = mm[len(mm) // 4: len(mm) // 4 + 48000, 0]
 if len(seg) == 48000 and np.max(np.abs(seg)) > 0:
