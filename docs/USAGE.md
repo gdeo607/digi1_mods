@@ -145,14 +145,17 @@ One page, one band per column (bands 1-4 = knobs A/E, B/F, C/G, D/H):
   after a while.
 - A band at 0 dB (bell/shelf) costs nothing; four active bands cost about 5 % of the audio time (see RISKS.md).
 
-## Digi Mono (elekloader mod `digimono`, 0.14; needs digichain 1.6, ticked with it)
+## Digi Mono (elekloader mod `digimono`, 0.16; needs digichain 1.6, ticked with it)
 - **Pick a machine:** FUNC+SRC on an audio track, then scroll past SLICE (and past any other mod's machines):
   MONO SIN, MONO NOISE, MONO SAW, MONO PULSE, MONO ENS, MONO VO, POLY SIN, MACRO. YES to confirm. The track needs no sample.
-- **MACRO** plays engines ported from Plaits: **B ENGN** the engine (WSHAPE, 2OP FM), **C HARM**, **D TIMB**,
-  **E MORP** (Plaits' HARMONICS, TIMBRE, MORPH), **F AUX** from Plaits' OUT (0) to its AUX output (127). B is
-  read when a note starts: p-lock B on a trig to change the engine there; turned by hand it changes on the
-  next note. On 2OP FM, MORP below 64 is phase feedback and above 64 self-modulation; at 64 there is none,
-  and the engine uses about a third less CPU. mods/digimono/MACRO.md has each engine's knobs and costs.
+- **MACRO** plays engines ported from Plaits: **B ENGN** the engine, in zones of 8: WSHAPE (0-7), 2OP FM
+  (8-15), NOISE (16-23), PARTCL (24-31), BDRUM (32-39), SNARE (40-47), HIHAT (48-55), GRAIN (56-63 and up).
+  **C HARM**, **D TIMB**, **E MORP** are Plaits' HARMONICS, TIMBRE, MORPH; **F AUX**: 0-55 plays Plaits' OUT,
+  72-127 its AUX output, 56-71 crossfades (only there are both computed: about twice the CPU). B is read
+  when a note starts: p-lock B on a trig to change the engine there; turned by hand it changes on the next
+  note. The drums make their own envelope from each trig: set AMP's decay long. On 2OP FM, MORP below 64
+  is phase feedback and above 64 self-modulation; at 64 there is none, and the engine uses less than half
+  the CPU. mods/digimono/MACRO.md has each engine's knobs and costs.
 - **Play it:** from trigs, the track key, the keyboard (FUNC+TRK) or MIDI, like a sample track. The note
   and knob A (TUNE) set the pitch.
 - **SRC page:** knob A is TUNE. B to H are the machine's; a knob it does not have is blank. Each shows its

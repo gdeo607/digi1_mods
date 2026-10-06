@@ -3,6 +3,37 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Digi Mono 0.16: everything lighter (HW: not yet)
+- **SAW and PULSE** add their oscillators as one ramp with steps where an oscillator wraps, the polyBLEP
+  only beside a step: about a third of 0.15's CPU at full unison with both subs. The sound moves by a few
+  least-significant bits only (rounding).
+- **ENS** 17 % lighter, **POLY SIN** 12-28 % lighter (sample for sample as 0.15).
+- **MACRO** engines 5-25 % lighter, sample for sample as 0.15: 2OP FM -25 %, PARTCL -15..20 %, the drums
+  about -10 %.
+- **Memory:** the ENS chorus line and MACRO's state share each voice's memory (a voice plays one machine at a
+  time; the one it turns to starts its part afresh), all machines read one sine table, and the UI code is
+  built for size: about 4.8 KB less of the mods' shared memory, enough for digihealth (FAST AUDIO) beside
+  every mod of this repository.
+- Checked: the ColdFire build equals the PC build; in digiemu on OS 1.54 with FAST AUDIO on, every machine
+  and every MACRO engine plays bit for bit its own output and reaches the master.
+
+## Digi Mono 0.15: MACRO has eight engines (HW: not yet)
+- **New engines:** NOISE (clocked noise through a low-pass to high-pass filter; AUX: two band-passes),
+  PARTCL (random impulses into resonant filters; AUX: the impulses), BDRUM (analog-style kick; AUX:
+  synthetic kick), SNARE (analog-style; AUX: synthetic), HIHAT (808-style metallic; AUX: ring-modulated),
+  GRAIN (formant grainlets; AUX: the Z oscillator). The drums make their own envelope from each trig and
+  cost nothing once their sound has died away.
+- **B ENGN in 16 zones of 8 values**: 0-7 WSHAPE, 8-15 2OP FM, 16-23 NOISE, 24-31 PARTCL, 32-39 BDRUM,
+  40-47 SNARE, 48-55 HIHAT, 56-63 GRAIN (64-127: GRAIN for now). Saved p-locks keep their engine when
+  more engines are added. A B p-lock saved with 0.14 may point to another engine now: set it again.
+- **F AUX** is a switch with a narrow crossfade: 0-55 OUT, 72-127 AUX, 56-71 crossfades; only in 56-71
+  are both outputs computed.
+- Filters on the CPU's multiply-accumulate unit (Plaits' state-variable filter in 24-bit fractional
+  arithmetic, rounded); the unit's state is saved and restored around MACRO's render.
+- Checked: each engine against Plaits' own code (waveforms for the deterministic ones, spectra and levels
+  within Plaits' own spread for the noisy ones); the ColdFire build equals the PC build; in digiemu on OS
+  1.54, every engine bit for bit.
+
 ## Digi Mono 0.14: MACRO, Plaits' engines as one machine (HW: not yet)
 - **New machine MACRO** (machine 27, after POLY SIN): engines ported from **Plaits** (Emilie Gillet, MIT
   licence) to 32-bit integer arithmetic for the ColdFire, which has no FPU. Knob **B (ENGN)** picks the
