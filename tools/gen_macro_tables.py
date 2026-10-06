@@ -59,6 +59,9 @@ def load(path):
     return out
 
 
+SHARED = {"MACRO_SINE"}
+
+
 def main():
     res = load(sys.argv[1] + "/plaits/resources.cc")
     print(COPYRIGHT)
@@ -70,7 +73,8 @@ def main():
         elif kind == "q8":
             vals = [int(round(v * 256)) for v in vals]
         print("#define %s_SIZE %d" % (name, len(vals)))
-        print("static const int16_t %s[%d] = {" % (name, len(vals)))
+        # MACRO_SINE is also MONO SIN's, POLY SIN's and VO's (mono.c, through macro.h): one copy
+        print("%sconst int16_t %s[%d] = {" % ("" if name in SHARED else "static ", name, len(vals)))
         for i in range(0, len(vals), 12):
             print("    " + ", ".join("%d" % v for v in vals[i:i + 12]) + ",")
         print("};\n")

@@ -156,7 +156,7 @@ static void render_sin(struct mono_voice *v, uint32_t inc, int16_t *out, int n)
     uint32_t p = v->ph[0];
     while (n--) {
         uint32_t i = p >> 23, f = (p >> 7) & 0xffff;
-        int32_t a = MONO_SINE[i], b = MONO_SINE[i + 1];
+        int32_t a = MACRO_SINE[i], b = MACRO_SINE[i + 1];
         *out++ = (int16_t)(a + (((b - a) * (int32_t)f) >> 16));
         p += inc;
     }
@@ -548,7 +548,7 @@ static uint32_t shift_inc(uint32_t inc, int32_t e)
 static inline int32_t sini(uint32_t q)
 {
     uint32_t x = q >> 23;
-    int32_t a = MONO_SINE[x], b = MONO_SINE[x + 1];
+    int32_t a = MACRO_SINE[x], b = MACRO_SINE[x + 1];
     return a + (((b - a) * (int32_t)((q >> 7) & 0xffff)) >> 16);
 }
 
@@ -633,9 +633,9 @@ static const uint16_t CONS[8][3] = {
 /* 2 sin(pi f / 48000) in Q14, f < 12 kHz: the state-variable filter's frequency coefficient */
 static int32_t svf_f(int32_t hz)
 {
-    int32_t pos = (hz * 1398) >> 10;                        /* Q8 index into MONO_SINE: hz * 512 / 96000 */
+    int32_t pos = (hz * 1398) >> 10;                        /* Q8 index into MACRO_SINE: hz * 512 / 96000 */
     int32_t i = pos >> 8, fr = pos & 255;
-    int32_t a = MONO_SINE[i], b = MONO_SINE[i + 1];
+    int32_t a = MACRO_SINE[i], b = MACRO_SINE[i + 1];
     return a + (((b - a) * fr) >> 8);                      /* sin in Q15 = 2 sin in Q14 */
 }
 
@@ -644,7 +644,7 @@ static int32_t svf_f24(int32_t hz)
 {
     int32_t pos = (hz * 2796) >> 10;
     int32_t i = pos >> 8, fr = pos & 255;
-    int32_t a = MONO_SINE[i], b = MONO_SINE[i + 1];
+    int32_t a = MACRO_SINE[i], b = MACRO_SINE[i + 1];
     return a + (((b - a) * fr) >> 8);
 }
 

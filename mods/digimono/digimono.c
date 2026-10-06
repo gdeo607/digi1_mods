@@ -30,6 +30,9 @@
 
 #include "mono.h"
 
+/* the UI and the per-block glue: built for size (the samples are made in mono.c and macro.c) */
+#pragma GCC optimize("Os", "no-tree-loop-distribute-patterns")
+
 #define MACH_FIRST   20                      /* digimono_m20..m27 in glue.s: SIN NOIS SAW PULS ENS VO PSIN MACRO */
 extern volatile uint8_t core_track_machine[8];                  /* core 2.1: the machine each voice plays */
 #define VOICE_MACH   core_track_machine

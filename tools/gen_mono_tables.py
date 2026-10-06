@@ -4,8 +4,7 @@
     python3 tools/gen_mono_tables.py            # write the header
     python3 tools/gen_mono_tables.py --check    # fail if the committed header is not what this writes
 
-Everything here is computed from plain maths (no firmware content):
-  SINE      513 x int16, one cycle of a sine (the 513th closes the cycle for the interpolation)
+Everything here is computed from plain maths (no firmware content). The sine is MACRO_SINE (macro.h):
   SEMI_INC  12 x uint32, the phase increment at 48 kHz of MIDI notes 120..131 (the top octave)
   FINE      128 x uint16, 2^(i/(128*12)) - 1 in Q16: 1/128 of a semitone per step
   SEMI_UP   12 x uint16, 2^(s/12) - 1 in Q16: the ENS intervals within an octave
@@ -31,7 +30,6 @@ def note_hz(n):
 
 def tables():
     t = {}
-    t["SINE"] = ("int16_t", [int(round(32767 * math.sin(2 * math.pi * i / 512))) for i in range(513)])
     t["SEMI_INC"] = ("uint32_t", [int(round(note_hz(120 + s) / FS * 2 ** 32)) for s in range(12)])
     t["FINE"] = ("uint16_t", [int(round((2 ** (i / (128 * 12)) - 1) * 65536)) for i in range(128)])
     t["SEMI_UP"] = ("uint16_t", [int(round((2 ** (s / 12) - 1) * 65536)) for s in range(12)])

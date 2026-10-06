@@ -173,5 +173,8 @@ void macro_render(struct macro_voice *m, const uint8_t *p, uint32_t inc, int16_t
 /* The engine knob B's value -> its engine, and the engines' names as the knob shows them. */
 int macro_engine_of(int b);
 extern const char *const macro_engine_name[MACRO_ENGINES];
+/* one cycle of a sine in 512 steps, Q15 (+ 128 more: a cosine reads it a quarter on); MONO SIN, POLY SIN
+ * and VO read it too */
+extern const int16_t MACRO_SINE[641];
 
 #endif
