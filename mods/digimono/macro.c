@@ -2110,27 +2110,31 @@ static void grain_render(struct macro_grain *__restrict z, const uint8_t *p, uin
         for (i = 0; i < n; i++)
             out[i] = 0;
         for (j = 0; j < 2; j++) {
-            uint32_t fi = f_inc[j];
+            uint32_t fi = f_inc[j], gc = z->gc[j], gf = z->gf[j];   /* (in locals: registers) */
+            int32_t gn = z->gnext[j];
             for (i = 0; i < n; i++) {
-                int32_t this_s = z->gnext[j], next = 0, g;
-                uint32_t old = z->gc[j];
-                z->gc[j] += c_inc;
-                if (z->gc[j] < old) {                            /* the carrier restarts: the formant too */
-                    int32_t rt = sub_sample(z->gc[j], c_inc), before, after, disc;
+                int32_t this_s = gn, next = 0, g;
+                uint32_t old = gc;
+                gc += c_inc;
+                if (gc < old) {                                  /* the carrier restarts: the formant too */
+                    int32_t rt = sub_sample(gc, c_inc), before, after, disc;
                     before = fmac1(carrier24(&cc, 0x80000000u) << 7,
-                                   sine24(z->gf[j] + mul_inc(fi, (uint32_t)(65536 - rt))) + bleed);
+                                   sine24(gf + mul_inc(fi, (uint32_t)(65536 - rt))) + bleed);
                     after = fmac1(carrier24(&cc, 0) << 7, bleed);
                     disc = fmac1(after - before, inv);
                     this_s += fmac1(disc, blep_q15(rt) << 16);
                     next -= fmac1(disc, blep_q15(65536 - rt) << 16);
-                    z->gf[j] = mul_inc(fi, (uint32_t)rt);
+                    gf = mul_inc(fi, (uint32_t)rt);
                 } else
-                    z->gf[j] += fi;
-                g = fmac1(carrier24(&cc, z->gc[j] >> 1) << 7, sine24(z->gf[j]) + bleed);
+                    gf += fi;
+                g = fmac1(carrier24(&cc, gc >> 1) << 7, sine24(gf) + bleed);
                 next += fmac1(g, inv);
-                z->gnext[j] = next;
+                gn = next;
                 out[i] += this_s;
             }
+            z->gc[j] = gc;
+            z->gf[j] = gf;
+            z->gnext[j] = gn;
         }
         for (i = 0; i < n; i++) {                               /* the DC blocker (a one-pole high-pass) */
             int32_t lp;
@@ -2323,16 +2327,13 @@ static void macro_render_e(struct macro_voice *m, const uint8_t *p, uint32_t inc
     }
     go = gain_out[m->engine];
     ga = gain_aux[m->engine];
-    if (mix == 0) {                                 /* OUT only (the default) */
+    if (mix == 0 || mix >= 32767) {                 /* OUT only (the default) or AUX only */
+        /* x g / 2^15 on the EMAC: no product overflows, so no clip before it (the gains are over 0.5:
+         * whatever CL2 would clip lands past +-1 either way) */
+        const int32_t *x = mix ? a : o;
+        int32_t g = (mix ? ga : go) << 16;
         for (i = 0; i < n; i++) {
-            int32_t x = (CL2(o[i]) * go) >> 15;
-            out[i] = (int16_t)(x > 32767 ? 32767 : x < -32768 ? -32768 : x);
-        }
-        return;
-    }
-    if (mix >= 32767) {                             /* AUX only */
-        for (i = 0; i < n; i++) {
-            int32_t y = (CL2(a[i]) * ga) >> 15;
+            int32_t y = fmac1t(x[i], g);
             out[i] = (int16_t)(y > 32767 ? 32767 : y < -32768 ? -32768 : y);
         }
         return;
