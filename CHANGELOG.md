@@ -3,6 +3,19 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Tone+FX 4.0a: DELAYS (WRMZ/GRAINZ) + CPU pass; encoder & page fixes (HW: tested)
+- **Sync to the Tone+FX 4.0a release** (from 3.2a3): the suite gains the **DELAYS**
+  buffer-FX module (WRMZ modulated delay / GRAINZ granular) as a 12th master page,
+  the CPU/headroom pass (eMAC hoist, s16 wave lines, wave flush-spike fix, UI
+  redraw cap, size-optimised build), and the 3.5r UI / two-trees / store work.
+- **Encoder travel:** `DC_PER_STEP` 4 -> 1 (one step per knob notch on the unit).
+- **Page navigation:** the master cycle now shows only the stock master-FX pages
+  plus the tonefx pages.
+- **Per-pattern store** repacked to `"DX"` v9 (48 params, 1-bit on/off/switch,
+  34 bytes) so the DELAYS settings persist.
+- Elemods: `tonefx-4.0a.elemod` (OS 1.53), `tonefx-4.0a-os1.54.elemod` (OS 1.54);
+  core `core-4.0[-os1.54].elemod`. Both `imports nothing`, byte-verified.
+
 ## Tone+FX 3.2a3: no boot splash; Tone+FX in this repository (HW: not yet)
 - **No boot splash:** the unit starts with its own intro. The splash's code (mods/tonefx/render.c, splash.s)
   stays in the folder, not built; its seven sites on the intro's presents are gone, and the delay line

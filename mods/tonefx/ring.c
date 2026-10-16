@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
  * digiring: a master ring modulator / tremolo insert.
- * Digital Alchemy DSP's, for the original FM groovebox (and its Keys model), OS 1.43; ported to
- * the DT1 (OS 1.53 / 1.54) through corea.h.
+ * Digitone mk1 / Keys, OS 1.43.
  *
  * Multiplies the output by a sine carrier. Depth and carrier frequency are
  * interpolated across each block's 32 frames, so edits and bypass ramp
@@ -9,6 +8,7 @@
  * depth to zero, which is passthrough. Combines with every mod.
  */
 #include "corea.h"
+#include "emac.h"
 #include "sin256.h"
 
 /* runtime parameters (exported; digictl edits them).
@@ -43,22 +43,24 @@ void digiring_render_out(void)
     dc = di_depth_cur;
     inc = di_freq_cur * DN_RING_K;
     p = (int *)(DN_OUT_BASE + di_off);
+    bx_emac_enter();                         /* carrier + gains on the eMAC */
     for (i = 0; i < DN_OUT_FRAMES; i++) {
         unsigned hi = ph >> 24;                  /* 0..255 */
         int fr = (int)((ph >> 16) & 0xFFu);      /* 8-bit fraction */
         int s0 = sin256[hi & 0xFFu];
         int s1 = sin256[(hi + 1) & 0xFFu];
-        int s = s0 + (((s1 - s0) * fr) >> 8);    /* interpolated carrier */
+        int s = s0 + bx_mul8(s1 - s0, fr);       /* interpolated carrier */
         int l = p[0], r = p[1];
         /* Full-precision multiply: the truncated form quantized the wet signal
          * in steps of the Q15 carrier (~-36 dB), the ring's noise. */
-        p[0] = l + dn_mul15(dn_mul15(l, s) - l, dc);
-        p[1] = r + dn_mul15(dn_mul15(r, s) - r, dc);
+        p[0] = l + bx_mul15(bx_mul15(l, s) - l, dc);
+        p[1] = r + bx_mul15(bx_mul15(r, s) - r, dc);
         p += 2;
         ph += (unsigned)inc;
         dc += dstep;
         inc += fstep * DN_RING_K;
     }
+    bx_emac_leave();
     di_depth_cur = dt;
     di_freq_cur = ft;
     di_phase = ph;

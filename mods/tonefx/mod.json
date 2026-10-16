@@ -1,12 +1,13 @@
 {
  "id": "tonefx",
- "version": "3.2a3",
+ "version": "4.0a",
  "title": "Tone+FX",
  "category": "Sound",
  "author": "Digital Alchemy DSP (DT1 port: gdeo607)",
  "license": "GPL-2.0-or-later",
  "device": "digitakt-mk1",
  "os": "1.53",
+ "cflags": ["-DBX_EMAC_HOISTED=1", "-DBX_S16_LINE=1", "-Os"],
  "description": "Tone+FX 3.2a by Digital Alchemy DSP (github.com/DigiAlchemydsp/RingTone), ported from its original FM-groovebox version: a master effect suite on every output: main, headphones and USB. Master ring modulator, a low-shelf/high-shelf master EQ (TILT), a Crunch/Redux lo-fi stage (BITS / SR / CRUNCH), a wavefolder with a continuous CLEAN/MUD/DIST/TRSH fold type, a five-mode modulation insert (PITCH: WOB / SHFT, STEREO: FLAN / PAN / WIDE), an output meter and a soft output ceiling. Seven pages after the stock master pages (FUNC+LFO; LEFT/RIGHT rotate the pages): DIGI RING, FOLD, TILT, CRUSH, PITCH, STEREO and PERFORM. PERFORM is reached with UP from any of the six: the eight knobs set one depth per FX block, and the 16 trigs are momentary performance pads (four blocks of four intensities: ring / fold+crush / pitch / pan) that ramp their block up while held and back on release. Settings follow the pattern while the unit is on (they are not saved over a power cycle on the DT1), and the FX answer incoming MIDI CC. The unit starts with its own intro (no boot splash).",
  "sources": [
   "meter.c",
@@ -15,6 +16,7 @@
   "fold.c",
   "crush.c",
   "wave.c",
+  "wrmz.c",
   "master.c",
   "master_glue.s",
   "digictl.c",
@@ -111,6 +113,7 @@
   "names": [
    "ui:master pages kind 0",
    "ui:master page DIGI RING",
+   "ui:master page DIGI DELAYS",
    "ui:master DIGI FOLD",
    "ui:master DIGI TILT",
    "ui:master DIGI CRUSH",
@@ -152,7 +155,10 @@
     "OS154": 1
    },
    "cflags": [
-    "-DOS154"
+    "-DOS154",
+    "-DBX_EMAC_HOISTED=1",
+    "-DBX_S16_LINE=1",
+    "-Os"
    ]
   }
  }

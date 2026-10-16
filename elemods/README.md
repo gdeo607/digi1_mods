@@ -32,8 +32,8 @@ and Digi Macro (MACRO) ticks Digi Mono.
 | `digisophie-1.1.13-chain.elemod` | `b584c1e3884dc239` |
 | `digiutils-1.9a-os1.54.elemod` | `ed13ca17753e4885` |
 | `digiutils-1.9a.elemod` | `8697ac1fe883cb8f` |
-| `tonefx-3.2a3-os1.54.elemod` | `c490c6f22fcdd727` |
-| `tonefx-3.2a3.elemod` | `c37a8a727594392f` |
+| `tonefx-4.0a-os1.54.elemod` | `be1e54553b7a0ade` |
+| `tonefx-4.0a.elemod` | `86aa9c6d1208264e` |
 
 Built with elekloader 793b2e4, 2026-10-04 (core `2.1`) by `tools/dev.sh publish`. Every pair combines with
 core (`elekloader --check`). Several big mods together can need more than the 128 KB of mod RAM:
@@ -47,9 +47,11 @@ These are built here, unchanged in their code, from their authors' repositories 
 their licenses are in `licenses/`, and the source of each build is that commit plus what the last
 column says (the tools named are in this repository). digi1_mods' own mods are under its license.
 
-**Tone+FX** (`tonefx`) is a port kept in this repository (mods/tonefx): Digital Alchemy DSP's Tone+FX 3.2a
-([DigiAlchemydsp/RingTone@0310695](https://github.com/DigiAlchemydsp/RingTone)), GPL-2.0-or-later
-([text](licenses/tonefx-LICENSE)); its source is mods/tonefx, which marks what the port changed.
+**Tone+FX** (`tonefx`) is a port kept in this repository (mods/tonefx): Digital Alchemy DSP's Tone+FX
+(release repo [DigiAlchemydsp/Tone-FX](https://github.com/DigiAlchemydsp/Tone-FX), now **4.0a** — the suite
+plus the **DELAYS** module and a CPU pass), GPL-2.0-or-later
+([text](licenses/tonefx-LICENSE)); its source is mods/tonefx, and the **4.0a** elemods link as
+`core 4.0 > tonefx 4.0a` (they need `core-4.0[-os1.54].elemod`).
 
 | mod | license | source | changed for this build |
 |---|---|---|---|
