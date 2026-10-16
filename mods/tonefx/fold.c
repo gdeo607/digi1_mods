@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
  * digifold: a master wavefolder with a continuous fold "type".
- * Digital Alchemy DSP's, for the original FM groovebox (and its Keys model), OS 1.43; ported to
- * the DT1 (OS 1.53 / 1.54) through corea.h.
+ * Digitone mk1 / Keys, OS 1.43.
  *
  * A triangle wavefolder: the signal is scaled by a gain and folded back into
  * [-T, T] (T = 2^22) by reflection, an odd function. amount 0 is 1.0x, so no
@@ -19,6 +18,7 @@
  * Subscriptions only: it combines with every mod. Ring -> EQ -> FOLD.
  */
 #include "corea.h"
+#include "emac.h"
 
 #define DF_T    (1u << 22)          /* fold threshold / clip ceiling */
 #define DF_2T   (1u << 23)
@@ -70,9 +70,9 @@ static inline int df_fold(int x, unsigned gain)
 {
     int s = x < 0 ? -1 : 1;
     unsigned a = x < 0 ? (unsigned)(-x) : (unsigned)x;
-    /* full-precision Q8 gain: the truncated form zeroed the low 8 bits even at
-     * amount 0, which was noise; amount 0 is now bypassed entirely below. */
-    a = (a >> 8) * gain + (((a & 0xffu) * gain) >> 8);
+    /* full-precision Q8 gain on the eMAC (bx_q8): the truncated form zeroed the
+     * low 8 bits even at amount 0, which was noise; amount 0 is bypassed below. */
+    a = (unsigned)bx_q8((int)a, (int)gain);
     a &= (DF_2T - 1u);                  /* |x| mod 2T */
     if (a > DF_T)
         a = DF_2T - a;                  /* reflect into [0, T] */
@@ -82,7 +82,7 @@ static inline int df_fold(int x, unsigned gain)
 /* hard-clip overdrive: a Q8 gain into a clamp at +/-T (odd, stateless) */
 static inline int df_drive(int x, unsigned g)
 {
-    int y = (x >> 8) * g + (((x & 0xffu) * g) >> 8);
+    int y = bx_q8(x, (int)g);
     if (y > (int)DF_T)
         return (int)DF_T;
     if (y < -(int)DF_T)
@@ -105,13 +105,20 @@ void digifold_render_out(void)
     gain = df_gain(fp, df_amt_cur);
     dg = df_drive_gain(dp, df_amt_cur);
     p = (int *)(DN_OUT_BASE + df_off);
-    for (i = 0; i < DN_OUT_FRAMES; i++) {
-        p[0] = df_fold(p[0], gain);
-        p[1] = df_fold(p[1], gain);
-        if (dg) {
-            p[0] = df_drive(p[0], dg);
-            p[1] = df_drive(p[1], dg);
+    bx_emac_enter();                    /* the Q8 gains ride the eMAC */
+    if (dg) {                           /* overdrive is block-constant: split the
+                                         * loop so the branch is not tested 32x */
+        for (i = 0; i < DN_OUT_FRAMES; i++) {
+            p[0] = df_drive(df_fold(p[0], gain), dg);
+            p[1] = df_drive(df_fold(p[1], gain), dg);
+            p += 2;
         }
-        p += 2;
+    } else {
+        for (i = 0; i < DN_OUT_FRAMES; i++) {
+            p[0] = df_fold(p[0], gain);
+            p[1] = df_fold(p[1], gain);
+            p += 2;
+        }
     }
+    bx_emac_leave();
 }
