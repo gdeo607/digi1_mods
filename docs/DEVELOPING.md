@@ -124,7 +124,7 @@ tools/dev.sh elemods
 - **The others:** digisophie, digislicer, DigiFilter, digineighbor and digihealth.
 - **core:** the elekloader app has core built in.
 - **COMPATIBILITY.txt:** elekloader's check for every pair: `ok`, `CLASH` with the overlapping address,
-  or `TOO BIG` when the two need more than the 128 KB of mod RAM. digisophie, digineighbor and
+  or `TOO BIG` when the two need more than the mods' RAM (256 KB with core 4.0, 128 KB with older cores). digisophie, digineighbor and
   digislicer are built for digichain (`-chain` versions, mods/digichain/README.md), so they combine with
   each other; on 2026-10-01 every pair of the ten combined. Several big mods together can still be too
   big for the RAM: the window says so.

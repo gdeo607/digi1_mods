@@ -8,7 +8,7 @@
 # Developing:
 #   tools/dev.sh setup                     tools: elekloader, digiemu (+ patched Unicorn), digisophie
 #   tools/dev.sh test                      the engine alone: what each machine does, ColdFire = PC
-#   tools/dev.sh build [mods...]           your OS file: core 2.1 + the mods (default: digimono digimacro)
+#   tools/dev.sh build [mods...]           your OS file: core (elekloader's newest) + the mods (default: digimono digimacro)
 #   tools/dev.sh emu                       put the last build into digiemu (first boot, ~1 min)
 #   tools/dev.sh emutest                   the build in digiemu, every Digi Mono machine, bit for bit
 #   tools/dev.sh play                      open digiemu's window (play the build with mouse and keys)
@@ -202,7 +202,7 @@ cmd_build() {
     local mods=("$@")
     [[ ${#mods[@]} -gt 0 ]] || mods=(digimono digimacro)
     mkdir -p "$BUILD/mods" "$LOG"
-    say "building core 2.1 and ${mods[*]}"
+    say "building core and ${mods[*]}"
     local files=()
     files+=("$(build_one core "$TOOLS/elekloader/mods/core")")
     for m in "${mods[@]}"; do
@@ -428,8 +428,8 @@ THEIRS=(digisophie digislicer digineighbor digifilter digihealth)
 origin() {
     case $1 in
         digisophie) echo "$DIGISOPHIE_URL|its render made lighter, the same output (tools/patches/digisophie-render.patch); the sites digichain owns moved to it (tools/chain_patch.py)" ;;
-        digislicer) echo "$DIGISLICER_URL|the sites digichain owns moved to it (tools/chain_patch.py)" ;;
-        digineighbor) echo "$DIGINEIGHBOR_URL|the sites digichain owns moved to it (tools/chain_patch.py)" ;;
+        digislicer) echo "$DIGISLICER_URL|none (it uses elekloader's machine-pages; tools/chain_patch.py only moved older versions' sites to digichain)" ;;
+        digineighbor) echo "$DIGINEIGHBOR_URL|none (it uses elekloader's machine-pages; tools/chain_patch.py only moved older versions' sites to digichain)" ;;
         digifilter) echo "$DIGIFILTER_URL|OS 1.54: ported by tools/port_os.py" ;;
         digihealth) echo "$DIGIHEALTH_URL|none" ;;
     esac
@@ -469,7 +469,8 @@ cmd_publish() {   # the latest elekloader and mods, then all of them into elemod
         echo "Ready to add to [elekloader](https://github.com/irpina/elekloader): open it, choose your own official"
         echo "Digitakt mk1 **OS 1.53** or **OS 1.54** file, **Install** these, tick the ones you want and build. Files"
         echo "ending \`-os1.54\` are for OS 1.54, the others for 1.53: elekloader lists the ones that fit your file."
-        echo "It brings the core mod (\`${core}\`); Digi Mono, Digi Poly and the \`-chain\` builds tick digichain with them."
+        echo "It brings the core mod (\`${core}\`); Digi Mono, Digi Poly and the \`-chain\` builds tick digichain with them,"
+        echo "and Digi Macro (MACRO) ticks Digi Mono."
         echo
         echo "| file | sha256 |"
         echo "|---|---|"
@@ -478,7 +479,7 @@ cmd_publish() {   # the latest elekloader and mods, then all of them into elemod
         done
         echo
         echo "Built with elekloader $elk (core \`${core#core-}\`) by \`tools/dev.sh publish\`. Every pair combines with"
-        echo "core (\`elekloader --check\`). Several big mods together can need more than the 128 KB of mod RAM:"
+        echo "core (\`elekloader --check\`). Several big mods together can need more than the mods' RAM (256 KB with core 4.0, 128 KB before):"
         echo "elekloader says so when you build. An \`.elemod\` holds the mod's own code: where it repeats firmware"
         echo "bytes, elekloader stores a reference to your own file instead, and the few original bytes at each place"
         echo "it patches are there only to check your file. No firmware is stored here."

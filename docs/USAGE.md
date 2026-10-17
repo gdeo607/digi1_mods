@@ -1,6 +1,6 @@
 # Usage
 
-## Digi Poly (elekloader mod `digipoly`, 2.0; needs core 2.1 and digichain, ticked with it)
+## Digi Poly (elekloader mod `digipoly`, 2.0; needs core 2.1 or later and digichain, ticked with it)
 1. On any audio track press FUNC+SRC and choose **POLY** (after SLICE, with a three-note icon). POLY is machine 6
    since 2.0: a POLY track saved with 1.0f loads as NEIGHBOR or ONESHOT, so choose POLY on it again. The track keeps its sample, filter, amp
    and LFO settings as with any machine (POLY plays like ONESHOT).

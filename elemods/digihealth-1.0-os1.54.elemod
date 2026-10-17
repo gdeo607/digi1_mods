@@ -2776,7 +2776,7 @@
  "build": {
   "sources": {
    "fastaudio.s": "5859e5de9bd8d8b6e5275f3d67ddba1dc890dd24c38ce38407b5492c9aeef492",
-   "sysinfo.s": "5f5515d6234eab2f83ec0352425dd82432d2ad057a20815fa3b97614e31c0843",
+   "sysinfo.s": "0ca9f77cb97b62a96c98bcf6e25cf5ca1f3328bc510467c66996e4b80595166d",
    "fa_stubs.s": "1fef27c1f5e07f8f29775863d8ecb23667b51e43961ed32fdd133f0c4f70da46",
    "name.s": "f2c6cee7c151445b776d981edfc7d042ecb1a631bca6337d37e3fa8b821724f9"
   }

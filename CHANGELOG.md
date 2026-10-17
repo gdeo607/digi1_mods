@@ -3,6 +3,22 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Core 4.0; SOPHIE's patch on its newest (HW: not yet)
+- **Core 4.0** (elekloader's newest, which the elekloader app builds with): 256 KB for the mods instead of
+  128 KB. Every mod here works with it unchanged (the `.elemod` files are relocatable): in digiemu on OS 1.54,
+  core 4.0 with Digi Mono, Digi Macro, digichain, Utilities, Matrix, Poly, digihealth, SOPHIE, DigiFilter and
+  Tone+FX boots, and CHORDS and MACRO 2OP FM play their engines' samples bit for bit; with core 3.0 the same
+  set was 60 KB over. elemods/ republished with it (elekloader 8972d70); the docs say "core 2.1 or later".
+- **DIGISLICER 2.3 and NEIGHBOR 0.7 need machine-pages**, elekloader's mod for machines that describe their
+  pages, which patches the same 17 sites as digichain: they no longer share a build with Digi Mono, Digi Macro,
+  Digi Poly or the `-chain` SOPHIE. They are built as their authors publish them (this repository maintains
+  only its own mods); moving Digi Mono, Digi Macro and Digi Poly onto machine-pages is next.
+- **SOPHIE**: upstream (fee5f51, its Digitone port) skips the feedback loop at FBK 0 and SHARD's noise at METAL
+  0, and folds with shifts. tools/patches/digisophie-render.patch is made again on that: its render 7-12 %
+  lighter than upstream's (FUSE 8,230 -> 7,270 cycles a block, SHARD 9,790 -> 9,040), every sample and the
+  voice state as upstream's (tests/sophie_fast.py).
+- DigiFilter 1.1a (its newest).
+
 ## SOPHIE 1.1.13f: its render about 18 % lighter, the same sound (HW: not yet)
 - **SOPHIE** (soejrd/digisophie, MIT) is built with tools/patches/digisophie-render.patch, offered to its
   author once tested on a unit; the build's version is 1.1.13f (elemods: digisophie-1.1.13f-chain*).

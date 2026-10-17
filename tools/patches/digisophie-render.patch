@@ -1,6 +1,6 @@
-SOPHIE (soejrd/digisophie, MIT): its render 17-19% lighter, the same output bit for bit; digitakt.c
-builds with any m68k GCC. Applied by tools/dev.sh to the copy it builds (until upstream has it).
-Made against soejrd/digisophie ce17b9e; tests/sophie_fast.py checks it.
+SOPHIE (soejrd/digisophie, MIT): its render lighter, the same output bit for bit; digitakt.c builds with
+any m68k GCC. Applied by tools/dev.sh to the copy it builds (until upstream has it).
+Made against soejrd/digisophie fee5f51; tests/sophie_fast.py checks it.
 
 diff --git a/digitakt.c b/digitakt.c
 index 8add51d..536e4bc 100644
@@ -18,7 +18,7 @@ index 8add51d..536e4bc 100644
  #define DS_MACHINE 7
  #define TRACKS 8
 diff --git a/sophie.c b/sophie.c
-index 0d75b63..d663fa9 100644
+index 900b8f5..76b5b47 100644
 --- a/sophie.c
 +++ b/sophie.c
 @@ -45,10 +45,11 @@ static uint32_t ds_phase_from_radians_q15(int32_t radians)
@@ -128,7 +128,7 @@ index 0d75b63..d663fa9 100644
              switch (model) {
              default: ratio = 1925 + ((ds_mul(color, color) * 31130) >> 15); break;
              case 1: ratio = 2457 + ((color * 17203) >> 15); break;
-@@ -233,43 +223,30 @@ void ds_voice_render(struct ds_voice *v, const struct ds_params *p,
+@@ -233,52 +223,39 @@ void ds_voice_render(struct ds_voice *v, const struct ds_params *p,
              case 3: ratio = 1925 + ((color * 32767) >> 15); break;
              }
          }
@@ -150,26 +150,36 @@ index 0d75b63..d663fa9 100644
 -                           : p->phase_inc;
 -        v->carrier += (uint32_t)inc << 17;
 -        v->mod1 += (uint32_t)((inc * ratio) >> 11) << 16;
--        fb = ds_mul(v->feedback_z, feedback);
--        fb = (fb * (8192 + ((metal * 40960) >> 15))) >> 12;
--        mod = ds_sin(v->mod1 + ds_phase_from_radians_q15(fb));
--        /* The pitch contour moves slowly relative to four synth samples.
--         * Hold FM depth/ceiling across the same eight output frames as the
--         * other controls; this avoids repeated heavy multiply/divide work. */
 +        pitch -= (pitch * 48 + 32767) >> 15;
 +        amp -= (amp * 10 + 32767) >> 15;
 +        if (attack < Q15) attack = ds_slew32(attack, Q15);
-         if (control_tick) {
--            int32_t shape = 8192 + 3 * (8192 + ds_mul(v->amp, 24576));
++        if (control_tick) {
 +            inc = p->sweep ? ds_swept_inc(p->phase_inc, p->sweep, pitch) : p->phase_inc;
 +            mod_inc = (inc * ratio) >> 11;
 +        }
 +        carrier += (uint32_t)inc << 17;
 +        mod1 += (uint32_t)mod_inc << 16;
-+        fb = ds_mul(feedback_z, feedback);
-+        fb = (fb * fbk) >> 12;
-+        mod = ds_sin(mod1 + ds_phase_from_radians_q15(fb));
-+        if (control_tick) {
+         /* Diet: with no feedback the loop contributes exactly 0
+          * (ds_mul(z, 0) == 0), so skip the modulator read, the radian
+          * conversion and the smoother update. Bit-exact while FBK stays
+          * 0; raising FBK mid-note reconverges from the frozen smoother
+          * within samples (inaudible). */
+         if (feedback) {
+-            fb = ds_mul(v->feedback_z, feedback);
+-            fb = (fb * (8192 + ((metal * 40960) >> 15))) >> 12;
+-            mod = ds_sin(v->mod1 + ds_phase_from_radians_q15(fb));
++            fb = ds_mul(feedback_z, feedback);
++            fb = (fb * fbk) >> 12;
++            mod = ds_sin(mod1 + ds_phase_from_radians_q15(fb));
+         } else {
+-            mod = ds_sin(v->mod1);
++            mod = ds_sin(mod1);
+         }
+-        /* The pitch contour moves slowly relative to four synth samples.
+-         * Hold FM depth/ceiling across the same eight output frames as the
+-         * other controls; this avoids repeated heavy multiply/divide work. */
+         if (control_tick) {
+-            int32_t shape = 8192 + 3 * (8192 + ds_mul(v->amp, 24576));
 +            int32_t shape = 8192 + 3 * (8192 + ds_mul(amp, 24576));
              int32_t metal2 = ds_mul(metal, metal);
              int32_t rate = (inc * ratio) >> 12;
@@ -186,7 +196,7 @@ index 0d75b63..d663fa9 100644
              } else {
                  ceiling = (bandwidth * 4096) / rate;
                  if (index > ceiling) index = ceiling;
-@@ -278,55 +255,105 @@ void ds_voice_render(struct ds_voice *v, const struct ds_params *p,
+@@ -287,36 +264,34 @@ void ds_voice_render(struct ds_voice *v, const struct ds_params *p,
          phase_mod = ds_index_phase(index, mod, Q15);
  
          switch (model) {
@@ -222,18 +232,28 @@ index 0d75b63..d663fa9 100644
          }
 -        case 3: /* SHARD: quantized tone and a short, scratchy noise bloom. */
 -            raw = ds_sin((v->carrier & 0xf8000000u) + phase_mod);
--            v->noise_z += ds_mul(ds_noise(v) - v->noise_z, 655 + ds_mul(color, 11469));
 +        case 3:
 +            raw = ds_sin((carrier & 0xf8000000u) + phase_mod);
-+            noise_z += ds_mul(ds_noise(v) - noise_z, 655 + ds_mul(color, 11469));
-             raw = ds_mul(raw, 27852 - (metal >> 2))
--                + ds_mul(v->noise_z, ds_mul(ds_mul(metal, v->amp), 13762));
-+                + ds_mul(noise_z, ds_mul(ds_mul(metal, amp), 13762));
-             break;
+             /* Diet: at METAL 0 the bloom term is exactly 0, so skip the
+              * LPF and the LFSR advance. Bit-exact while METAL stays 0;
+              * raising it restarts from frozen state (white restarts
+              * white — statistically identical, inaudible). */
+             if (metal) {
+-                v->noise_z += ds_mul(ds_noise(v) - v->noise_z, 655 + ds_mul(color, 11469));
++                noise_z += ds_mul(ds_noise(v) - noise_z, 655 + ds_mul(color, 11469));
+                 raw = ds_mul(raw, 27852 - (metal >> 2))
+-                    + ds_mul(v->noise_z, ds_mul(ds_mul(metal, v->amp), 13762));
++                    + ds_mul(noise_z, ds_mul(ds_mul(metal, amp), 13762));
+             } else {
+                 raw = ds_mul(raw, 27852);
+             }
+@@ -324,28 +299,80 @@ void ds_voice_render(struct ds_voice *v, const struct ds_params *p,
          }
--        v->feedback_z += (ds_soft_clip(raw + ((raw * 13) >> 5)) - v->feedback_z) / 8;
+         /* Frozen while feedback is 0 (see above); resumes on raise. */
+         if (feedback)
+-            v->feedback_z += (ds_soft_clip(raw + ((raw * 13) >> 5)) - v->feedback_z) / 8;
 -        if (v->attack < Q15) raw = ds_mul(raw, v->attack);
-+        feedback_z += (ds_soft_clip(raw + ((raw * 13) >> 5)) - feedback_z) / 8;
++            feedback_z += (ds_soft_clip(raw + ((raw * 13) >> 5)) - feedback_z) / 8;
 +        if (attack < Q15) raw = ds_mul(raw, attack);
  
 -        y = ds_mul(raw, v->velocity_s);

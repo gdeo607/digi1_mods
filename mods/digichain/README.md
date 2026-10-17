@@ -1,6 +1,6 @@
 # digichain
 
-An elekloader mod (core 2.1, Digitakt mk1 OS 1.53) that lets the SRC-machine mods **SOPHIE**
+An elekloader mod (core 2.1 or later, OS 1.53 and 1.54) that lets the SRC-machine mods **SOPHIE**
 (digisophie), **NEIGHBOR** (digineighbor) and **DIGISLICER** (digislicer) share one build. On its
 own it changes nothing.
 

@@ -104,7 +104,7 @@ The other controls:
   - The original keeps them in a saved part of its pattern. The DT1's
     saved spare bytes per pattern (48) are taken by Digi Matrix, Digi Poly and
     Digi EQ.
-- **RAM.** All mods share 128 KB. Tone+FX 3.2a3 takes 36.4 KB in all (.run
+- **RAM.** All mods share 128 KB (256 KB with core 4.0). Tone+FX 3.2a3 takes 36.4 KB in all (.run
   19.8 KB, .bss 16.7 KB); without the splash it is 3.5 KB smaller than 3.2a2.
 - **Track-LFO bridge.** It is parked on the original (nothing sets it), and is
   off here.
