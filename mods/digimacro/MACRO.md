@@ -101,7 +101,7 @@ a shaped carrier), the second HARM away (-2..+2 octaves), summed and DC-blocked.
 3. **ColdFire:** `tests/emu_macro.py` builds `macro.c` with elekloader's flags for the DT1, runs it
    on an emulated ColdFire V4e, checks it needs no library code and equals the PC build sample for sample
    (1,200 random blocks), and measures its cost.
-4. **Firmware:** `tests/digiemu_mono.py --machine MACRO` boots a core + digichain + digimono build in
+4. **Firmware:** `tests/digiemu_mono.py --machine MACRO` boots a core + machine-pages + digimono build in
    digiemu, puts MACRO on a track, turns knobs, plays trigs, and checks every block the voice hands on
    against the engine replayed on the PC from the same starts, notes and knob words.
 

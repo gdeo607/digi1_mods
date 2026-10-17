@@ -23,7 +23,6 @@ your OS file from your own official one.
 - **Digi Matrix**: any track's LFO to any parameter of any track, 8 slots, per pattern.
 - **Digi Utilities**: waveform, spectrum and X-Y scope, a tuner and track activity, on a held "...".
 - **Digi EQ**: a 4-band master EQ on every output, main outs, headphones and USB.
-- **digichain**: SOPHIE, NEIGHBOR, DIGISLICER, Digi Mono and Digi Poly in one build.
 - **Tone+FX**: Digital Alchemy DSP's master effects suite, ported: ring modulator, wavefolder, tilt EQ,
   bit crusher, pitch and stereo modes and a PERFORM page of momentary pads, on every output.
 - **Ready to use:** the `.elemod` files of every mod, the other authors' too, are in [elemods/](elemods/),
@@ -43,13 +42,12 @@ your OS file from your own official one.
 
 | mod | what it adds | version | hardware |
 |---|---|---|---|
-| [Digi Mono](#digi-mono) (`digimono`) | synth machines: MONO SIN, NOISE, SAW, PULSE, ENS, VO, POLY SIN and CHORDS | 0.23 | **confirmed** (0.22) |
-| [Digi Macro](#digi-macro) (`digimacro`) | MACRO: Plaits' engines as a machine (needs Digi Mono) | 1.1 | **confirmed**: no freezes (1.0 with Digi Mono 0.22) |
+| [Digi Mono](#digi-mono) (`digimono`) | synth machines: MONO SIN, NOISE, SAW, PULSE, ENS, VO, POLY SIN and CHORDS | 0.24 | not yet tested (0.22 **confirmed**) |
+| [Digi Macro](#digi-macro) (`digimacro`) | MACRO: Plaits' engines as a machine (needs Digi Mono) | 1.2 | not yet tested (1.0 **confirmed**: no freezes) |
 | [Digi Matrix](#digi-matrix) (`digimatrix`) | an LFO modulation matrix, 8 cross-track slots | 1.0c | **confirmed** |
 | [Digi Utilities](#digi-utilities) (`digiutils`) | waveform, spectrum and X-Y pages, tuner, track activity | 1.9a | **confirmed** |
 | [Digi EQ](#digi-eq) (`digieq`) | a 4-band master EQ on every output | 1.0c | **confirmed** |
-| [Digi Poly](#digi-poly) (`digipoly`) | POLY: chords from a track's own trigs, borrowing other tracks' voices | 2.0a | **confirmed** |
-| [digichain](#digichain) (`digichain`) | lets SOPHIE, NEIGHBOR, DIGISLICER and Digi Mono share a build; menu icons | 1.3 | **confirmed** |
+| [Digi Poly](#digi-poly) (`digipoly`) | POLY: chords from a track's own trigs, borrowing other tracks' voices | 2.1 | not yet tested (2.0a **confirmed**) |
 | [Tone+FX](#tonefx) (`tonefx`) | Digital Alchemy DSP's master effects (ring, fold, tilt EQ, crush, pitch / stereo, PERFORM pads), ported; GPL-2.0 | 3.2a3 | not yet tested |
 
 They all need core 2.1 or later (elekloader brings its newest, core 4.0, which gives the mods 256 KB of RAM
@@ -59,12 +57,13 @@ DigiFilter): every pair, checked by `tools/dev.sh elemods` (COMPATIBILITY.txt). 
 build (checked on OS 1.54), with Tone+FX or Digi EQ: Tone+FX replaces Digi EQ (the two use the same master
 page and render site).
 
-**DIGISLICER (2.3) and NEIGHBOR (0.7)** now describe their pages for elekloader's machine-pages mod, which
-takes the same firmware sites as digichain: they are built as their authors publish them, and they share a
-build with Digi Mono, Digi Macro and Digi Poly again once those move onto machine-pages (next).
+**The SRC machines** (Digi Mono, Digi Macro, Digi Poly, DIGISLICER 2.3, NEIGHBOR 0.7, OB-1) describe their pages
+for elekloader's [machine-pages](#machine-pages-elekloaders) mod, so they share a build (checked: all of them
+with Utilities, Matrix, Digi EQ, digihealth and DigiFilter, on OS 1.53 and 1.54). SOPHIE 1.1.13 still patches
+those places itself, so it does not combine with them until its author publishes a machine-pages build.
 
 **OS 1.54:** every mod here is built for both 1.53 and 1.54, and on 1.54 they pass the same emulator tests
-(Digi Mono, Digi Poly, Digi Matrix, Digi EQ, Digi Utilities' pages, NEIGHBOR through digichain). Of the other
+(Digi Mono, Digi Poly, Digi Matrix, Digi EQ, Digi Utilities' pages). Of the other
 mods, digihealth, NEIGHBOR and DIGISLICER have 1.54 versions; SOPHIE and DigiFilter do not yet, so
 `tools/dev.sh` ports the copy it builds of them with `tools/port_os.py`, which did ours (docs/DEVELOPING.md).
 
@@ -79,7 +78,7 @@ pattern is renamed "DEMO". Only screenshots are published here - no firmware, an
 
 ## Digi Mono
 
-**Digi Mono** (elekloader mod `digimono`, 0.23, needs core 2.1 or later and digichain 1.6) - seven synth machines after the Monomachine, and CHORDS
+**Digi Mono** (elekloader mod `digimono`, 0.24, needs core 3.0 or later and machine-pages) - seven synth machines after the Monomachine, and CHORDS
 - **Seven new machines in the FUNC+SRC list**, each with its own icon: **MONO SIN**, **MONO NOISE** (sample and
   hold, red noise), **MONO SAW** (unison, two sub-oscillators), **MONO PULSE** (PWM, unison, subs), **MONO ENS**
   (four oscillators at set intervals, saw to pulse, chorus), **MONO VO** (a formant voice: vowel to vowel,
@@ -95,8 +94,9 @@ pattern is renamed "DEMO". Only screenshots are published here - no firmware, an
 - **Their own SRC page**: knobs B-H are the machine's parameters, named and shown in their own units
   (semitones, %, ms, vowels, consonants). A stays TUNE; D is a parameter too (no sample list), and the
   volume is the track's LEVEL and AMP page.
-- **Tick it in elekloader** and digichain is ticked with it; it combines with every other mod here, Digi Poly
-  included, and with digisophie, digineighbor and digislicer (their `-chain` builds).
+- **Tick it in elekloader** and machine-pages is ticked with it, which draws its pages (0.24; up to 0.23,
+  digichain did). It combines with every other mod here, Digi Poly included, and with DIGISLICER, NEIGHBOR
+  and OB-1.
 - **Under load, lighter sound before any gap** (0.23): when the render runs short of time, the machines take
   their cheaper paths (ENS and CHORDS fade their chorus out, MACRO's 2OP FM plays new notes at 2x, PARTCL
   fires four of its six particles) until it has been calm for 2 s. Only if that is not enough does one
@@ -175,7 +175,7 @@ waveform -> spectrum -> X-Y; Song mode is kept.
 
 ## Digi Poly
 
-**Digi Poly** (elekloader mod `digipoly`, 2.0a, needs core 2.1 or later and digichain) - the POLY machine, redesigned.
+**Digi Poly** (elekloader mod `digipoly`, 2.1, needs core 3.0 or later and machine-pages) - the POLY machine, redesigned.
 2.0 runs on core 2.1, so it shares a build with every other mod here, Digi Mono included. POLY is now machine
 6 (it was 4, which core 2.1 gave NEIGHBOR): a POLY track saved with 1.0f loads as NEIGHBOR or ONESHOT, so
 choose POLY on it again.
@@ -204,15 +204,13 @@ in the FUNC+SRC list
 - CCs from that MIDI track reach the POLY tracks (filter/amp sequencing); SRC TUNE and LFOs stay per voice.
 - POLY survives kit/project reload.
 
-## digichain
+## machine-pages (elekloader's)
 
-**digichain** (elekloader mod `digichain`, 1.3, needs core 2.1 or later) - one build for the SRC machine mods
-- SOPHIE (digisophie), NEIGHBOR (digineighbor) and DIGISLICER (digislicer) each patch the same places in the
-  SRC page and the render; digichain owns those places once and passes each call to the machine it is for, so
-  they combine with each other and with Digi Mono. `tools/dev.sh` builds their `-chain` versions for it.
-- Every added machine gets its own icon in the FUNC+SRC list (the firmware drew only the first).
-- A new NEIGHBOR track takes the track on its left as its source, and its SLOT runs 0-8.
-- Ticked automatically with Digi Mono or a `-chain` mod. Details: [mods/digichain/README.md](mods/digichain/README.md).
+Digi Mono, Digi Macro and Digi Poly describe their SRC and LFO pages for **machine-pages**, elekloader's mod
+that owns the page's firmware places once and draws each added machine's page from its description (core
+3.0 and later), as DIGISLICER, NEIGHBOR, OB-1 and DT-FM do. So they all share a build. elekloader ticks it
+with them. (Up to Digi Mono 0.23 and Digi Poly 2.0a this repository's own **digichain** did that job for
+them; it is retired.)
 
 ## Tone+FX
 
@@ -284,7 +282,7 @@ python3 tools/build_elemods.py --stock <official OS 1.53 .syx> --elekloader <ele
 ```
 
 Then add them in elekloader's window (with its core mod), or on the command line:
-`python -m elekloader.patch --stock <official .syx> --mod core-4.0.elemod --mod digichain-1.6.elemod --mod digipoly-2.0a.elemod --mod digimatrix-1.0c.elemod --mod digieq-1.0c.elemod --out custom.syx --version 2.0e`.
+`python -m elekloader.patch --stock <official .syx> --mod core-4.0.elemod --mod machine-pages-1.1.elemod --mod digipoly-2.1.elemod --mod digimatrix-1.0c.elemod --mod digieq-1.0c.elemod --out custom.syx --version 2.0e`.
 Add `--mod digiutils-1.9a.elemod` for the "..." utility pages.
 
 Building needs an m68k cross toolchain (binutils and gcc), which the SDK looks up as `m68k-linux-gnu-*`:

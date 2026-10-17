@@ -1,6 +1,6 @@
 # Usage
 
-## Digi Poly (elekloader mod `digipoly`, 2.0; needs core 2.1 or later and digichain, ticked with it)
+## Digi Poly (elekloader mod `digipoly`, 2.1; needs core 3.0 or later and machine-pages, ticked with it)
 1. On any audio track press FUNC+SRC and choose **POLY** (after SLICE, with a three-note icon). POLY is machine 6
    since 2.0: a POLY track saved with 1.0f loads as NEIGHBOR or ONESHOT, so choose POLY on it again. The track keeps its sample, filter, amp
    and LFO settings as with any machine (POLY plays like ONESHOT).
@@ -145,7 +145,7 @@ One page, one band per column (bands 1-4 = knobs A/E, B/F, C/G, D/H):
   after a while.
 - A band at 0 dB (bell/shelf) costs nothing; four active bands cost about 5 % of the audio time (see RISKS.md).
 
-## Digi Mono (elekloader mod `digimono`, 0.23; needs digichain 1.6, ticked with it) and Digi Macro (`digimacro`, 1.1: MACRO; needs Digi Mono)
+## Digi Mono (elekloader mod `digimono`, 0.24; needs machine-pages, ticked with it) and Digi Macro (`digimacro`, 1.2: MACRO; needs Digi Mono)
 - **Pick a machine:** FUNC+SRC on an audio track, then scroll past SLICE (and past any other mod's machines):
   MONO SIN, MONO NOISE, MONO SAW, MONO PULSE, MONO ENS, MONO VO, POLY SIN, MACRO (with Digi Macro), CHORDS. YES to confirm. The track needs no sample.
 - **MACRO** (the Digi Macro mod) plays engines ported from Plaits: **B ENGN** the engine, in zones of 8: WSHAPE (0-7), 2OP FM
@@ -188,7 +188,7 @@ One page, one band per column (bands 1-4 = knobs A/E, B/F, C/G, D/H):
   chorus, MACRO's 2OP FM and PARTCL take lighter paths) until the load has been low for 2 s; if that is not
   enough, the heaviest voice goes silent until there is room for it, and the others play on.
 - **How many at once on your unit (a load test):**
-  1. Build core, digichain, Digi Mono and digihealth only (FAST AUDIO on, as it is by default), and turn
+  1. Build core, machine-pages, Digi Mono and digihealth only (FAST AUDIO on, as it is by default), and turn
      SETTINGS > SYSTEM INFO on: the top bar shows DSP, now and its peak over the last second.
   2. In an empty pattern, note DSP with nothing playing.
   3. Track 1: the machine to test, trigs on steps 1, 5, 9 and 13, a long AMP decay. Play; note DSP and its

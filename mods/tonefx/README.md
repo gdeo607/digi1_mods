@@ -113,7 +113,7 @@ The other controls:
 
 - **Digi EQ: not together.** Both take the master view's draw (vtable slot 4)
   and the render site 0x400721e6, and both use kind-0 pages.
-- **Everything else: combines.** digichain, digiutils, digimatrix, digipoly,
+- **Everything else: combines.** machine-pages, digiutils, digimatrix, digipoly,
   digimono, SOPHIE, DigiFilter and digihealth (elekloader's check, OS 1.54).
 - **RAM is the limit.** The 2.1j build (with Digi EQ and MACRO) has 2.5 KB left,
   so Tone+FX does not fit next to all of it. Without Digi EQ and Digi Macro the

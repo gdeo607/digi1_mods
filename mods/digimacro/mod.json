@@ -1,11 +1,11 @@
 {
  "id": "digimacro",
- "version": "1.1",
+ "version": "1.2",
  "title": "Digi Macro",
  "category": "Sound",
  "author": "gdeo607",
  "license": "MIT",
- "description": "MACRO, a machine in the FUNC+SRC list (after Digi Mono's): engines ported from Plaits by Emilie Gillet (MIT licence) - WSHAPE, 2OP FM, NOISE, PARTCL, BDRUM, SNARE, HIHAT, GRAIN. Knob B picks the engine (p-lockable per step), C/D/E are HARMONICS/TIMBRE/MORPH; Plaits' main output. Needs Digi Mono 0.23 or later, which renders its voices and draws its knobs; elekloader ticks it (and digichain) with it.",
+ "description": "MACRO, a machine in the FUNC+SRC list (after Digi Mono's): engines ported from Plaits by Emilie Gillet (MIT licence) - WSHAPE, 2OP FM, NOISE, PARTCL, BDRUM, SNARE, HIHAT, GRAIN. Knob B picks the engine (p-lockable per step), C/D/E are HARMONICS/TIMBRE/MORPH; Plaits' main output. Needs Digi Mono 0.24 or later (and machine-pages, which draws its page), which renders its voices and draws its knobs; elekloader ticks it (and machine-pages) with it.",
  "device": "digitakt-mk1",
  "os": "1.53",
  "sources": [
@@ -43,12 +43,14 @@
  ],
  "requires": [
   "core",
+  "machine-pages",
   "digimono"
  ],
  "resources": {
   "names": [
    "machine:27"
-  ]
+  ],
+  "core": "3.0"
  },
  "ports": {
   "1.54": {

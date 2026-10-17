@@ -1,9 +1,9 @@
 {
  "elemod": 2,
  "id": "digimacro",
- "version": "1.1",
+ "version": "1.2",
  "title": "Digi Macro",
- "description": "MACRO, a machine in the FUNC+SRC list (after Digi Mono's): engines ported from Plaits by Emilie Gillet (MIT licence) - WSHAPE, 2OP FM, NOISE, PARTCL, BDRUM, SNARE, HIHAT, GRAIN. Knob B picks the engine (p-lockable per step), C/D/E are HARMONICS/TIMBRE/MORPH; Plaits' main output. Needs Digi Mono 0.23 or later, which renders its voices and draws its knobs; elekloader ticks it (and digichain) with it.",
+ "description": "MACRO, a machine in the FUNC+SRC list (after Digi Mono's): engines ported from Plaits by Emilie Gillet (MIT licence) - WSHAPE, 2OP FM, NOISE, PARTCL, BDRUM, SNARE, HIHAT, GRAIN. Knob B picks the engine (p-lockable per step), C/D/E are HARMONICS/TIMBRE/MORPH; Plaits' main output. Needs Digi Mono 0.24 or later (and machine-pages, which draws its page), which renders its voices and draws its knobs; elekloader ticks it (and machine-pages) with it.",
  "category": "Sound",
  "author": "gdeo607",
  "license": "MIT",
@@ -18,7 +18,7 @@
  "sections": {
   ".run": {
    "align": 4,
-   "len": 32386,
+   "len": 32730,
    "parts": [
     [
      "hex",
@@ -869,7 +869,103 @@
     ],
     [
      "hex",
-     "401b77340000000b"
+     "554933300000"
+    ],
+    [
+     "stock",
+     "0x401ab6c8",
+     10
+    ],
+    [
+     "hex",
+     "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000086060000"
+    ],
+    [
+     "stock",
+     "0x401aa2ac",
+     10
+    ],
+    [
+     "hex",
+     "000000000000000000000000000000000000000000000000000086060000"
+    ],
+    [
+     "stock",
+     "0x401aa2ac",
+     10
+    ],
+    [
+     "stock",
+     "0x4017ce6c",
+     14
+    ],
+    [
+     "hex",
+     "000000000000000000000000860e0000"
+    ],
+    [
+     "stock",
+     "0x401aa2ac",
+     10
+    ],
+    [
+     "stock",
+     "0x4017ce6c",
+     14
+    ],
+    [
+     "hex",
+     "00000000000000000000000086060000"
+    ],
+    [
+     "stock",
+     "0x401aa2ac",
+     10
+    ],
+    [
+     "stock",
+     "0x4017ce6c",
+     14
+    ],
+    [
+     "hex",
+     "000000000000"
+    ],
+    [
+     "stock",
+     "0x4017dbac",
+     8
+    ],
+    [
+     "hex",
+     "0000000000000000000000000000000000000000000000000000000000000000"
+    ],
+    [
+     "stock",
+     "0x4017dbac",
+     8
+    ],
+    [
+     "hex",
+     "0000000000000000000000000000000000000000000000000000000000000000"
+    ],
+    [
+     "stock",
+     "0x4017dbac",
+     8
+    ],
+    [
+     "hex",
+     "00000000000000000000000000000000"
+    ],
+    [
+     "stock",
+     "0x401bfcd6",
+     8
+    ],
+    [
+     "hex",
+     "77340000000b"
     ],
     [
      "stock",
@@ -967,7 +1063,7 @@
     ],
     [
      "hex",
-     "050006000700080009000a000b000c000d000e000f0010001100120013001400150016001700180019001a001b001c001d001e001f0020002100220023002400250026002700280029002a002b002c002d002e002f0030003100320033003400350036003700380039003a003b003c003d003e003f00400040ff41ff42ff43ff44ff45ff46ff47ff48ff49ff4aff4bff4cff4dff4eff4fff50ff51ff52ff53ff54ff55ff56ff57ff58ff59ff5aff5bff5cff5dff5eff5fff60ff61ff62ff63ff64ff65ff66ff67ff68ff69ff6aff6bff6cff6dff6eff6fff70ff71ff72ff73ff74ff75ff76ff77ff78ff79ff7aff7bff7cff7dff7eff7fff800187378a378c878e7c903791c9933d949895df9716983f995c9a6f9b789c799d739e669f54a03ba11ea1fca2d6a3aca47fa54ea61aa6e3a7aaa86da92fa9eeaaabab67ac20acd8ad8eae42aef5afa7b057b106b1b5b262b30eb3b9b463b50cb5b5b65db704b7abb851b8f7b99cba41bae5bb89bc2dbcd1bd74be17bebbbf5ec000c0a3c146c1eac28dc330c3d4c478c51cc5c0c665c70ac7b0c856c8fdc9a4ca4ccaf5cb9ecc48ccf3cd9fce4ccefbcfaad05ad10cd1bfd273d329d3e1d49ad556d613d6d2d794d857d91ed9e7dab3db82dc55dd2bde05dee3dfc6e0ade19be28ee388e489e592e6a5e7c2e8ebea22eb69ecc4ee38efcaf185f37af5caf8ca000007360a360c860e7b103611c8133c149715de1715183e195b1a6e1b771c781d721e651f53203a211d21fb22d523ab247e254d261926e227a9286c292e29ed2aaa2b662c1f2cd72d8d2e412ef42fa63056310531b43261330d33b83462350b35b4365c370337aa385038f6399b3a403ae43b883c2c3cd03d733e163eba3f5d400040a2414541e9428c432f43d34477451b45bf4664470947af485548fc49a34a4b4af44b9d4c474cf24d9e4e4b4efa4fa95059510b51be5272532853e054995555561256d157935856591d59e65ab25b815c545d2a5e045ee25fc560ac619a628d63876488659166a467c168ea6a216b686cc36e376fc97184737975c978c97fff800197089ea7a393a724a9e1ac12addeaf60b0aab1c7b2c1b39eb462b513b5b3b645b6cab744b7b5b81eb880b8dbb930b981b9cdba14ba58ba99bad6bb11bb49bb7fbbb3bbe5bc15bc43bc70bc9bbcc5bceebd16bd3cbd62bd87bdabbdcfbdf1be13be35be56be76be96beb5bed5bef4bf12bf30bf4fbf6dbf8abfa8bfc6bfe3c000c01ec03bc059c077c094c0b2c0d1c0efc10dc12cc14cc16bc18bc1abc1ccc1eec210c232c256c27ac29fc2c5c2ebc313c33cc366c391c3bec3ecc41cc44ec482c4b8c4f0c52bc568c5a9c5edc634c680c6d1c726c781c7e3c84cc8bdc937c9bcca4ecaeecb9fcc63cd40ce3acf57d0a1d223d3efd620d8dddc6ee15ae8f9000017071ea62392272329e02c112ddd2f5f30a931c632c0339d3461351235b2364436c9374337b4381d387f38da392f398039cc3a133a573a983ad53b103b483b7e3bb23be43c143c423c6f3c9a3cc43ced3d153d3b3d613d863daa3dce3df03e123e343e553e753e953eb43ed43ef33f113f2f3f4e3f6c3f893fa73fc53fe24000401d403a40584076409340b140d040ee410c412b414b416a418a41aa41cb41ed420f423142554279429e42c442ea4312433b4365439043bd43eb441b444d448144b744ef452a456745a845ec4633467f46d04725478047e2484b48bc493649bb4a4d4aed4b9e4c624d3f4e394f5650a0522253ee561f58dc5c6d615968f87fff4d4143524f004d41435200456e67696e6500"
+     "050006000700080009000a000b000c000d000e000f0010001100120013001400150016001700180019001a001b001c001d001e001f0020002100220023002400250026002700280029002a002b002c002d002e002f0030003100320033003400350036003700380039003a003b003c003d003e003f00400040ff41ff42ff43ff44ff45ff46ff47ff48ff49ff4aff4bff4cff4dff4eff4fff50ff51ff52ff53ff54ff55ff56ff57ff58ff59ff5aff5bff5cff5dff5eff5fff60ff61ff62ff63ff64ff65ff66ff67ff68ff69ff6aff6bff6cff6dff6eff6fff70ff71ff72ff73ff74ff75ff76ff77ff78ff79ff7aff7bff7cff7dff7eff7fff800187378a378c878e7c903791c9933d949895df9716983f995c9a6f9b789c799d739e669f54a03ba11ea1fca2d6a3aca47fa54ea61aa6e3a7aaa86da92fa9eeaaabab67ac20acd8ad8eae42aef5afa7b057b106b1b5b262b30eb3b9b463b50cb5b5b65db704b7abb851b8f7b99cba41bae5bb89bc2dbcd1bd74be17bebbbf5ec000c0a3c146c1eac28dc330c3d4c478c51cc5c0c665c70ac7b0c856c8fdc9a4ca4ccaf5cb9ecc48ccf3cd9fce4ccefbcfaad05ad10cd1bfd273d329d3e1d49ad556d613d6d2d794d857d91ed9e7dab3db82dc55dd2bde05dee3dfc6e0ade19be28ee388e489e592e6a5e7c2e8ebea22eb69ecc4ee38efcaf185f37af5caf8ca000007360a360c860e7b103611c8133c149715de1715183e195b1a6e1b771c781d721e651f53203a211d21fb22d523ab247e254d261926e227a9286c292e29ed2aaa2b662c1f2cd72d8d2e412ef42fa63056310531b43261330d33b83462350b35b4365c370337aa385038f6399b3a403ae43b883c2c3cd03d733e163eba3f5d400040a2414541e9428c432f43d34477451b45bf4664470947af485548fc49a34a4b4af44b9d4c474cf24d9e4e4b4efa4fa95059510b51be5272532853e054995555561256d157935856591d59e65ab25b815c545d2a5e045ee25fc560ac619a628d63876488659166a467c168ea6a216b686cc36e376fc97184737975c978c97fff800197089ea7a393a724a9e1ac12addeaf60b0aab1c7b2c1b39eb462b513b5b3b645b6cab744b7b5b81eb880b8dbb930b981b9cdba14ba58ba99bad6bb11bb49bb7fbbb3bbe5bc15bc43bc70bc9bbcc5bceebd16bd3cbd62bd87bdabbdcfbdf1be13be35be56be76be96beb5bed5bef4bf12bf30bf4fbf6dbf8abfa8bfc6bfe3c000c01ec03bc059c077c094c0b2c0d1c0efc10dc12cc14cc16bc18bc1abc1ccc1eec210c232c256c27ac29fc2c5c2ebc313c33cc366c391c3bec3ecc41cc44ec482c4b8c4f0c52bc568c5a9c5edc634c680c6d1c726c781c7e3c84cc8bdc937c9bcca4ecaeecb9fcc63cd40ce3acf57d0a1d223d3efd620d8dddc6ee15ae8f9000017071ea62392272329e02c112ddd2f5f30a931c632c0339d3461351235b2364436c9374337b4381d387f38da392f398039cc3a133a573a983ad53b103b483b7e3bb23be43c143c423c6f3c9a3cc43ced3d153d3b3d613d863daa3dce3df03e123e343e553e753e953eb43ed43ef33f113f2f3f4e3f6c3f893fa73fc53fe24000401d403a40584076409340b140d040ee410c412b414b416a418a41aa41cb41ed420f423142554279429e42c442ea4312433b4365439043bd43eb441b444d448144b744ef452a456745a845ec4633467f46d04725478047e2484b48bc493649bb4a4d4aed4b9e4c624d3f4e394f5650a0522253ee561f58dc5c6d615968f87fff4d4143524f004d41435200454e474e00456e67696e65004841524d00"
     ],
     [
      "stock",
@@ -976,7 +1072,7 @@
     ],
     [
      "hex",
-     "73004d6f727068002d0054696d62726500454e474e004841524d004d4f52500054494d420057534841504500324f5020464d004e4f4953450050415254434c00424452554d00534e41524500484948415400475241494e00"
+     "730054494d420054696d627265004d4f5250004d6f727068002d0057534841504500324f5020464d004e4f4953450050415254434c00424452554d00534e41524500484948415400475241494e00"
     ]
    ]
   }
@@ -1000,31 +1096,35 @@
   ],
   "icon": [
    ".run",
-   27064
+   27408
+  ],
+  "page": [
+   ".run",
+   27072
   ],
   "icon_px": [
    ".run",
-   27136
+   27480
   ],
   "icon_mask": [
    ".run",
-   27092
+   27436
   ],
   "knob_p": [
    ".run",
-   27287
+   27631
   ],
   "knob_def": [
    ".run",
-   27280
+   27624
   ],
   "knob_sname": [
    ".run",
-   27252
+   27596
   ],
   "knob_lname": [
    ".run",
-   27224
+   27568
   ],
   "tame": [
    ".run",
@@ -1068,11 +1168,11 @@
   ],
   "MACRO_RSAT_FINE": [
    ".run",
-   28150
+   28494
   ],
   "MACRO_RSAT_COARSE": [
    ".run",
-   27668
+   28012
   ],
   "recip_q": [
    ".run",
@@ -1112,7 +1212,7 @@
   ],
   "MACRO_FM_RATIO": [
    ".run",
-   28410
+   28754
   ],
   "cnoise_render": [
    ".run",
@@ -1128,11 +1228,11 @@
   ],
   "ws_table": [
    ".run",
-   27386
+   27730
   ],
   "MACRO_FOLD": [
    ".run",
-   28670
+   29014
   ],
   "coef_norm": [
    ".run",
@@ -1144,7 +1244,7 @@
   ],
   "MACRO_SVF_TAN": [
    ".run",
-   28280
+   28624
   ],
   "tan_dirty": [
    ".run",
@@ -1184,39 +1284,39 @@
   ],
   "gain_out": [
    ".run",
-   27326
+   27670
   ],
   "MACRO_SOFTCLIP": [
    ".run",
-   27410
+   27754
   ],
   "sd_ratio28": [
    ".run",
-   27366
+   27710
   ],
   "hh_sq_ratio28": [
    ".run",
-   27342
+   27686
   ],
   "MACRO_WS_INVERSE_TAN": [
    ".run",
-   31758
+   32102
   ],
   "MACRO_WS_INVERSE_SIN": [
    ".run",
-   31244
+   31588
   ],
   "MACRO_WS_LINEAR": [
    ".run",
-   30730
+   31074
   ],
   "MACRO_WS_BUMP": [
    ".run",
-   30216
+   30560
   ],
   "MACRO_WS_DOUBLE_BUMP": [
    ".run",
-   29702
+   30046
   ],
   "macro_trig": [
    ".run",
@@ -1224,7 +1324,7 @@
   ],
   "macro_engine_name": [
    ".run",
-   27294
+   27638
   ],
   "digimacro_m27": [
    ".run",
@@ -1236,7 +1336,7 @@
   ],
   "digimacro_ext": [
    ".run",
-   27180
+   27524
   ],
   "macro_engine_of": [
    ".run",
@@ -1258,7 +1358,12 @@
  ],
  "imports": [
   "MACRO_SINE",
-  "digimono_eco"
+  "cm_ui_v3",
+  "digimono_eco",
+  "digimono_fmt_1",
+  "digimono_fmt_2",
+  "digimono_fmt_3",
+  "digimono_fmt_4"
  ],
  "weak": [],
  "relocs": [
@@ -1295,7 +1400,7 @@
    40,
    "abs32",
    "sec:.run",
-   27294
+   27638
   ],
   [
    ".run",
@@ -1309,49 +1414,49 @@
    956,
    "abs32",
    "sec:.run",
-   28150
+   28494
   ],
   [
    ".run",
    1020,
    "abs32",
    "sec:.run",
-   27668
+   28012
   ],
   [
    ".run",
    4090,
    "abs32",
    "sec:.run",
-   28410
+   28754
   ],
   [
    ".run",
    6470,
    "abs32",
    "sec:.run",
-   27386
+   27730
   ],
   [
    ".run",
    6718,
    "abs32",
    "sec:.run",
-   28670
+   29014
   ],
   [
    ".run",
    7242,
    "abs32",
    "sec:.run",
-   27386
+   27730
   ],
   [
    ".run",
    7664,
    "abs32",
    "sec:.run",
-   28280
+   28624
   ],
   [
    ".run",
@@ -1386,7 +1491,7 @@
    15814,
    "abs32",
    "sec:.run",
-   27326
+   27670
   ],
   [
    ".run",
@@ -1400,357 +1505,462 @@
    17328,
    "abs32",
    "sec:.run",
-   27410
+   27754
   ],
   [
    ".run",
    19586,
    "abs32",
    "sec:.run",
-   27366
+   27710
   ],
   [
    ".run",
    21046,
    "abs32",
    "sec:.run",
-   27326
+   27670
   ],
   [
    ".run",
    21602,
    "abs32",
    "sec:.run",
-   27366
+   27710
   ],
   [
    ".run",
    21632,
    "abs32",
    "sec:.run",
-   27342
+   27686
   ],
   [
    ".run",
    23008,
    "abs32",
    "sec:.run",
-   27410
+   27754
   ],
   [
    ".run",
    24186,
    "abs32",
    "sec:.run",
-   27410
+   27754
   ],
   [
    ".run",
    24766,
    "abs32",
    "sec:.run",
-   27342
+   27686
   ],
   [
    ".run",
    24794,
    "abs32",
    "sec:.run",
-   27366
+   27710
   ],
   [
    ".run",
    27044,
    "abs32",
    "sec:.run",
-   32272
+   32616
   ],
   [
    ".run",
    27048,
    "abs32",
    "sec:.run",
-   32278
+   32622
   ],
   [
    ".run",
    27052,
    "abs32",
    "sec:.run",
-   27064
+   27408
+  ],
+  [
+   ".run",
+   27068,
+   "abs32",
+   "sec:.run",
+   27072
+  ],
+  [
+   ".run",
+   27072,
+   "abs32",
+   "sym:cm_ui_v3",
+   0
   ],
   [
    ".run",
    27080,
    "abs32",
    "sec:.run",
-   27136
+   32622
   ],
   [
    ".run",
-   27084,
+   27128,
    "abs32",
    "sec:.run",
-   27092
+   32627
   ],
   [
    ".run",
-   27188,
+   27132,
    "abs32",
    "sec:.run",
-   32278
+   32632
   ],
   [
    ".run",
-   27192,
+   27160,
    "abs32",
-   "sec:.run",
-   27287
+   "sym:digimono_fmt_1",
+   0
   ],
   [
    ".run",
-   27196,
+   27168,
    "abs32",
    "sec:.run",
-   27280
+   32639
+  ],
+  [
+   ".run",
+   27172,
+   "abs32",
+   "sec:.run",
+   32644
   ],
   [
    ".run",
    27200,
    "abs32",
-   "sec:.run",
-   27252
-  ],
-  [
-   ".run",
-   27204,
-   "abs32",
-   "sec:.run",
-   27224
+   "sym:digimono_fmt_2",
+   0
   ],
   [
    ".run",
    27208,
    "abs32",
    "sec:.run",
-   18
+   32654
   ],
   [
    ".run",
    27212,
    "abs32",
    "sec:.run",
-   12
-  ],
-  [
-   ".run",
-   27216,
-   "abs32",
-   "sec:.run",
-   6
-  ],
-  [
-   ".run",
-   27220,
-   "abs32",
-   "sec:.run",
-   0
-  ],
-  [
-   ".run",
-   27224,
-   "abs32",
-   "sec:.run",
-   32283
-  ],
-  [
-   ".run",
-   27228,
-   "abs32",
-   "sec:.run",
-   32290
-  ],
-  [
-   ".run",
-   27232,
-   "abs32",
-   "sec:.run",
-   32300
-  ],
-  [
-   ".run",
-   27236,
-   "abs32",
-   "sec:.run",
-   32306
+   32659
   ],
   [
    ".run",
    27240,
    "abs32",
-   "sec:.run",
-   32306
-  ],
-  [
-   ".run",
-   27244,
-   "abs32",
-   "sec:.run",
-   32306
+   "sym:digimono_fmt_3",
+   0
   ],
   [
    ".run",
    27248,
    "abs32",
    "sec:.run",
-   32308
+   32666
   ],
   [
    ".run",
    27252,
    "abs32",
    "sec:.run",
-   32315
+   32671
   ],
   [
    ".run",
-   27256,
+   27280,
    "abs32",
-   "sec:.run",
-   32320
+   "sym:digimono_fmt_4",
+   0
   ],
   [
    ".run",
-   27260,
+   27424,
    "abs32",
    "sec:.run",
-   32325
+   27480
   ],
   [
    ".run",
-   27264,
+   27428,
    "abs32",
    "sec:.run",
-   32306
+   27436
   ],
   [
    ".run",
-   27268,
+   27532,
    "abs32",
    "sec:.run",
-   32306
+   32622
   ],
   [
    ".run",
-   27272,
+   27536,
    "abs32",
    "sec:.run",
-   32306
+   27631
   ],
   [
    ".run",
-   27276,
+   27540,
    "abs32",
    "sec:.run",
-   32330
+   27624
   ],
   [
    ".run",
-   27294,
+   27544,
    "abs32",
    "sec:.run",
-   32335
+   27596
   ],
   [
    ".run",
-   27298,
+   27548,
    "abs32",
    "sec:.run",
-   32342
+   27568
   ],
   [
    ".run",
-   27302,
+   27552,
    "abs32",
    "sec:.run",
-   32349
+   18
   ],
   [
    ".run",
-   27306,
+   27556,
    "abs32",
    "sec:.run",
-   32355
+   12
   ],
   [
    ".run",
-   27310,
+   27560,
    "abs32",
    "sec:.run",
-   32362
+   6
   ],
   [
    ".run",
-   27314,
+   27564,
    "abs32",
    "sec:.run",
-   32368
+   0
   ],
   [
    ".run",
-   27318,
+   27568,
    "abs32",
    "sec:.run",
-   32374
+   32632
   ],
   [
    ".run",
-   27322,
+   27572,
    "abs32",
    "sec:.run",
-   32380
+   32644
   ],
   [
    ".run",
-   27386,
+   27576,
    "abs32",
    "sec:.run",
-   31758
+   32671
   ],
   [
    ".run",
-   27390,
+   27580,
    "abs32",
    "sec:.run",
-   31244
+   32677
   ],
   [
    ".run",
-   27394,
+   27584,
    "abs32",
    "sec:.run",
-   30730
+   32677
   ],
   [
    ".run",
-   27398,
+   27588,
    "abs32",
    "sec:.run",
-   30216
+   32677
   ],
   [
    ".run",
-   27402,
+   27592,
    "abs32",
    "sec:.run",
-   29702
+   32659
   ],
   [
    ".run",
-   27406,
+   27596,
    "abs32",
    "sec:.run",
-   29702
+   32627
+  ],
+  [
+   ".run",
+   27600,
+   "abs32",
+   "sec:.run",
+   32639
+  ],
+  [
+   ".run",
+   27604,
+   "abs32",
+   "sec:.run",
+   32666
+  ],
+  [
+   ".run",
+   27608,
+   "abs32",
+   "sec:.run",
+   32677
+  ],
+  [
+   ".run",
+   27612,
+   "abs32",
+   "sec:.run",
+   32677
+  ],
+  [
+   ".run",
+   27616,
+   "abs32",
+   "sec:.run",
+   32677
+  ],
+  [
+   ".run",
+   27620,
+   "abs32",
+   "sec:.run",
+   32654
+  ],
+  [
+   ".run",
+   27638,
+   "abs32",
+   "sec:.run",
+   32679
+  ],
+  [
+   ".run",
+   27642,
+   "abs32",
+   "sec:.run",
+   32686
+  ],
+  [
+   ".run",
+   27646,
+   "abs32",
+   "sec:.run",
+   32693
+  ],
+  [
+   ".run",
+   27650,
+   "abs32",
+   "sec:.run",
+   32699
+  ],
+  [
+   ".run",
+   27654,
+   "abs32",
+   "sec:.run",
+   32706
+  ],
+  [
+   ".run",
+   27658,
+   "abs32",
+   "sec:.run",
+   32712
+  ],
+  [
+   ".run",
+   27662,
+   "abs32",
+   "sec:.run",
+   32718
+  ],
+  [
+   ".run",
+   27666,
+   "abs32",
+   "sec:.run",
+   32724
+  ],
+  [
+   ".run",
+   27730,
+   "abs32",
+   "sec:.run",
+   32102
+  ],
+  [
+   ".run",
+   27734,
+   "abs32",
+   "sec:.run",
+   31588
+  ],
+  [
+   ".run",
+   27738,
+   "abs32",
+   "sec:.run",
+   31074
+  ],
+  [
+   ".run",
+   27742,
+   "abs32",
+   "sec:.run",
+   30560
+  ],
+  [
+   ".run",
+   27746,
+   "abs32",
+   "sec:.run",
+   30046
+  ],
+  [
+   ".run",
+   27750,
+   "abs32",
+   "sec:.run",
+   30046
   ]
  ],
  "sites": [],
@@ -1789,16 +1999,18 @@
  "resources": {
   "names": [
    "machine:27"
-  ]
+  ],
+  "core": "3.0"
  },
  "requires": [
   "core",
+  "machine-pages",
   "digimono"
  ],
  "conflicts": [],
  "build": {
   "sources": {
-   "digimacro.c": "9370bf2d2871be171853cc0726a9bb72d884356f5b76c74dd177bb2ba4d4ed1a",
+   "digimacro.c": "2881744fd3eea26b8e0c10a2304784bffa369d09f597197ef9cad60976be2fc4",
    "macro.c": "d27bc62932bdfa1720b06612d1a1256e8468d7fa1a9ea66351ced21a67d07bff"
   }
  },

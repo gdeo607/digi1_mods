@@ -1,9 +1,9 @@
 {
  "elemod": 2,
  "id": "digipoly",
- "version": "2.0a",
+ "version": "2.1",
  "title": "Digi Poly",
- "description": "Adds a POLY machine (FUNC+SRC list). A POLY track plays chords from its own trigs: its TRIG page becomes the MIDI tracks' one (NOT1-NOT4, VEL, LEN, PROB, LFO.T) with the track's level beside it, and each extra note takes the voice of another track (voice stealing: the voice that started longest ago, never a muted one, one holding a live note or one whose track trigs at the same time). Pressing the track's key plays the whole chord. Notes received on the POLY track's own MIDI channel play polyphonically, one voice per note, and recording them writes the chord into the step's NOT1-NOT4 (up to four notes) instead of a bare trig. On its TRIG page the LEVEL knob sets the track level and the LEV fader shows it, as on the audio pages. SETTINGS > POLY chooses which tracks lend their voice to the pool; that is kept in the kit, so each pattern has its own voice allocation and it is saved with the project. A stolen voice plays the POLY track's sound, follows its knobs and level while it does, and gets its own sound back at its next trig. Kits saved with POLY load as ONESHOT on the stock OS. 2.0 is for core 2.1: POLY is machine 6 (it was 4, which is NEIGHBOR's now), so a POLY track saved with 1.0f loads as NEIGHBOR or ONESHOT; choose POLY again.",
+ "description": "Adds a POLY machine (FUNC+SRC list). A POLY track plays chords from its own trigs: its TRIG page becomes the MIDI tracks' one (NOT1-NOT4, VEL, LEN, PROB, LFO.T) with the track's level beside it, and each extra note takes the voice of another track (voice stealing: the voice that started longest ago, never a muted one, one holding a live note or one whose track trigs at the same time). Pressing the track's key plays the whole chord. Notes received on the POLY track's own MIDI channel play polyphonically, one voice per note, and recording them writes the chord into the step's NOT1-NOT4 (up to four notes) instead of a bare trig. On its TRIG page the LEVEL knob sets the track level and the LEV fader shows it, as on the audio pages. SETTINGS > POLY chooses which tracks lend their voice to the pool; that is kept in the kit, so each pattern has its own voice allocation and it is saved with the project. A stolen voice plays the POLY track's sound, follows its knobs and level while it does, and gets its own sound back at its next trig. Kits saved with POLY load as ONESHOT on the stock OS. POLY is machine 6. 2.1: its page is drawn by elekloader's machine-pages mod (core 3.0 or later), which elekloader ticks with it.",
  "category": "Sound",
  "author": "gdeo607",
  "license": "",
@@ -18,7 +18,7 @@
  "sections": {
   ".run": {
    "align": 4,
-   "len": 5035,
+   "len": 5371,
    "parts": [
     [
      "stock",
@@ -27,7 +27,7 @@
     ],
     [
      "hex",
-     "0000000000000000000000000000504f4c5900000000401b73b40000000b"
+     "00000000000000000000000000005549333000000000504f4c5900000000401b73b40000000b"
     ],
     [
      "stock",
@@ -79,7 +79,7 @@
     ],
     [
      "hex",
-     "203c4197ced84e75254d004442aa001c202a00087207b081625a206f004c22086752c0fc00a241e8009e123008000c0100066640224b93c4157c00c4001c122b02c00c01ffff6604122903851541001d122b03000c01ffff6604122903861541001e122b03400c01ffff6604122903871541001f200a"
+     "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000254d004442aa001c202a00087207b081625a206f004c22086752c0fc00a241e8009e123008000c0100066640224b93c4157c00c4001c122b02c00c01ffff6604122903851541001d122b03000c01ffff6604122903861541001e122b03400c01ffff6604122903871541001f200a"
     ],
     [
      "stock",
@@ -805,35 +805,39 @@
   ],
   "poly_str": [
    ".run",
-   24
+   32
   ],
   "poly_icon": [
    ".run",
-   32
+   40
+  ],
+  "poly_page": [
+   ".run",
+   156
   ],
   "poly_px": [
    ".run",
-   60
+   68
   ],
   "poly_mask": [
    ".run",
-   104
+   112
   ],
   "row_poly": [
    ".run",
-   508
+   844
   ],
   "row_label": [
    ".run",
-   470
+   806
   ],
   "str_row": [
    ".run",
-   524
+   860
   ],
   "steal": [
    ".run",
-   584
+   920
   ],
   "clock": [
    ".bss",
@@ -857,7 +861,7 @@
   ],
   "lev_shown": [
    ".run",
-   5016
+   5352
   ],
   "lev_hold": [
    ".bss",
@@ -885,67 +889,67 @@
   ],
   "digipoly_route_c": [
    ".run",
-   864
+   1200
   ],
   "digipoly_trigdraw": [
    ".run",
-   342
+   678
   ],
   "digipoly_trigkind": [
    ".run",
-   1958
+   2294
   ],
   "digipoly_rechook": [
    ".run",
-   530
+   866
   ],
   "digipoly_select": [
    ".run",
-   2110
+   2446
   ],
   "digipoly_route": [
    ".run",
-   268
+   604
   ],
   "digipoly_change": [
    ".run",
-   2228
+   2564
   ],
   "digipoly_lvlhook": [
    ".run",
-   308
+   644
   ],
   "digipoly_prevon_hook": [
    ".run",
-   388
+   724
   ],
   "digipoly_prevoff_hook": [
    ".run",
-   428
+   764
   ],
   "digipoly_trigenc": [
    ".run",
-   3732
+   4068
   ],
   "digipoly_levdraw": [
    ".run",
-   3198
+   3534
   ],
   "dt8poly_vstate": [
    ".run",
-   5020
+   5356
   ],
   "digipoly_levels": [
    ".run",
-   1860
+   2196
   ],
   "digipoly_prevoff": [
    ".run",
-   2958
+   3294
   ],
   "digipoly_prevon": [
    ".run",
-   2694
+   3030
   ],
   "digipoly_machine": [
    ".run",
@@ -953,41 +957,36 @@
   ],
   "digipoly_rectick": [
    ".run",
-   3890
-  ],
-  "digipoly_layout": [
-   ".run",
-   148
+   4226
   ],
   "digipoly_settings": [
    ".run",
-   452
+   788
   ],
   "digipoly_tag": [
    ".run",
-   156
+   492
   ],
   "digipoly_trigenc_thunk": [
    ".run",
-   572
+   908
   ],
   "digipoly_setparam": [
    ".run",
-   1660
+   1996
   ],
   "digipoly_recnote": [
    ".run",
-   4580
+   4916
   ],
   "digipoly_draw": [
    ".run",
-   2316
+   2652
   ]
  },
  "exports": [
   "digipoly_change",
   "digipoly_draw",
-  "digipoly_layout",
   "digipoly_levdraw",
   "digipoly_levels",
   "digipoly_lvlhook",
@@ -1012,6 +1011,7 @@
   "dt8poly_vstate"
  ],
  "imports": [
+  "cm_ui_v3",
   "core_additem"
  ],
  "weak": [],
@@ -1021,473 +1021,438 @@
    4,
    "abs32",
    "sec:.run",
-   24
+   32
   ],
   [
    ".run",
    8,
    "abs32",
    "sec:.run",
-   24
+   32
   ],
   [
    ".run",
    12,
    "abs32",
    "sec:.run",
-   32
+   40
   ],
   [
    ".run",
-   48,
+   28,
    "abs32",
    "sec:.run",
-   60
+   156
   ],
   [
    ".run",
-   52,
+   56,
    "abs32",
    "sec:.run",
-   104
+   68
   ],
   [
    ".run",
-   284,
+   60,
    "abs32",
    "sec:.run",
-   864
+   112
   ],
   [
    ".run",
-   320,
+   156,
+   "abs32",
+   "sym:cm_ui_v3",
+   0
+  ],
+  [
+   ".run",
+   620,
    "abs32",
    "sec:.run",
-   1860
+   1200
   ],
   [
    ".run",
-   348,
+   656,
    "abs32",
    "sec:.run",
-   1958
+   2196
   ],
   [
    ".run",
-   380,
+   684,
    "abs32",
    "sec:.run",
-   3198
+   2294
   ],
   [
    ".run",
-   418,
+   716,
    "abs32",
    "sec:.run",
-   2694
+   3534
   ],
   [
    ".run",
-   442,
+   754,
    "abs32",
    "sec:.run",
-   2958
+   3030
   ],
   [
    ".run",
-   462,
+   778,
+   "abs32",
+   "sec:.run",
+   3294
+  ],
+  [
+   ".run",
+   798,
    "abs32",
    "sym:core_additem",
    0
   ],
   [
    ".run",
-   508,
+   844,
    "abs32",
    "sec:.run",
-   470
+   806
   ],
   [
    ".run",
-   512,
+   848,
    "abs32",
    "sec:.run",
-   2110
+   2446
   ],
   [
    ".run",
-   516,
+   852,
    "abs32",
    "sec:.run",
-   2316
+   2652
   ],
   [
    ".run",
-   520,
+   856,
    "abs32",
    "sec:.run",
-   2228
+   2564
   ],
   [
    ".run",
-   554,
+   890,
    "abs32",
    "sec:.run",
-   4580
+   4916
   ],
   [
    ".run",
-   578,
+   914,
    "abs32",
    "sec:.run",
-   3732
+   4068
   ],
   [
    ".run",
-   760,
+   1096,
    "abs32",
    "sec:.bss",
    152
   ],
   [
    ".run",
-   766,
+   1102,
    "abs32",
    "sec:.bss",
    -1134156472
   ],
   [
    ".run",
-   884,
+   1220,
    "abs32",
    "sec:.run",
-   5020
+   5356
   ],
   [
    ".run",
-   1002,
+   1338,
    "abs32",
    "sec:.bss",
    152
   ],
   [
    ".run",
-   1010,
+   1346,
    "abs32",
    "sec:.bss",
    156
   ],
   [
    ".run",
-   1020,
+   1356,
    "abs32",
    "sec:.bss",
    152
   ],
   [
    ".run",
-   1092,
+   1428,
    "abs32",
    "sec:.bss",
    152
   ],
   [
    ".run",
-   1100,
+   1436,
    "abs32",
    "sec:.bss",
    156
   ],
   [
    ".run",
-   1112,
+   1448,
    "abs32",
    "sec:.bss",
    152
   ],
   [
    ".run",
-   1368,
+   1704,
    "abs32",
    "sec:.bss",
    188
   ],
   [
    ".run",
-   1440,
+   1776,
    "abs32",
    "sec:.bss",
    188
   ],
   [
    ".run",
-   1490,
+   1826,
    "abs32",
    "sec:.bss",
    188
   ],
   [
    ".run",
-   1502,
+   1838,
    "abs32",
    "sec:.bss",
    156
   ],
   [
    ".run",
-   1512,
+   1848,
    "abs32",
    "sec:.bss",
    152
   ],
   [
    ".run",
-   1524,
+   1860,
    "abs32",
    "sec:.bss",
    152
   ],
   [
    ".run",
-   1578,
+   1914,
    "abs32",
    "sec:.bss",
    152
   ],
   [
    ".run",
-   1594,
+   1930,
    "abs32",
    "sec:.bss",
    152
   ],
   [
    ".run",
-   1604,
+   1940,
    "abs32",
    "sec:.bss",
    156
   ],
   [
    ".run",
-   1626,
+   1962,
    "abs32",
    "sec:.bss",
    188
   ],
   [
    ".run",
-   1988,
+   2324,
    "abs32",
    "sec:.bss",
    136
   ],
   [
    ".run",
-   2132,
+   2468,
    "abs32",
    "sec:.bss",
    132
   ],
   [
    ".run",
-   2242,
+   2578,
    "abs32",
    "sec:.bss",
    132
   ],
   [
    ".run",
-   2258,
+   2594,
    "abs32",
    "sec:.bss",
    132
   ],
   [
    ".run",
-   2284,
+   2620,
    "abs32",
    "sec:.bss",
    132
   ],
   [
    ".run",
-   2298,
+   2634,
    "abs32",
    "sec:.bss",
    132
   ],
   [
    ".run",
-   2354,
+   2690,
    "abs32",
    "sec:.bss",
    132
   ],
   [
    ".run",
-   2484,
+   2820,
    "abs32",
    "sec:.run",
-   5028
+   5364
   ],
   [
    ".run",
-   2604,
+   2940,
    "abs32",
    "sec:.bss",
    132
   ],
   [
    ".run",
-   3264,
+   3600,
    "abs32",
    "sec:.run",
-   5016
-  ],
-  [
-   ".run",
-   3324,
-   "abs32",
-   "sec:.run",
-   5016
-  ],
-  [
-   ".run",
-   3348,
-   "abs32",
-   "sec:.bss",
-   128
-  ],
-  [
-   ".run",
-   3380,
-   "abs32",
-   "sec:.run",
-   5016
-  ],
-  [
-   ".run",
-   3520,
-   "abs32",
-   "sec:.bss",
-   128
-  ],
-  [
-   ".run",
-   3546,
-   "abs32",
-   "sec:.run",
-   5028
-  ],
-  [
-   ".run",
-   3588,
-   "abs32",
-   "sec:.bss",
-   128
-  ],
-  [
-   ".run",
-   3602,
-   "abs32",
-   "sec:.bss",
-   128
-  ],
-  [
-   ".run",
-   3612,
-   "abs32",
-   "sec:.run",
-   5031
+   5352
   ],
   [
    ".run",
    3660,
    "abs32",
    "sec:.run",
-   5028
+   5352
   ],
   [
    ".run",
-   3698,
+   3684,
+   "abs32",
+   "sec:.bss",
+   128
+  ],
+  [
+   ".run",
+   3716,
    "abs32",
    "sec:.run",
-   5028
+   5352
   ],
   [
    ".run",
-   3954,
+   3856,
+   "abs32",
+   "sec:.bss",
+   128
+  ],
+  [
+   ".run",
+   3882,
+   "abs32",
+   "sec:.run",
+   5364
+  ],
+  [
+   ".run",
+   3924,
+   "abs32",
+   "sec:.bss",
+   128
+  ],
+  [
+   ".run",
+   3938,
+   "abs32",
+   "sec:.bss",
+   128
+  ],
+  [
+   ".run",
+   3948,
+   "abs32",
+   "sec:.run",
+   5367
+  ],
+  [
+   ".run",
+   3996,
+   "abs32",
+   "sec:.run",
+   5364
+  ],
+  [
+   ".run",
+   4034,
+   "abs32",
+   "sec:.run",
+   5364
+  ],
+  [
+   ".run",
+   4290,
    "abs32",
    "sec:.bss",
    196
   ],
   [
    ".run",
-   3960,
+   4296,
    "abs32",
    "sec:.bss",
    196
   ],
   [
    ".run",
-   4074,
+   4410,
    "abs32",
    "sec:.bss",
    200
   ],
   [
    ".run",
-   4132,
-   "abs32",
-   "sec:.bss",
-   248
-  ],
-  [
-   ".run",
-   4140,
-   "abs32",
-   "sec:.bss",
-   32
-  ],
-  [
-   ".run",
-   4146,
-   "abs32",
-   "sec:.bss",
-   64
-  ],
-  [
-   ".run",
-   4174,
-   "abs32",
-   "sec:.bss",
-   64
-  ],
-  [
-   ".run",
-   4292,
-   "abs32",
-   "sec:.bss",
-   200
-  ],
-  [
-   ".run",
-   4300,
-   "abs32",
-   "sec:.bss",
-   248
-  ],
-  [
-   ".run",
-   4340,
-   "abs32",
-   "sec:.bss",
-   200
-  ],
-  [
-   ".run",
-   4398,
+   4468,
    "abs32",
    "sec:.bss",
    248
@@ -1497,88 +1462,137 @@
    4476,
    "abs32",
    "sec:.bss",
-   248
-  ],
-  [
-   ".run",
-   4542,
-   "abs32",
-   "sec:.bss",
-   196
-  ],
-  [
-   ".run",
-   4548,
-   "abs32",
-   "sec:.bss",
    32
   ],
   [
    ".run",
-   4554,
+   4482,
    "abs32",
    "sec:.bss",
    64
   ],
   [
    ".run",
-   4568,
+   4510,
+   "abs32",
+   "sec:.bss",
+   64
+  ],
+  [
+   ".run",
+   4628,
    "abs32",
    "sec:.bss",
    200
   ],
   [
    ".run",
-   4666,
+   4636,
+   "abs32",
+   "sec:.bss",
+   248
+  ],
+  [
+   ".run",
+   4676,
+   "abs32",
+   "sec:.bss",
+   200
+  ],
+  [
+   ".run",
+   4734,
+   "abs32",
+   "sec:.bss",
+   248
+  ],
+  [
+   ".run",
+   4812,
+   "abs32",
+   "sec:.bss",
+   248
+  ],
+  [
+   ".run",
+   4878,
+   "abs32",
+   "sec:.bss",
+   196
+  ],
+  [
+   ".run",
+   4884,
+   "abs32",
+   "sec:.bss",
+   32
+  ],
+  [
+   ".run",
+   4890,
+   "abs32",
+   "sec:.bss",
+   64
+  ],
+  [
+   ".run",
+   4904,
+   "abs32",
+   "sec:.bss",
+   200
+  ],
+  [
+   ".run",
+   5002,
    "abs32",
    "sec:.bss",
    96
   ],
   [
    ".run",
-   4692,
+   5028,
    "abs32",
    "sec:.bss",
    64
   ],
   [
    ".run",
-   4700,
+   5036,
    "abs32",
    "sec:.bss",
    0
   ],
   [
    ".run",
-   4722,
+   5058,
    "abs32",
    "sec:.bss",
    32
   ],
   [
    ".run",
-   4826,
+   5162,
    "abs32",
    "sec:.bss",
    64
   ],
   [
    ".run",
-   4846,
+   5182,
    "abs32",
    "sec:.bss",
    0
   ],
   [
    ".run",
-   4918,
+   5254,
    "abs32",
    "sec:.bss",
    32
   ],
   [
    ".run",
-   4974,
+   5310,
    "abs32",
    "sec:.bss",
    0
@@ -1787,18 +1801,19 @@
    "machine:6",
    "settings:POLY",
    "sound:slot 52 (POLY voice pool)"
-  ]
+  ],
+  "core": "3.0"
  },
  "requires": [
   "core",
-  "digichain"
+  "machine-pages"
  ],
  "conflicts": [
   "dt8poly"
  ],
  "build": {
   "sources": {
-   "poly_ui.s": "6482642bed6ea18b438ef4ca228bdc4e8ed7ada02f417211924350aa69e37905",
+   "poly_ui.s": "3f313f721360cd35463ebf70abf78257f1ffb539b134b665650b9b242e98b30f",
    "poly_glue.s": "b3cabd435b1edc3b570ae2294fcfed4c4ea6b537737ddf601283e31532fb5e0d",
    "poly.c": "333e632e56799e6aa3d1825ad8f5de8237d47ce177cc993853129e41000a8fff"
   }

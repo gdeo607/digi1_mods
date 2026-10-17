@@ -3,6 +3,38 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Digi Mono 0.24, Digi Macro 1.2, Digi Poly 2.1: on elekloader's machine-pages; digichain retired (HW: not yet)
+- **The SRC machines' pages now come from machine-pages**, elekloader's mod that owns the SRC and LFO pages'
+  firmware places once and draws each added machine's page from its description (core 3.0 and later),
+  as DIGISLICER 2.3, NEIGHBOR 0.7, OB-1 and DT-FM do. So Digi Mono, Digi Macro and Digi Poly share a build
+  with them again: checked, all of them with Utilities, Matrix, Digi EQ, digihealth and DigiFilter, on OS
+  1.53 and 1.54 (core 4.0).
+- **Digi Mono 0.24** patches no firmware place any more (0.23: 12 of its own and digichain's 18). Each
+  machine's descriptor carries its page (`digimono_ui_*`): SLICE's page, the knobs it does not have blank,
+  names and long names, a 0..127 range and the machine's default, the value texts in its units
+  (`digimono_fmt_1..7`), D an engine knob; the LFO page's names and group (MSAW...). The sound comes in
+  through machine-pages' render event (order 30), at the same point as before, still on Digi Mono's own
+  stack and under its overload guard.
+- **Digi Macro 1.2**: MACRO's page from its descriptor too (its value texts are Digi Mono's: B the engine's
+  name). Needs Digi Mono 0.24.
+- **Digi Poly 2.1**: POLY's page is ONESHOT's, from its descriptor; its own 10 sites stay.
+- **digichain is retired** (it did this job for our mods up to Digi Mono 0.23 and Digi Poly 2.0a), and
+  tools/chain_patch.py with it: the other authors' mods are built as they publish them. SOPHIE 1.1.13 still
+  patches those places itself, so it does not share a build with the machine-pages mods until its author
+  publishes a build for it.
+- tools/dev.sh builds machine-pages (elekloader's, unchanged) and publishes it in elemods/ with the others.
+- Checked in digiemu, OS 1.54, core 4.0 + machine-pages + Digi Mono + Digi Macro (+ Digi Poly):
+  - MONO SAW, MONO VO, CHORDS and MACRO 2OP FM: the machine list with their icons, each track takes its
+    machine with its defaults, knob turns reach 0..127, and every block of the voice equals the engine's own,
+    bit for bit (about 14,900 blocks each); the SRC page's names (UNIL UNIW, ENGN HARM TIMB MORP...);
+  - MONO ENS: the value texts under the knobs and in the pop-up ("0st", "58%", "Pulse Width=..."), and
+    turning D changes PW instead of opening the sample list;
+  - Digi Poly (tests/digiemu_poly.py): POLY's TRIG page, the chord from the track's key and from its trigs,
+    the level and knobs on every voice, LEVEL on the TRIG page, a recorded note into NOT1..NOT4, as 2.0a on
+    the same OS (both fail the test's SETTINGS step on 1.54 alike: the test walks 1.53's menu);
+  - CHORDS' master-mix check fails as it did with 0.23 (the same levels to 0.1 dB): its MAJ chord's octave
+    lies on the root's second harmonic, which the check does not tell apart.
+
 ## Core 4.0; SOPHIE's patch on its newest (HW: not yet)
 - **Core 4.0** (elekloader's newest, which the elekloader app builds with): 256 KB for the mods instead of
   128 KB. Every mod here works with it unchanged (the `.elemod` files are relocatable): in digiemu on OS 1.54,

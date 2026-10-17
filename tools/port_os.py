@@ -36,7 +36,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MAPFILE = os.path.join(ROOT, 'tools', 'os154.json')
 B = 0x40000400
-MODS = ['digimono', 'digichain', 'digipoly', 'digiutils', 'digimatrix', 'digieq']
+MODS = ['digimono', 'digipoly', 'digiutils', 'digimatrix', 'digieq']
 LIT = re.compile(r'0x(4[0-3][0-9a-fA-F]{6})([uUlL]*)\b')     # C suffixes (0x401b3748u) too
 NAMED = re.compile(r'F_([0-9a-f]{8})\b')
 

@@ -44,6 +44,19 @@ struct digimono_ext {
  * path, as long as the change makes no click (faded, or from a note's start). Digi Mono 0.23 and later. */
 extern uint8_t digimono_eco;
 
+/* Digi Mono 0.24 and later: machine-pages (core 3.0) draws the machines' pages, each from its descriptor's
+ * page (struct cm_ui, elekloader's digitakt-mk1/core3.h). A machine here describes its own page there (names,
+ * ranges, defaults, which knobs are blank); for its value texts its knobs can name these, Digi Mono's: knob
+ * i (B 1, C 2, D 3, E 4 .. H 7) of machine m, from its text() above, or its number. mshort, sname and lname
+ * above are not read since 0.24 (the page has them). */
+extern int32_t digimono_fmt_1(char *buf, int32_t value, int32_t ctx, int32_t m);
+extern int32_t digimono_fmt_2(char *buf, int32_t value, int32_t ctx, int32_t m);
+extern int32_t digimono_fmt_3(char *buf, int32_t value, int32_t ctx, int32_t m);
+extern int32_t digimono_fmt_4(char *buf, int32_t value, int32_t ctx, int32_t m);
+extern int32_t digimono_fmt_5(char *buf, int32_t value, int32_t ctx, int32_t m);
+extern int32_t digimono_fmt_6(char *buf, int32_t value, int32_t ctx, int32_t m);
+extern int32_t digimono_fmt_7(char *buf, int32_t value, int32_t ctx, int32_t m);
+
 /* the collection: pointers to the machines' structs, a null one last (elekloader adds it) */
 extern const struct digimono_ext *const digimono_ext[];
 

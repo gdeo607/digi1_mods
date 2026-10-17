@@ -28,6 +28,7 @@
 #endif
 /* ---- end of the moved addresses ---- */
 
+#include "digitakt-mk1/core3.h"
 #include "mono.h"
 #include "digimono_ext.h"
 
@@ -37,7 +38,6 @@
 
 #define MACH_FIRST   20                      /* digimono_m20..m28 in glue.s: SIN NOIS SAW PULS ENS VO PSIN, 28 CHORDS */
 #define MACH_SLOTS   10                      /* 20..29: Digi Mono's and other mods' (27: Digi Macro's MACRO) */
-extern volatile uint8_t core_track_machine[8];                  /* core 2.1: the machine each voice plays */
 #define VOICE_MACH   core_track_machine
 #define VOICE_START  (*(volatile const uint32_t *)0x80001228) /* bit v: voice v (re)started this block */
 #define VOICE_NOTE   ((volatile const int32_t *)0x80001f28)   /* per voice: MIDI note << 16 */
@@ -82,7 +82,6 @@ struct digimono_voice {
 struct kinfo {
     const int8_t *kp;                       /* knob -> parameter, -1: not on the page */
     const uint8_t *def;                     /* the knobs' values on a switch to it */
-    const char *const *sn, *const *ln;      /* their names */
     const struct digimono_ext *x;           /* another mod's machine, or 0 */
     int m;                                  /* id - MACH_FIRST */
 };
@@ -285,39 +284,17 @@ void digimono_blocks(void)
     }
 }
 
-/* ---- the SRC page ------------------------------------------------------------------------------- */
+/* ---- the SRC and LFO pages (machine-pages, core 3.0) ---------------------------------------------
+ * Each machine describes its page (struct cm_ui, elekloader's digitakt-mk1/core3.h), and the machine-pages
+ * mod draws it: SLICE's page (page_from 3: parameter ids 0x84..0x8b, knobs A..H) with the knobs the machine
+ * does not have blank, each knob it has with its name and long name, drawn as BR's (a plain round knob, a
+ * value 0..127: look P_BR) with its own value text (fmt), a 0..127 range and the machine's default; knob D,
+ * where a machine has it, an engine knob (no sample list). A stays TUNE. The LFO page names the same knobs
+ * (ONESHOT's parameters, the machines' params: ids 0x6c..0x73), in the machine's group ("MSAW"). Another
+ * mod's machine (digimono_ext) describes its own page, and can take its texts from digimono_fmt below. */
 
-#define ACTIVE_TRACK (*(volatile const uint32_t *)F_4197b6b4)
 #define UI_KIT       (*(uint8_t *volatile const *)F_4199dc44)   /* its sounds: + 0x20 + 0xa2 t */
-#define SLICE_ID_B   0x85                      /* SLICE's SRC page: ids 0x84..0x8b = knobs A..H */
-#define FMT_INT      ((void *)F_4197c7fc)      /* the firmware's plain-number formatter (BR's) */
-#define FMT_BUF      ((char *)F_4197ce98)      /* where 0x400657ee writes a value's text */
-typedef void (*fmt_t)(void *fmt, int32_t value, char *buf);
-#define FORMAT       ((fmt_t)F_40151cc2)
-
-/* the knobs: B C E F G H D ("-": not on the page) */
-static const char *const sname[MONO_MACHINES][KNOBS] = {
-    {"-",    "-",    "-",    "-",    "-",    "-",    "-"},
-    {"ST",   "RED",  "STON", "-",    "-",    "-",    "-"},
-    {"UNIL", "UNIW", "UNIX", "SUBX", "SUB1", "SUB2", "-"},
-    {"UNIL", "UNIW", "SUB1", "PW",   "PWAD", "PWRS", "SUB2"},
-    {"PCH2", "PCH3", "PCH4", "WAVE", "CHRL", "CHRW", "PW"},
-    {"VOC1", "VOC2", "V-SW", "CONS", "CLEN", "CVOL", "VOIC"},
-    {"NOT1", "NOT2", "EDEP", "ESPD", "-",    "-",    "NOT3"},
-    {"-",    "-",    "-",    "-",    "-",    "-",    "-"},     /* (27: another mod's) */
-    {"TYPE", "INV",  "SPRD", "WAVE", "CHRL", "CHRW", "PW"},
-};
-static const char *const lname[MONO_MACHINES][KNOBS] = {
-    {"-", "-", "-", "-", "-", "-", "-"},
-    {"Sample Hold Rate", "Red Noise", "Tuned Noise", "-", "-", "-", "-"},
-    {"Unison Level", "Unison Detune", "Unison Voices", "Sub Shape", "Sub 1 Oct Lev", "Sub 2 Oct Lev", "-"},
-    {"Unison Level", "Unison Detune", "Sub 1 Oct Lev", "Pulse Width", "PWM Depth", "PWM Rate", "Sub 2 Oct Lev"},
-    {"Pitch Osc 2", "Pitch Osc 3", "Pitch Osc 4", "Saw-Pulse", "Chorus Level", "Chorus Width", "Pulse Width"},
-    {"Vowel 1", "Vowel 2", "Vowel Glide", "Consonant", "Cons. Length", "Cons. Level", "Breath"},
-    {"Note 1", "Note 2", "Env Depth", "Env Speed", "-", "-", "Note 3"},
-    {"-", "-", "-", "-", "-", "-", "-"},
-    {"Chord Type", "Inversion", "Spread", "Sine-Saw-Pulse", "Chorus Level", "Chorus Width", "Pulse Width"},
-};
+#define P_BR         0x86                      /* BR's parameter id: the look every knob borrows */
 
 /* how each knob's value reads */
 enum { F_NUM, F_VOICES, F_SEMI, F_PW, F_PWENS, F_VOWEL, F_CONS, F_MS, F_SHAPE, F_BIPST, F_BIPOFF,
@@ -333,86 +310,6 @@ static const uint8_t knob_fmt[MONO_MACHINES][KNOBS] = {
     {F_NUM, F_NUM, F_NUM, F_NUM, F_NUM, F_NUM, F_NUM},
     {F_CHORD, F_INV, F_SPRD, F_CHWAVE, F_NUM, F_NUM, F_PWENS},
 };
-
-/* The active track's machine's knobs, if it is one here (Digi Mono's or another mod's); else 0. */
-static int active_model(struct kinfo *ki)
-{
-    uint32_t t = ACTIVE_TRACK;
-    const uint8_t *kit = UI_KIT;
-    if (t > 7 || !kit)
-        return 0;
-    return kinfo_of(kit[0x9e + 0xa2 * t], ki);
-}
-
-/* A SLICE page id -> our knob 0..6 (B C E F G H D), or -1 (A = TUNE, anything else). */
-static int knob_of(uint32_t id)
-{
-    static const int8_t k[7] = {0, 1, 6, 2, 3, 4, 5};      /* ids 0x85..0x8b: B C D E F G H */
-    return id >= SLICE_ID_B && id < SLICE_ID_B + 7 ? k[id - SLICE_ID_B] : -1;
-}
-
-/* The knob of id on the active Digi Mono page, if the machine has it there; else -1. */
-static int our_knob(uint32_t id, struct kinfo *ki)
-{
-    int k = knob_of(id);
-    if (!active_model(ki) || k < 0 || ki->kp[k] < 0)
-        return -1;
-    return k;
-}
-
-int digimono_ours(uint32_t id)
-{
-    struct kinfo ki;
-    return our_knob(id, &ki) >= 0;
-}
-
-const char *digimono_name(uint32_t id, int shortname)
-{
-    struct kinfo ki;
-    int k = our_knob(id, &ki);
-    if (k < 0)
-        return 0;
-    return shortname ? ki.sn[k] : ki.ln[k];
-}
-
-/* ---- the LFO page: DEST's list and box name the SRC knobs as the SRC page does ------------------
- * These machines take ONESHOT's parameters, ids 0x6c..0x73 = knobs A..H, sound slots 17..24; an LFO's
- * DEST is the slot, so "SAMP:Play Mode" is knob B, the one the engine reads as UNIL on MONO SAW. The
- * firmware names a destination from its parameter descriptor (0x401a9d9c + 52 id: long name +40, group
- * +44, short name +48); glue.s hands those reads here with the descriptor's offset (52 id). */
-#define ONESHOT_ID_A 0x6c
-static const char *const mach_short[MONO_MACHINES] = {"MSIN", "MNOI", "MSAW", "MPLS", "MENS", "MVO", "PSIN",
-                                                      "-", "CHRD"};
-
-/* what: 0 the group ("SAMP"), 1 the long name, 2 the short one; stock: the firmware's own */
-const char *digimono_dest(uint32_t off, int what, const char *stock)
-{
-    struct kinfo ki;
-    int k, j;
-    for (k = 0; k < 8 && off != (uint32_t)(ONESHOT_ID_A + k) * 52; k++)
-        ;
-    if (!active_model(&ki) || k == 8)
-        return stock;
-    if (what == 0)
-        return ki.x ? ki.x->mshort : mach_short[ki.m];
-    if (k == 0)                                 /* A: TUNE, as on the SRC page */
-        return stock;
-    j = our_knob(SLICE_ID_B - 1 + k, &ki);      /* SLICE's id of the same knob */
-    if (j < 0)
-        return what == 1 ? "Unused" : "-";
-    return what == 1 ? ki.ln[j] : ki.sn[j];
-}
-
-int digimono_range(uint32_t id, int32_t *out)
-{
-    struct kinfo ki;
-    if (our_knob(id, &ki) < 0)
-        return 0;
-    out[0] = 0;
-    out[1] = 127 << 8;
-    out[2] = 0;
-    return 1;
-}
 
 /* CHORDS: inversion and spread (mono.c mono_chord_notes: 32 values a step) */
 static const char *const inv_name[4] = {"ROOT", "1ST", "2ND", "3RD"};
@@ -533,52 +430,127 @@ static void text_into(const struct kinfo *ki, int k, int v, char *buf)
     }
 }
 
-/* The value pop-up's text (0x400657ee's callers): FMT_BUF, as the firmware's own. */
-char *digimono_text(uint32_t id, int32_t value)
+/* A knob's value text for the machine-pages page: page knob i (A..H: 0..7) of machine m. */
+static int32_t page_text(int i, char *buf, int32_t value, int32_t m)
 {
+    static const int8_t k_of[8] = {-1, 0, 1, 6, 2, 3, 4, 5};   /* A..H -> B C E F G H D's index */
     struct kinfo ki;
-    int k = our_knob(id, &ki);
-    if (k < 0)
-        return 0;
-    text_into(&ki, k, (value >> 8) & 0x7f, FMT_BUF);
-    return FMT_BUF;
-}
-
-/* A knob's value under it while it turns (0x4000f324, through digichain): into buf; 0 if not ours. */
-int digimono_knob_text(uint32_t id, int32_t value, char *buf)
-{
-    struct kinfo ki;
-    int k = our_knob(id, &ki);
-    if (k < 0)
+    int k = k_of[i];
+    if (k < 0 || !kinfo_of((int)m, &ki) || ki.kp[k] < 0)
         return 0;
     text_into(&ki, k, (value >> 8) & 0x7f, buf);
     return 1;
 }
+#define FMT(i) int32_t digimono_fmt_##i(char *buf, int32_t value, int32_t ctx, int32_t m) \
+    { (void)ctx; return page_text(i, buf, value, m); }
+FMT(1) FMT(2) FMT(3) FMT(4) FMT(5) FMT(6) FMT(7)
+#undef FMT
 
-/* The SRC page's layout for a Digi Mono machine (0x400657cc, through digichain): SLICE's, with the
- * knobs the machine does not have emptied (id 0), so they show nothing and turn nothing. 0: not ours. */
-#define LAY_SLICE    ((const uint32_t *)F_4197cf5c)    /* 44 bytes; the knobs' ids at +8 (A..H) */
-static uint32_t lay[MACH_SLOTS][11];
-static uint8_t lay_ok[MACH_SLOTS];
+#define DM_KNOB(sn, ln, d, i) { .name = sn, .lname = ln, .look = P_BR, .flags = CM_RANGE | CM_DEFAULT, \
+    .min = 0, .max = 127 << 8, .def = (d) << 8, .fmt = digimono_fmt_##i }
+#define DM_KNOB_D(sn, ln, d, i) { .name = sn, .lname = ln, .look = P_BR, \
+    .flags = CM_RANGE | CM_DEFAULT | CM_NOT_SAMPLE, .min = 0, .max = 127 << 8, .def = (d) << 8, .fmt = digimono_fmt_##i }
+#define DM_HIDDEN { .flags = CM_HIDDEN }
 
-uint32_t *digimono_layout_for(uint32_t machine)
-{
-    static const uint8_t at[KNOBS] = {3, 4, 6, 7, 8, 9, 5};   /* B C E F G H D: longs at +12 .. +36 */
-    struct kinfo ki;
-    int m, i;
-    if (!kinfo_of((int)machine, &ki))
-        return 0;
-    m = ki.m;
-    if (!lay_ok[m]) {
-        for (i = 0; i < 11; i++)
-            lay[m][i] = LAY_SLICE[i];
-        for (i = 0; i < KNOBS; i++)
-            if (ki.kp[i] < 0)
-                lay[m][at[i]] = 0;
-        lay_ok[m] = 1;
-    }
-    return lay[m];
-}
+/* The machines' pages, which the descriptors' tails name (glue.s digimono_m20..m28): knobs A..H; the names,
+ * long names and defaults are the machines' B C E F G H D (knob_p, mono_def) */
+const struct cm_ui digimono_ui_sin = {
+    .abi = cm_ui_v3, .page_from = 3, .group = "MSIN",
+    .knob = {
+        [1] = DM_HIDDEN,
+        [2] = DM_HIDDEN,
+        [3] = DM_HIDDEN,
+        [4] = DM_HIDDEN,
+        [5] = DM_HIDDEN,
+        [6] = DM_HIDDEN,
+        [7] = DM_HIDDEN,
+    },
+};
+const struct cm_ui digimono_ui_nois = {
+    .abi = cm_ui_v3, .page_from = 3, .group = "MNOI",
+    .knob = {
+        [1] = DM_KNOB("ST", "Sample Hold Rate", 0, 1),
+        [2] = DM_KNOB("RED", "Red Noise", 0, 2),
+        [3] = DM_HIDDEN,
+        [4] = DM_KNOB("STON", "Tuned Noise", 0, 4),
+        [5] = DM_HIDDEN,
+        [6] = DM_HIDDEN,
+        [7] = DM_HIDDEN,
+    },
+};
+const struct cm_ui digimono_ui_saw = {
+    .abi = cm_ui_v3, .page_from = 3, .group = "MSAW",
+    .knob = {
+        [1] = DM_KNOB("UNIL", "Unison Level", 0, 1),
+        [2] = DM_KNOB("UNIW", "Unison Detune", 40, 2),
+        [3] = DM_HIDDEN,
+        [4] = DM_KNOB("UNIX", "Unison Voices", 0, 4),
+        [5] = DM_KNOB("SUBX", "Sub Shape", 0, 5),
+        [6] = DM_KNOB("SUB1", "Sub 1 Oct Lev", 0, 6),
+        [7] = DM_KNOB("SUB2", "Sub 2 Oct Lev", 0, 7),
+    },
+};
+const struct cm_ui digimono_ui_puls = {
+    .abi = cm_ui_v3, .page_from = 3, .group = "MPLS",
+    .knob = {
+        [1] = DM_KNOB("UNIL", "Unison Level", 0, 1),
+        [2] = DM_KNOB("UNIW", "Unison Detune", 40, 2),
+        [3] = DM_KNOB_D("SUB2", "Sub 2 Oct Lev", 0, 3),
+        [4] = DM_KNOB("SUB1", "Sub 1 Oct Lev", 0, 4),
+        [5] = DM_KNOB("PW", "Pulse Width", 64, 5),
+        [6] = DM_KNOB("PWAD", "PWM Depth", 0, 6),
+        [7] = DM_KNOB("PWRS", "PWM Rate", 40, 7),
+    },
+};
+const struct cm_ui digimono_ui_ens = {
+    .abi = cm_ui_v3, .page_from = 3, .group = "MENS",
+    .knob = {
+        [1] = DM_KNOB("PCH2", "Pitch Osc 2", 63, 1),
+        [2] = DM_KNOB("PCH3", "Pitch Osc 3", 63, 2),
+        [3] = DM_KNOB_D("PW", "Pulse Width", 0, 3),
+        [4] = DM_KNOB("PCH4", "Pitch Osc 4", 63, 4),
+        [5] = DM_KNOB("WAVE", "Saw-Pulse", 0, 5),
+        [6] = DM_KNOB("CHRL", "Chorus Level", 0, 6),
+        [7] = DM_KNOB("CHRW", "Chorus Width", 127, 7),
+    },
+};
+const struct cm_ui digimono_ui_vo = {
+    .abi = cm_ui_v3, .page_from = 3, .group = "MVO",
+    .knob = {
+        [1] = DM_KNOB("VOC1", "Vowel 1", 43, 1),
+        [2] = DM_KNOB("VOC2", "Vowel 2", 113, 2),
+        [3] = DM_KNOB_D("VOIC", "Breath", 0, 3),
+        [4] = DM_KNOB("V-SW", "Vowel Glide", 64, 4),
+        [5] = DM_KNOB("CONS", "Consonant", 0, 5),
+        [6] = DM_KNOB("CLEN", "Cons. Length", 40, 6),
+        [7] = DM_KNOB("CVOL", "Cons. Level", 100, 7),
+    },
+};
+const struct cm_ui digimono_ui_psin = {
+    .abi = cm_ui_v3, .page_from = 3, .group = "PSIN",
+    .knob = {
+        [1] = DM_KNOB("NOT1", "Note 1", 63, 1),
+        [2] = DM_KNOB("NOT2", "Note 2", 63, 2),
+        [3] = DM_KNOB_D("NOT3", "Note 3", 63, 3),
+        [4] = DM_KNOB("EDEP", "Env Depth", 64, 4),
+        [5] = DM_KNOB("ESPD", "Env Speed", 64, 5),
+        [6] = DM_HIDDEN,
+        [7] = DM_HIDDEN,
+    },
+};
+const struct cm_ui digimono_ui_chrd = {
+    .abi = cm_ui_v3, .page_from = 3, .group = "CHRD",
+    .knob = {
+        [1] = DM_KNOB("TYPE", "Chord Type", 0, 1),
+        [2] = DM_KNOB("INV", "Inversion", 0, 2),
+        [3] = DM_KNOB_D("PW", "Pulse Width", 0, 3),
+        [4] = DM_KNOB("SPRD", "Spread", 0, 4),
+        [5] = DM_KNOB("WAVE", "Sine-Saw-Pulse", 16, 5),
+        [6] = DM_KNOB("CHRL", "Chorus Level", 0, 6),
+        [7] = DM_KNOB("CHRW", "Chorus Width", 127, 7),
+    },
+};
+
 
 /* ---- defaults on a switch ------------------------------------------------------------------------ */
 /* Switching a track's machine gives it the parameters' machine's defaults (ONESHOT's: core 2.1), which
@@ -615,8 +587,6 @@ static int kinfo_of(int id, struct kinfo *k)
     if (m < MONO_MACHINES && m != MONO_EXT7) {
         k->kp = knob_p[m];
         k->def = mono_def[m];
-        k->sn = sname[m];
-        k->ln = lname[m];
         k->x = 0;
         return 1;
     }
@@ -625,8 +595,6 @@ static int kinfo_of(int id, struct kinfo *k)
             k->x = *e;
             k->kp = k->x->knob_p;
             k->def = k->x->def;
-            k->sn = k->x->sname;
-            k->ln = k->x->lname;
             return 1;
         }
     return 0;
@@ -640,11 +608,16 @@ static uint16_t knobw(const uint8_t *snd, int i)
     return *(const uint16_t *)(snd + 0x14 + 2 * knob_slot[i]);
 }
 
-/* Do knobs B..H hold what a machine switch leaves there? prev: the machine before (id). */
-static int switch_defaults(const uint8_t *snd, int prev)
+/* Do knobs B..H hold what a machine switch leaves there? prev: the machine before (id); nk: the new one's
+ * knobs (machine-pages may already have set E..H to its defaults: CM_DEFAULT). */
+static int switch_defaults(const uint8_t *snd, int prev, const struct kinfo *nk)
 {
     struct kinfo ki;
     int i;
+    for (i = 2; i < 6 && knobw(snd, i) == (uint16_t)(nk->def[i] << 8); i++)
+        ;
+    if (i == 6)
+        return 1;
     if (kinfo_of(prev, &ki)) {
         for (i = 0; i < KNOBS; i++)
             if (knobw(snd, i) != (uint16_t)(ki.def[i] << 8))
@@ -678,7 +651,7 @@ void digimono_tick(void *ctrl)
         if (m == prev)
             continue;
         seen_mach[t] = m;
-        if (!kinfo_of(m, &ki) || !switch_defaults(snd, prev))
+        if (!kinfo_of(m, &ki) || !switch_defaults(snd, prev, &ki))
             continue;
         for (i = 0; i < KNOBS; i++) {
             int32_t w = (int32_t)ki.def[i] << 8;

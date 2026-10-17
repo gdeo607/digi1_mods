@@ -10,6 +10,7 @@
 #define BMP_VT 0x401b73b4u
 #endif
 
+#include "digitakt-mk1/core3.h"
 #include "macro.h"
 #include "digimono_ext.h"
 
@@ -70,11 +71,24 @@ struct bitmap {
 };
 static const struct bitmap icon = {BMP_VT, 11, 7, 1, icon_px, icon_mask, 0};
 
-/* id, name, short name, icon, params (ONESHOT), render (ONESHOT) */
-struct machine {
-    uint32_t id;
-    const char *name, *sname;
-    const struct bitmap *icon;
-    uint32_t params, render;
+/* Its SRC and LFO pages, drawn by machine-pages (core 3.0; digitakt-mk1/core3.h): SLICE's page, B ENGN, C HARM,
+ * D TIMB, E MORP (F G H blank), each a 0..127 knob drawn as BR's, its value text from Digi Mono's (which asks
+ * knob_text above: B shows the engine's name). The LFO page names them in the group "MACR". */
+#define P_BR 0x86
+#define KNOB(sn, ln, d, i, f) { .name = sn, .lname = ln, .look = P_BR, .flags = CM_RANGE | CM_DEFAULT | (f), \
+    .min = 0, .max = 127 << 8, .def = (d) << 8, .fmt = digimono_fmt_##i }
+static const struct cm_ui page = {
+    .abi = cm_ui_v3, .page_from = 3, .group = "MACR",
+    .knob = {
+        [1] = KNOB("ENGN", "Engine", 0, 1, 0),
+        [2] = KNOB("HARM", "Harmonics", 64, 2, 0),
+        [3] = KNOB("TIMB", "Timbre", 64, 3, CM_NOT_SAMPLE),
+        [4] = KNOB("MORP", "Morph", 64, 4, 0),
+        [5] = { .flags = CM_HIDDEN },
+        [6] = { .flags = CM_HIDDEN },
+        [7] = { .flags = CM_HIDDEN },
+    },
 };
-const struct machine digimacro_m27 = {27, "MACRO", "MACR", &icon, 0, 0};
+
+/* id, name, short name, icon, params (ONESHOT), render (ONESHOT); core 3.0's tail: its page */
+const struct cm_machine digimacro_m27 = {27, "MACRO", "MACR", &icon, 0, 0, CM_UI_TAG, &page};

@@ -4,10 +4,8 @@
 | ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ----
         .ifdef  OS154
         .equ    .LF_401b73b4, 0x401b7734
-        .equ    .LF_401d09ca, 0x401d0d7e
         .else
         .equ    .LF_401b73b4, 0x401b73b4
-        .equ    .LF_401d09ca, 0x401d09ca
         .endif
 | ---- end of the moved addresses ----
 
@@ -15,7 +13,8 @@
         .section .run, "ax"
 
 | ---------------- the machines (core 2.1's core_machines; elekloader docs/ADAPTING.md) --------------
-| Descriptor: id, name, short name, icon (below), params, render. They take ONESHOT's eight parameters (their
+| Descriptor: id, name, short name, icon (below), params, render, then core 3.0's tail: "UI30" and the page
+| machine-pages draws (digimono.c ui_*). They take ONESHOT's eight parameters (their
 | defaults on a switch, MIDI CC 16-23) and render as ONESHOT, so the voice runs the whole stock voice
 | path (the amp envelope and VOL included, which an unknown render machine skips). digimono_rblock
 | replaces the block of a voice whose track plays one of them (core_track_machine). Ids 20..26 and 28 (27 is
@@ -24,14 +23,14 @@
         .balign 4
         .globl  digimono_m20, digimono_m21, digimono_m22, digimono_m23, digimono_m24, digimono_m25
         .globl  digimono_m26, digimono_m28
-digimono_m20:   .long   20, str_sin,  str_sin_s,  digimono_icon_sin,  0, 0
-digimono_m21:   .long   21, str_nois, str_nois_s, digimono_icon_nois, 0, 0
-digimono_m22:   .long   22, str_saw,  str_saw_s,  digimono_icon_saw,  0, 0
-digimono_m23:   .long   23, str_puls, str_puls_s, digimono_icon_puls, 0, 0
-digimono_m24:   .long   24, str_ens,  str_ens_s,  digimono_icon_ens,  0, 0
-digimono_m25:   .long   25, str_vo,   str_vo_s,   digimono_icon_vo,   0, 0
-digimono_m26:   .long   26, str_psin, str_psin_s, digimono_icon_psin, 0, 0
-digimono_m28:   .long   28, str_chrd, str_chrd_s, digimono_icon_chrd, 0, 0
+digimono_m20:   .long   20, str_sin,  str_sin_s,  digimono_icon_sin,  0, 0, 0x55493330, digimono_ui_sin
+digimono_m21:   .long   21, str_nois, str_nois_s, digimono_icon_nois, 0, 0, 0x55493330, digimono_ui_nois
+digimono_m22:   .long   22, str_saw,  str_saw_s,  digimono_icon_saw,  0, 0, 0x55493330, digimono_ui_saw
+digimono_m23:   .long   23, str_puls, str_puls_s, digimono_icon_puls, 0, 0, 0x55493330, digimono_ui_puls
+digimono_m24:   .long   24, str_ens,  str_ens_s,  digimono_icon_ens,  0, 0, 0x55493330, digimono_ui_ens
+digimono_m25:   .long   25, str_vo,   str_vo_s,   digimono_icon_vo,   0, 0, 0x55493330, digimono_ui_vo
+digimono_m26:   .long   26, str_psin, str_psin_s, digimono_icon_psin, 0, 0, 0x55493330, digimono_ui_psin
+digimono_m28:   .long   28, str_chrd, str_chrd_s, digimono_icon_chrd, 0, 0, 0x55493330, digimono_ui_chrd
 str_sin:        .asciz  "MONO SIN"
 str_sin_s:      .asciz  "MSIN"
 str_nois:       .asciz  "MONO NOISE"
@@ -99,290 +98,25 @@ digimono_icon_mask:
         .long   0xfe000000, 0xfe000000, 0xfe000000, 0xfe000000, 0xfe000000
 
 
-| ---------------- the render: every voice's block, before the amp/filter stage (0x40077fc2) ----------
-| After the voice loop (0x400757fe) each voice's 32 samples, Q31, are at 0x80001a18 + 128 v; the stages
-| from 0x40072478 on (the filter, the amp envelope, VOL, the mixer) work on them there. This replaces
-| "pea 0x80001a18" (the first argument of 0x40072478), one instruction after the point digisophie hooks
-| (0x40077fba), so both run; digimono_blocks() overwrites the block of every voice that plays a Digi
-| Mono machine. The pea is done here: the return address goes one slot down and 0x80001a18 into its place.
-| Every register is kept; the engines that use the EMAC (MACRO, CHORDS' sines) save and restore it.
+| ---------------- the render: every voice's block (machine-pages' ev_render_voices) ------------------
+| machine-pages calls its render event after playback has written every track's block (32 Q31 samples at
+| 0x80001a18 + 128 v, fw_track_blocks) and before the filter, amp envelope, VOL and mixer stages work on
+| them; Digi Mono subscribes at order 30 (a machine that makes its own sound: 10-49; NEIGHBOR takes a track's
+| sound at 60, so it can take a Digi Mono track's). digimono_blocks() overwrites the block of every voice
+| that plays a Digi Mono machine.
 |
 | The render is an interrupt (level 5) and runs on the stack of whatever task it interrupted, which may
 | have little room left; the engines need up to about 2 KB (MACRO's drums: 1.9 KB). So digimono_blocks
 | runs on a stack of its own, DIGIMONO_STACK bytes in digimono.c, with room above that for the interrupts
 | of higher levels that may arrive meanwhile. Without it, a MACRO voice could overrun a task's stack into
-| what lies below it: a lock-up, an exception screen or a silent hang, at random.
+| what lies below it: a lock-up, an exception screen or a silent hang, at random. (The engines that use
+| the EMAC, MACRO and CHORDS' sines, save and restore it.)
         .balign 2
-        .globl  digimono_rblock
-digimono_rblock:
-        move.l  (%sp), -(%sp)                   | [ret][ret]
-        lea     -60(%sp), %sp
-        movem.l %d0-%d7/%a0-%a6, (%sp)
-        move.l  #0x80001a18, %d0
-        move.l  %d0, 64(%sp)                    | [ret][0x80001a18]: the pea this replaced
+        .globl  digimono_rvoices
+digimono_rvoices:
         move.l  %sp, %d0
         lea     digimono_stack_top, %sp          | our own stack
         move.l  %d0, -(%sp)                     | the task's, to go back to
         jsr     digimono_blocks
         move.l  (%sp), %sp                      | back on the task's stack
-        movem.l (%sp), %d0-%d7/%a0-%a6
-        lea     60(%sp), %sp
-        rts
-
-| ---------------- the SRC page: names, ranges and values of a Digi Mono track's knobs ----------------
-| Machines past the stock four get SLICE's SRC page (core 2.1): parameter ids 0x84..0x8b, knobs A..H.
-| While the active track plays a Digi Mono machine, digimono.c gives the knobs B..H its machine has their
-| own names, a 0..127 range and values with their units (digimono_name, digimono_range, digimono_text
-| return 0 otherwise, and the stock code runs as it was). A stays TUNE.
-|
-| The page's layout, the knobs' graphics, their UI records and the value under a turning knob are
-| reached through digichain (mods/digichain), which owns those functions and jumps here, at their entry
-| state, when the page is a Digi Mono machine's (20..26; digichain routes 20..29): the layout empties the knobs a machine does not
-| have; every knob it has is drawn as BR's (a plain round knob, a value 0..127) with its own text.
-        .equ    P_BR, 0x86
-
-| 0x400657cc(machine) -> the layout (was: moveq #3,d1 ; move.l 4(sp),d0)
-        .globl  digimono_layout
-digimono_layout:
-        move.l  4(%sp), -(%sp)
-        jsr     digimono_layout_for
-        addq.l  #4, %sp
-        tst.l   %d0
-        beq.s   1f
-        rts
-1:      move.l  4(%sp), %d0
-        moveq   #3, %d1
-        jmp     0x400657d2
-
-| 0x4000f2bc(obj, id, value, ...): a knob's graphic (was: lea -20(sp),sp ; movem.l d2-d6,(sp))
-        .globl  digimono_knob_gfx
-digimono_knob_gfx:
-        move.l  8(%sp), -(%sp)
-        jsr     digimono_ours
-        addq.l  #4, %sp
-        tst.l   %d0
-        beq.s   1f
-        move.l  #P_BR, %d0
-        move.l  %d0, 8(%sp)             | drawn as BR's knob
-1:      lea     -20(%sp), %sp
-        movem.l %d2-%d6, (%sp)
-        jmp     0x4000f2c4
-
-| 0x40065794(id): a parameter's UI record (was: move.l 4(sp),d1 ; cmpi.l #164,d1)
-        .globl  digimono_ui_rec
-digimono_ui_rec:
-        move.l  4(%sp), -(%sp)
-        jsr     digimono_ours
-        addq.l  #4, %sp
-        move.l  4(%sp), %d1
-        tst.l   %d0
-        beq.s   1f
-        move.l  #P_BR, %d1              | BR's: a plain knob, a fine step, a number
-1:      cmpi.l  #164, %d1
-        jmp     0x4006579e
-
-| 0x4000f324(obj, id, value, buf): the value under a turning knob
-| (was: lea -20(sp),sp ; movem.l d2-d4/a2-a3,(sp))
-        .globl  digimono_val_text
-digimono_val_text:
-        move.l  16(%sp), -(%sp)         | buf
-        move.l  16(%sp), -(%sp)         | value
-        move.l  16(%sp), -(%sp)         | id
-        jsr     digimono_knob_text
-        lea     12(%sp), %sp
-        tst.l   %d0
-        beq.s   1f
-        move.l  16(%sp), %d0            | -> buf, as the stock function returns it
-        rts
-1:      lea     -20(%sp), %sp
-        movem.l %d2-%d4/%a2-%a3, (%sp)
-        jmp     0x4000f32c
-
-| They are reached through their callers, not their entries, so that another mod (digisophie) can own
-| the entries: a caller's jsr is pointed here, and anything not ours goes on to the function as before.
-
-| jsr 0x4000fe8a (this, id) at 0x40030daa -> the parameter's short name
-        .globl  digimono_sname
-digimono_sname:
-        pea     1.w
-        move.l  12(%sp), -(%sp)
-        jsr     digimono_name
-        addq.l  #8, %sp
-        tst.l   %d0
-        bne.s   1f
-        jmp     0x4000fe8a
-1:      rts
-
-| jsr 0x4000feac (this, id) at 0x40032d36 -> the parameter's long name
-        .globl  digimono_lname
-digimono_lname:
-        clr.l   -(%sp)
-        move.l  12(%sp), -(%sp)
-        jsr     digimono_name
-        addq.l  #8, %sp
-        tst.l   %d0
-        bne.s   1f
-        jmp     0x4000feac
-1:      rts
-
-| 0x40078f0c (id; a0 = out {min, max, default}) -> d0 = a0 (was: move.l d2,-(sp) ; move.l 8(sp),d0).
-| Its entry: digisophie and digislicer wrap its callers, so their wrappers reach this too.
-        .globl  digimono_prange
-digimono_prange:
-        move.l  %a0, -(%sp)
-        move.l  8(%sp), -(%sp)
-        jsr     digimono_range
-        addq.l  #4, %sp
-        movea.l (%sp)+, %a0
-        tst.l   %d0
-        beq.s   1f
-        move.l  %a0, %d0
-        rts
-1:      move.l  %d2, -(%sp)
-        move.l  8(%sp), %d0
-        jmp     0x40078f12
-
-| jsr 0x400657ee (id, value) at its five callers -> the value's text
-        .globl  digimono_vtext
-digimono_vtext:
-        move.l  8(%sp), -(%sp)
-        move.l  8(%sp), -(%sp)
-        jsr     digimono_text
-        addq.l  #8, %sp
-        tst.l   %d0
-        bne.s   1f
-        jmp     0x400657ee
-1:      rts
-
-| Turning SAMP (D) opens the sample list: the SRC page's knob handlers compare the turned knob's id with
-| SAMP's and, when it is, open the list (0x4003af46) instead of changing the value. On a Digi Mono page D
-| is an engine knob: by jsr, the compare answers "not SAMP" there (Z clear), so the knob takes the
-| ordinary path, and as it was anywhere else. The compared register is kept, and every other one but d1
-| (which the next instructions load before they read it).
-|   0x4003b5b2: cmpi.l #135,d2 (the turn)       0x4003b314: cmpi.l #135,d0
-        .globl  digimono_samp_d0, digimono_samp_d2
-digimono_samp_d0:
-        cmpi.l  #0x87, %d0
-        bne.s   9f                      | not SAMP: Z clear, as the compare leaves it
-        bsr.s   digimono_samp_ours
-        beq.s   1f
-        tst.l   %d0                     | ours: d0 = 0x87, so Z clear: no sample list
-        rts
-1:      cmpi.l  #0x87, %d0              | SAMP's own: Z set, the list opens as before
-9:      rts
-
-digimono_samp_d2:
-        cmpi.l  #0x87, %d2
-        bne.s   9f
-        bsr.s   digimono_samp_ours
-        beq.s   1f
-        tst.l   %d2
-        rts
-1:      cmpi.l  #0x87, %d2
-9:      rts
-
-| -> Z clear when D is one of the active Digi Mono page's knobs. Keeps every register but d1.
-digimono_samp_ours:
-        lea     -12(%sp), %sp
-        movem.l %d0/%a0-%a1, (%sp)
-        pea     0x87.w
-        jsr     digimono_ours
-        addq.l  #4, %sp
-        move.l  %d0, %d1
-        movem.l (%sp), %d0/%a0-%a1
-        lea     12(%sp), %sp
-        tst.l   %d1
-        rts
-
-| ---------------- the LFO page: DEST's names (digimono_dest in digimono.c) ---------------------------
-| A destination's name comes from its parameter descriptor at 0x401a9d9c + 52 id. At each site below the
-| firmware pushes one or two of its fields as arguments; the jsr replaces those 6 bytes, the wrapper
-| leaves the same pushes on the stack (one slot under the return address is made for each), with
-| digimono_dest's answer in place of the field. Every register is kept.
-
-| 0x400a4374 (the DEST list, "SAMP:Play Mode"): move.l 0x28(a3,d0.l),-(sp) ; move.l d6,-(sp)
-| d0 = 52 id, a3 = 0x401a9d9c, d6 = the group's text; leaves [group][long name].
-        .globl  digimono_lfo_list
-digimono_lfo_list:
-        move.l  (%sp), -(%sp)                   | [ret][ret][ret]: two slots made
-        move.l  (%sp), -(%sp)
-        lea     -60(%sp), %sp
-        movem.l %d0-%d7/%a0-%a6, (%sp)
-        move.l  %d0, %d7                        | 52 id (d7 is kept for us by the C code)
-        move.l  0x28(%a3,%d0.l), -(%sp)
-        pea     1.w
-        move.l  %d7, -(%sp)
-        jsr     digimono_dest
-        lea     12(%sp), %sp
-        move.l  %d0, 68(%sp)                    | the long name, under the group
-        move.l  %d6, -(%sp)                     | fresh arguments: the callee may have written its own
-        clr.l   -(%sp)
-        move.l  %d7, -(%sp)
-        jsr     digimono_dest
-        lea     12(%sp), %sp
-        move.l  %d0, 64(%sp)                    | the group
-        movem.l (%sp), %d0-%d7/%a0-%a6
-        lea     60(%sp), %sp
-        rts
-
-| 0x400a43f0 (the same list line when "group:long name" is too wide for it, "SAMP:PLAY"):
-| move.l 0x30(a3,d2.l),-(sp) ; move.l d6,-(sp). d2 = 52 id; leaves [group][short name].
-        .globl  digimono_lfo_lshort
-digimono_lfo_lshort:
-        move.l  (%sp), -(%sp)
-        move.l  (%sp), -(%sp)
-        lea     -60(%sp), %sp
-        movem.l %d0-%d7/%a0-%a6, (%sp)
-        move.l  0x30(%a3,%d2.l), -(%sp)
-        pea     2.w
-        move.l  %d2, -(%sp)
-        jsr     digimono_dest
-        lea     12(%sp), %sp
-        move.l  %d0, 68(%sp)
-        move.l  %d6, -(%sp)
-        clr.l   -(%sp)
-        move.l  %d2, -(%sp)
-        jsr     digimono_dest
-        lea     12(%sp), %sp
-        move.l  %d0, 64(%sp)
-        movem.l (%sp), %d0-%d7/%a0-%a6
-        lea     60(%sp), %sp
-        rts
-
-| 0x40065de6 (the DEST box, top line): move.l 0x2c(a0,d0.l),-(sp) ; move.l d2,-(sp)
-| d0 = 52 id, a0 = 0x401a9d9c, d2 = the line's buffer; leaves [d2][group].
-        .globl  digimono_lfo_bgrp
-digimono_lfo_bgrp:
-        move.l  (%sp), -(%sp)
-        move.l  (%sp), -(%sp)
-        lea     -60(%sp), %sp
-        movem.l %d0-%d7/%a0-%a6, (%sp)
-        move.l  %d2, 64(%sp)
-        move.l  0x2c(%a0,%d0.l), -(%sp)
-        clr.l   -(%sp)
-        move.l  %d0, -(%sp)
-        jsr     digimono_dest
-        lea     12(%sp), %sp
-        move.l  %d0, 68(%sp)
-        movem.l (%sp), %d0-%d7/%a0-%a6
-        lea     60(%sp), %sp
-        rts
-
-| 0x40065e68 (the DEST box, bottom line): pea 0x401d09ca, after move.l 0x30(a0,d3.l),-(sp)
-| d3 = 52 id; leaves [0x401d09ca][short name].
-        .globl  digimono_lfo_bshort
-digimono_lfo_bshort:
-        move.l  (%sp), -(%sp)
-        lea     -60(%sp), %sp
-        movem.l %d0-%d7/%a0-%a6, (%sp)
-        lea     .LF_401d09ca, %a0
-        move.l  %a0, 64(%sp)
-        move.l  68(%sp), -(%sp)
-        pea     2.w
-        move.l  %d3, -(%sp)
-        jsr     digimono_dest
-        lea     12(%sp), %sp
-        move.l  %d0, 68(%sp)
-        movem.l (%sp), %d0-%d7/%a0-%a6
-        lea     60(%sp), %sp
         rts

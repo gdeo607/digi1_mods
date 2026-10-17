@@ -124,9 +124,9 @@ tools/dev.sh elemods
 - **The others:** digisophie, digislicer, DigiFilter, digineighbor and digihealth.
 - **core:** the elekloader app has core built in.
 - **COMPATIBILITY.txt:** elekloader's check for every pair: `ok`, `CLASH` with the overlapping address,
-  or `TOO BIG` when the two need more than the mods' RAM (256 KB with core 4.0, 128 KB with older cores). digisophie, digineighbor and
-  digislicer are built for digichain (`-chain` versions, mods/digichain/README.md), so they combine with
-  each other; on 2026-10-01 every pair of the ten combined. Several big mods together can still be too
+  or `TOO BIG` when the two need more than the mods' RAM (256 KB with core 4.0, 128 KB with older cores). The SRC machine mods describe
+  their pages for elekloader's machine-pages (built and published with them), so they combine; SOPHIE
+  1.1.13 patches those places itself and does not combine with them. Several big mods together can still be too
   big for the RAM: the window says so.
 
 Each `.elemod` is built from your own official OS file, so nothing of Elektron's is in it. Then:

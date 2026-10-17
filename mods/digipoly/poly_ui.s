@@ -1,7 +1,7 @@
 | Digi Poly: the POLY machine itself, for core 2.1's machine table (elekloader docs/ADAPTING.md, "SRC
 | machines"). Core lists it in FUNC+SRC with its name and icon, keeps it in a loaded kit, and plays it as
 | ONESHOT with ONESHOT's eight parameters (defaults, MIDI CC, Randomize, the sample browser); its SRC page
-| is ONESHOT's through digichain (digipoly_layout). Firmware addresses are OS 1.53's.
+| is ONESHOT's, drawn by machine-pages (poly_page). Firmware addresses are OS 1.53's.
 
 | ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ----
         .ifdef  OS154
@@ -23,6 +23,7 @@
         .globl  digipoly_machine
 digipoly_machine:                       | id, name, short name, icon, params, render
         .long   POLY_ID, poly_str, poly_str, poly_icon, 0, 0
+        .long   0x55493330, poly_page       | core 3.0's tail: its page (machine-pages)
 poly_str:
         .asciz  "POLY"
         .balign 4
@@ -38,9 +39,14 @@ poly_mask:
         .long   0xfe000000
         .endr
 
-| The SRC page's layout for POLY: ONESHOT's. digichain's layout hook (0x400657cc) comes here for a POLY
-| page, as the stock function's entry would (the machine at 4(sp)).
-        .globl  digipoly_layout
-digipoly_layout:
-        move.l  #LAY_ONESHOT, %d0
-        rts
+| POLY's SRC and LFO pages, drawn by machine-pages (core 3.0; elekloader's digitakt-mk1/core3.h struct cm_ui):
+| ONESHOT's page as it is (page_from 0, every knob the stock one).
+        .balign 4
+poly_page:
+        .long   cm_ui_v3                    | +0 abi
+        .byte   0, 0                        | +4 page_from: ONESHOT; flags
+        .short  0
+        .long   0, 0                        | +8 group, +12 on_switch: the stock ones, none
+        .rept   8                           | +16 knobs A..H: the stock ones (40 bytes each)
+        .long   0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        .endr

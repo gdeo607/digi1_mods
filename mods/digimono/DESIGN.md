@@ -169,28 +169,18 @@ What each parameter does, as this engine reads the manual:
     (`0x80002772 + 106 v`), so LFOs and p-locks reach them too.
   - **A voice not playing** (no start, and its amp envelope idle and below 2^19 for 32 blocks) is not
     rendered (0.7; 0.6 used the voice gain, which knob H, LEV underneath, sets to 0).
-- **SRC page:** machines past the stock four get SLICE's page (parameter ids 0x84..0x8b). While the
-  active track plays a Digi Mono machine, B..H get:
-  - the short and long names, at the callers of `0x4000fe8a` / `0x4000feac`;
-  - a 0..127 range, `0x40078f0c`;
-  - the pop-up's value text, at the callers of `0x400657ee`;
-  - through digichain (0.7, which owns those entries): the layout `0x400657cc` (knobs it does not have
-    emptied), the knob graphic `0x4000f2bc` and UI record `0x40065794` (BR's), the value under a turning
-    knob `0x4000f324`;
-  - no sample list for D: `0x4003b5b2` and `0x4003b314` (`cmpi.l #135`, SAMP's id), by jsr.
-- **LFO page (0.12):** an LFO's DEST names the SRC knobs as the SRC page does. These machines take ONESHOT's
-  parameters, ids 0x6c..0x73 = knobs A..H, sound slots 17..24, and DEST is the slot, so the stock list said
-  "SAMP:Play Mode" for the knob the engine reads as UNIL. The firmware names a destination from its
-  descriptor (0x401a9d9c + 52 id: long name +40, group +44, short name +48); four jsr sites, each in place of
-  the 6 bytes that push those fields, hand them to `digimono_dest`, which answers the machine's short name
-  for the group (MSAW..., also on TUNE) and the knob's own names, "Unused" / "-" for a knob the machine
-  does not have:
-  - `0x400a4374`, the list line, "MSAW:Unison Level";
-  - `0x400a43f0`, the same line when group and long name are too wide for it: the short name, "MNOI:ST";
-  - `0x40065de6` and `0x40065e68`, the DEST box's two lines, "MSAW" over "UNIL".
-  Other tracks, and destinations off the SRC page, keep the firmware's names. From 0.13a the first three
-  are digichain's (1.6), which SOPHIE's LFO names share, and digichain calls these handlers there; the
-  fourth stays Digi Mono's own (mods/digichain/README.md).
+- **SRC and LFO pages (0.24):** drawn by elekloader's machine-pages mod (core 3.0) from each machine's
+  description: its descriptor's tail (`"UI30"` and a `struct cm_ui`, digitakt-mk1/core3.h), `digimono_ui_*`
+  in digimono.c. SLICE's page (parameter ids 0x84..0x8b) with the knobs a machine does not have blank, each
+  knob it has with its short and long name, drawn as BR's (a plain knob, 0..127), a 0..127 range and the
+  machine's default, its value text from `digimono_fmt_1..7` (the machine's units: semitones, %, ms,
+  vowels, chords), and D an engine knob (no sample list). The LFO page names the same knobs (ONESHOT's
+  parameters, ids 0x6c..0x73, which the machines take) in the machine's group (MSAW...), "Unused" / "-"
+  for one it does not have. Digi Mono patches no firmware place of its own any more; up to 0.23 it hooked
+  12 (names, ranges, value texts, the SAMP compares, the LFO box) and digichain's 18 (mods/digichain, in
+  this repository's history).
+- **Render (0.24):** machine-pages' `ev_render_voices` at order 30 (up to 0.23 a jsr at `0x40077fc2`): the
+  same point, after playback, before the filter.
 - **Defaults:** `ev_tick` watches the UI kit for a switch.
 
 ## Verified
