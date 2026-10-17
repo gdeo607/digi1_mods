@@ -158,20 +158,15 @@ build_one() {   # build_one NAME SOURCEDIR -> echo the .elemod
         python3 "$ROOT/tools/port_os.py" apply --new "$STOCK" --elekloader "$TOOLS/elekloader" --mods "$stage" \
             > "$LOG/port-$1.log" 2>&1 || die "$1 could not be ported to OS 1.54: $LOG/port-$1.log"
     fi
-    if [[ $1 == digisophie && -f $ROOT/tools/patches/digisophie-render.patch ]]; then
-        # SOPHIE's render made lighter, the same output (tools/patches; offered upstream): its version
-        # gets an "f" so the unit and elekloader show which one is built
-        local sp=$ROOT/tools/patches/digisophie-render.patch
+    if [[ $1 == digisophie && -f $ROOT/tools/patches/digisophie-machine-pages.patch ]]; then
+        # SOPHIE 1.2.0 as offered to its author (tools/patches): its pages drawn by machine-pages, so it
+        # shares a build with the other machines, and its render lighter, the same output. The patch
+        # sets the version itself.
+        local sp=$ROOT/tools/patches/digisophie-machine-pages.patch
         if patch -p1 -s -f --dry-run -d "$stage" < "$sp" > /dev/null 2>&1; then
             patch -p1 -s -f -d "$stage" < "$sp"
-            python3 - "$stage/mod.json" <<'PY'
-import json, sys
-d = json.load(open(sys.argv[1]))
-d["version"] += "f"
-json.dump(d, open(sys.argv[1], "w"), indent=1)
-PY
         else
-            echo "  digisophie: tools/patches/digisophie-render.patch does not apply (upstream has it, or changed): built as fetched" >&2
+            echo "  digisophie: tools/patches/digisophie-machine-pages.patch does not apply (upstream has it, or changed): built as fetched" >&2
         fi
     fi
     if [[ $1 == digifilter ]]; then   # GCC 14 and later refuse its ACTIVE_TRACK (a pointer read into an int):
@@ -214,7 +209,7 @@ cmd_build() {
             *) die "unknown mod: $m" ;;
         esac
     done
-    if printf '%s\n' "${files[@]}" | grep -qE -- '/(digimono|digimacro|digi101|digipoly|digislicer|digineighbor)-[^/]*\.elemod$'; then
+    if printf '%s\n' "${files[@]}" | grep -qE -- '/(digimono|digimacro|digi101|digipoly|digisophie|digislicer|digineighbor)-[^/]*\.elemod$'; then
         files+=("$(build_one machine-pages "$TOOLS/elekloader/mods/machine-pages")")   # draws their pages
     fi
     for f in "${files[@]}"; do echo "  $(basename "$f")"; done
@@ -419,7 +414,7 @@ PUBLISHED=(machine-pages "${ELEMOD_ALL[@]}")
 THEIRS=(digisophie digislicer digineighbor digifilter digihealth)
 origin() {
     case $1 in
-        digisophie) echo "$DIGISOPHIE_URL|its render made lighter, the same output (tools/patches/digisophie-render.patch)" ;;
+        digisophie) echo "$DIGISOPHIE_URL|1.2.0 as offered to its author: its pages drawn by machine-pages, its render lighter, the same output (tools/patches/digisophie-machine-pages.patch)" ;;
         digislicer) echo "$DIGISLICER_URL|none" ;;
         digineighbor) echo "$DIGINEIGHBOR_URL|none" ;;
         digifilter) echo "$DIGIFILTER_URL|OS 1.54: ported by tools/port_os.py" ;;

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""SOPHIE's lighter render (tools/patches/digisophie-render.patch) against its author's: the same output.
+"""SOPHIE as built here (tools/patches/digisophie-machine-pages.patch: its render lighter, its pages
+machine-pages') against its author's: the same output.
 
     <python with digiemu's patched unicorn> tests/sophie_fast.py --digisophie <soejrd/digisophie checkout>
+        --elekloader <elekloader checkout>
 
 The checkout's sophie.c (as fetched) and a copy with the patch applied are built for the PC and for the
 MCF54455 (m68k-linux-gnu-gcc, elekloader's flags). Checks:
@@ -15,7 +17,7 @@ MCF54455 (m68k-linux-gnu-gcc, elekloader's flags). Checks:
 import argparse, ctypes, os, random, shutil, struct, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PATCH = os.path.join(HERE, "..", "tools", "patches", "digisophie-render.patch")
+PATCH = os.path.join(HERE, "..", "tools", "patches", "digisophie-machine-pages.patch")
 FAIL = []
 
 
@@ -28,13 +30,12 @@ def check(ok, what):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--digisophie", required=True)
+    ap.add_argument("--elekloader", required=True, help="for the SDK header digitakt.c includes since 1.2.0")
     a = ap.parse_args()
     work = tempfile.mkdtemp(prefix="sophie_fast_")
     old, new = os.path.join(work, "old"), os.path.join(work, "new")
-    for d in (old, new):
-        os.makedirs(d)
-        for f in ("sophie.c", "sophie.h", "sophie_sin_table.inc", "digitakt.c", "os153.h", "os154.h"):
-            shutil.copy(os.path.join(a.digisophie, f), d)
+    for d in (old, new):                       # the whole checkout: the patch touches more than the engine
+        shutil.copytree(a.digisophie, d, ignore=shutil.ignore_patterns(".git", "out", "release"))
     r = subprocess.run(["patch", "-p1", "-s", "-f", "-d", new], stdin=open(PATCH), capture_output=True, text=True)
     check(r.returncode == 0, "the patch applies to the checkout%s" % ("" if not r.returncode else ": " + r.stdout + r.stderr))
     if r.returncode:
@@ -86,8 +87,9 @@ def main():
     for d in (old, new):
         obj, elf, binf = (os.path.join(d, n) for n in ("s.o", "s.elf", "s.bin"))
         subprocess.check_call(["m68k-linux-gnu-gcc"] + E.CFLAGS + ["-I", d, "-c", os.path.join(d, "sophie.c"), "-o", obj])
-        subprocess.check_call(["m68k-linux-gnu-gcc"] + E.CFLAGS + ["-I", d, "-c", os.path.join(d, "digitakt.c"),
-                                                                 "-o", obj + ".dt"]) if d == new else None
+        subprocess.check_call(["m68k-linux-gnu-gcc"] + E.CFLAGS + ["-I", d, "-I", os.path.join(
+            a.elekloader, "elekloader", "sdk", "include"), "-c", os.path.join(d, "digitakt.c"), "-o", obj + ".dt"]) \
+            if d == new else None
         subprocess.check_call(["m68k-linux-gnu-ld", "-Ttext=0x%x" % E.TEXT, "-e", "ds_voice_render", "-o", elf, obj])
         subprocess.check_call(["m68k-linux-gnu-objcopy", "-O", "binary", elf, binf])
         syms = {}

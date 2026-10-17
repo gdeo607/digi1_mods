@@ -3,8 +3,8 @@
 Ready to add to [elekloader](https://github.com/irpina/elekloader): open it, choose your own official
 Digitakt mk1 **OS 1.53** or **OS 1.54** file, **Install** these, tick the ones you want and build. Files
 ending `-os1.54` are for OS 1.54, the others for 1.53: elekloader lists the ones that fit your file.
-It brings the core mod (`core-4.0`); the SRC machine mods (Digi Mono, Digi Macro, DH-101, Digi Poly, DIGISLICER,
-NEIGHBOR) tick machine-pages, which draws their pages, and Digi Macro (MACRO) and DH-101 tick Digi Mono.
+It brings the core mod (`core-4.0`); the SRC machine mods (Digi Mono, Digi Macro, DH-101, Digi Poly, SOPHIE,
+DIGISLICER, NEIGHBOR) tick machine-pages, which draws their pages, and Digi Macro (MACRO) and DH-101 tick Digi Mono.
 
 | file | sha256 |
 |---|---|
@@ -28,8 +28,8 @@ NEIGHBOR) tick machine-pages, which draws their pages, and Digi Macro (MACRO) an
 | `digipoly-2.1.elemod` | `6fc08067b4e38416` |
 | `digislicer-2.3-os1.54.elemod` | `c936cba7fcf61566` |
 | `digislicer-2.3.elemod` | `1f4f11f39eaf9e1a` |
-| `digisophie-1.1.13f-os1.54.elemod` | `95859797c74a6166` |
-| `digisophie-1.1.13f.elemod` | `e766b40e5db4dbc5` |
+| `digisophie-1.2.0-os1.54.elemod` | `4afc45020f8f401b` |
+| `digisophie-1.2.0.elemod` | `8b93281ff902404c` |
 | `digiutils-1.9a-os1.54.elemod` | `ed13ca17753e4885` |
 | `digiutils-1.9a.elemod` | `8697ac1fe883cb8f` |
 | `machine-pages-1.1-os1.54.elemod` | `35000bab117b829a` |
@@ -60,7 +60,7 @@ GPL-2.0-or-later, [text](licenses/machine-pages-LICENSE)), built unchanged: it d
 
 | mod | license | source | changed for this build |
 |---|---|---|---|
-| digisophie | MIT ([text](licenses/digisophie-LICENSE)) | [soejrd/digisophie@fee5f51](https://github.com/soejrd/digisophie/tree/fee5f514187fd3af999c866200f074c9a7045d50) | its render made lighter, the same output (tools/patches/digisophie-render.patch) |
+| digisophie | MIT ([text](licenses/digisophie-LICENSE)) | [soejrd/digisophie@fee5f51](https://github.com/soejrd/digisophie/tree/fee5f514187fd3af999c866200f074c9a7045d50) | 1.2.0 as offered to its author: its pages drawn by machine-pages, its render lighter, the same output (tools/patches/digisophie-machine-pages.patch) |
 | digislicer | GPL-2.0-or-later ([text](licenses/digislicer-LICENSE)) | [irpina/digislicer@d3515b2](https://github.com/irpina/digislicer/tree/d3515b20730ca374bf37e911a7ddf47265827f1e) | none |
 | digineighbor | GPL-2.0-or-later ([text](licenses/digineighbor-LICENSE)) | [irpina/digineighbor@f563922](https://github.com/irpina/digineighbor/tree/f5639220d4248882f60fd1f6d502ec25d8b6d221) | none |
 | digifilter | GPL-2.0-or-later ([text](licenses/digifilter-LICENSE)) | [DigiAlchemydsp/DigiFilter@404f72f](https://github.com/DigiAlchemydsp/DigiFilter/tree/404f72fa3a5dc62df06d8a5fa450f83dd72b70fe) | OS 1.54: ported by tools/port_os.py |

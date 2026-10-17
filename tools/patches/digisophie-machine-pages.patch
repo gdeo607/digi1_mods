@@ -1,0 +1,1140 @@
+diff --git a/DSP.md b/DSP.md
+index 5ce26f1..18a1c87 100644
+--- a/DSP.md
++++ b/DSP.md
+@@ -13,9 +13,13 @@ sites do not describe the Digitakt or Sophie.
+ 
+ ## Audio path
+ 
+-Sophie is a custom SRC machine, ID 7. Core 2.1 registers it; `glue.s` hooks
+-the Digitakt's audio render at `0x40077fba` and calls `ds_inject` after the
+-stock source work. For each Sophie track, `digitakt.c` reads its current
++Sophie is a custom SRC machine, ID 7. Core registers it, and elekloader's
++machine-pages mod (core 3.0) draws its SRC and LFO pages from the page its
++descriptor names (`ds_page` in `digitakt.c`) and calls `ds_inject` from its
++render event `ev_render_voices` (order 20), at `0x40077fba`, after the stock
++source work. Sophie patches no firmware place of its own (up to 1.1.13 it
++hooked those 17 places itself, so it could not share a build with other
++machines). For each Sophie track, `digitakt.c` reads its current
+ controls and trigger state, writes 32 mono `int32_t` source samples to the
+ track buffer at `0x80001a18 + 128*track`, then lets the stock AMP, filter,
+ mixer and sends process them. Sophie now folds that source buffer with its C
+@@ -54,11 +58,21 @@ conditional signed division on slow-control ticks when the common no-clamp
+ case cannot be proven. Replacing it would require an error-bounded reciprocal
+ and listening tests at extreme pitch/METAL settings; it is not a free win.
+ 
++The render loop keeps the voice's running state in locals for the block
++(`ds_render_core`): the track buffer is `int32_t` like most voice fields, so
++with the state in the struct the compiler reloads and stores each field around
++every output sample. The soft clip and the FM index conversion are inlined, and
++the index conversion's full-depth multiply (`mod * 32767 >> 15`) is the exact
++`mod - (mod > 0)`. The output is the same, sample for sample and state for
++state, as before (random voices, models, controls, triggers, envelope sleep,
++odd block lengths and the fold).
++
+ ## Verification boundaries
+ 
+ `make test` checks audio continuity, model differences, long-held voices,
+-retriggering and envelope sleep. `make cross-check` compiles the C and glue
+-for the MCF54455. The elekloader build checks the mod against the user's
++retriggering and envelope sleep. `make cross-check ELEKLOADER=/path/to/elekloader`
++compiles the C and glue for the MCF54455 (the page needs elekloader's SDK
++header `digitakt-mk1/core3.h`). The elekloader build checks the mod against the user's
+ stock OS and verifies the patched firmware. Those checks do not measure
+ hardware CPU use. The optional digihealth mod shows live CPU/DSP load and
+ FAST AUDIO in SETTINGS, and `tests/timing_probe.py` can measure an emulated
+diff --git a/Makefile b/Makefile
+index 15188a6..09222ed 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,6 +1,7 @@
+ CC ?= cc
+ CFLAGS ?= -std=c99 -O2 -Wall -Wextra -Werror
+ CROSS ?= m68k-elf-
++ELEKLOADER ?= ../elekloader
+ CROSS_CFLAGS = -mcpu=54455 -O2 -ffreestanding -fno-builtin -nostdlib -fno-pic -fno-pie -fomit-frame-pointer -Wall -Wextra -Werror
+ 
+ .PHONY: test cross-check
+@@ -13,5 +14,5 @@ test: out/test_sophie
+ cross-check: | out
+ 	mkdir -p out/cross
+ 	$(CROSS)as -mcpu=54455 -o out/cross/glue.o glue.s
+-	$(CROSS)gcc $(CROSS_CFLAGS) -I. -c digitakt.c -o out/cross/digitakt.o
++	$(CROSS)gcc $(CROSS_CFLAGS) -I. -I$(ELEKLOADER)/elekloader/sdk/include -c digitakt.c -o out/cross/digitakt.o
+ 	$(CROSS)gcc $(CROSS_CFLAGS) -I. -c sophie.c -o out/cross/sophie.o
+diff --git a/README.md b/README.md
+index b6e72b7..d3d8c1a 100644
+--- a/README.md
++++ b/README.md
+@@ -10,13 +10,26 @@ is what this repository distributes.
+ 
+ ## Changelog
+ 
++- **1.2.0:** SOPHIE's SRC and LFO pages are now drawn by elekloader's
++  **machine-pages** mod (core 3.0), from a page SOPHIE describes, and its
++  sound enters through machine-pages' render event. SOPHIE no longer patches
++  those firmware places itself (1.1.13 patched 17), so it shares a build with
++  the other machines made for machine-pages (checked: NEIGHBOR 0.7,
++  DIGISLICER 2.3 and digi1_mods' Digi Mono, Digi Macro and Digi Poly, with
++  digihealth, on OS 1.53 and 1.54). The pages, the knobs, their
++  ranges, defaults and value texts, and the LFO page's names are as before.
++  The render is 7-12 % lighter (FUSE 8,230 -> 7,270 cycles a block,
++  SHARD 9,790 -> 9,040), with the same output sample for sample. SOPHIE is
++  still machine 7: projects keep their SOPHIE tracks. Needs core 3.0 or
++  later and machine-pages 1.1, both in elekloader's mod shop.
+ - **OS 1.54:** SOPHIE and the optional diagnostic also build for Digitakt
+   OS 1.54, from the same source and with the same behavior: one
+   `.elemod` for each OS. Needs elekloader 0.4.0 or later.
+ - **S031:** BR is replaced with Sophie’s FOLD wavefolder.
+ 
+-Get the current `.elemod` and release notes from the
+-[v1.1.13 release](https://github.com/soejrd/digisophie/releases/tag/v1.1.13).
++The current `.elemod` files are in [release/](release/); 1.1.13's stay
++there for an elekloader without core 3.0 and machine-pages (it builds alone,
++as before, but not beside other machines).
+ 
+ ---
+ 
+@@ -54,8 +67,8 @@ octave-step behavior (-60 to +24); ordinary turning reaches the complete
+ ## Install: no compiler required
+ 
+ You need only the prebuilt Sophie mod for your OS
+-([OS 1.53](release/digisophie-1.1.13.elemod),
+-[OS 1.54](release/digisophie-1.1.13-os1.54.elemod)),
++([OS 1.53](release/digisophie-1.2.0.elemod),
++[OS 1.54](release/digisophie-1.2.0-os1.54.elemod)),
+ [elekloader](https://github.com/irpina/elekloader/releases/latest)
+ (0.4.0 or later for OS 1.54), and your own original Digitakt Mk1 OS 1.53 or
+ 1.54 `.syx`
+@@ -63,19 +76,20 @@ The `.elemod` contains this project's code, **not** Elektron's firmware.
+ You do not need ColdFire tools, Python, or a source checkout to install it.
+ 
+ 1. Open elekloader and select your stock OS using **Change stock firmware**.
+-2. Choose **Install from file** and select `digisophie-1.1.13.elemod` (OS 1.53)
+-   or `digisophie-1.1.13-os1.54.elemod` (OS 1.54); elekloader refuses the
++2. Choose **Install from file** and select `digisophie-1.2.0.elemod` (OS 1.53)
++   or `digisophie-1.2.0-os1.54.elemod` (OS 1.54); elekloader refuses the
+    file made for the other OS.
+-   Enable SOPHIE. elekloader's built-in **core 2.1** should enable with it.
+-   If your elekloader has an older core or shows a dependency error, update
+-   elekloader before building.
++   Enable SOPHIE. It needs **core 3.0** or later and **machine-pages**, which
++   draws its pages: tick machine-pages in elekloader's mod shop (core 3.0
++   comes with it). If your elekloader shows a dependency error, update it
++   before building.
+ 3. Optional: install and enable the bundled digihealth diagnostic for your OS
+    ([OS 1.53](release/digihealth-1.0.1.elemod),
+    [OS 1.54](release/digihealth-1.0.1-os1.54.elemod)) too. This is
+    the configuration used for the earlier S027 hardware test. It adds SYSTEM INFO
+    and an opt-in FAST AUDIO setting; without it Sophie still works.
+ 4. Wait for elekloader's **Ready to build** check, set the four-character
+-   OS version to `S033`, then choose **Build Firmware**. Save the generated
++   OS version to `S034`, then choose **Build Firmware**. Save the generated
+    `.syx` on your computer.
+ 5. Send that `.syx` to the Digitakt with Elektron Transfer
+ 
+@@ -96,11 +110,12 @@ ELEKLOADER_CROSS=m68k-elf- sh scripts/build.sh \
+   /path/to/your/Digitakt_OS1.54.syx /path/to/elekloader
+ ```
+ 
+-This builds core 2.1, Sophie and the optional diagnostic from source for the
++This builds core, machine-pages, Sophie and the optional diagnostic from source for the
+ OS of the file you give it, lints the combination, and writes the verified
+-custom OS to `out/Digitakt_OS1.54_SOPHIE_S033.syx` (`1.53` for a 1.53
++custom OS to `out/Digitakt_OS1.54_SOPHIE_S034.syx` (`1.53` for a 1.53
+ file). To test DSP alone, run `make test`;
+-`make cross-check` additionally compiles for ColdFire. Optional emulator
++`make cross-check ELEKLOADER=/path/to/elekloader` additionally compiles for
++ColdFire (the page uses elekloader's SDK header `digitakt-mk1/core3.h`). Optional emulator
+ probes in `tests/` require [digiemu](https://github.com/irpina/digiemu).
+ 
+ ## Use and recovery
+@@ -119,8 +134,9 @@ SOPHIE. It contains no Elektron firmware or samples.
+ The Digitakt addresses the mod uses are kept apart from the code that uses
+ them: `os153.inc` / `os154.inc` for `glue.s`, `os153.h` / `os154.h` for
+ `digitakt.c`. The OS 1.54 build defines `OS154` (`mod.json`, under
+-`ports`), which picks the 1.54 files and the 1.54 patch sites; the OS 1.53
+-build is the same code as before.
++`ports`), which picks the 1.54 files; the OS 1.53 build is the same code.
++Since 1.2.0 the only firmware address left is the Bitmap vtable of the
++machine menu's icon: the pages and the render point are machine-pages'.
+ 
+ ## Source and licenses
+ 
+diff --git a/digitakt.c b/digitakt.c
+index 8add51d..13ede98 100644
+--- a/digitakt.c
++++ b/digitakt.c
+@@ -1,6 +1,9 @@
+ /* SPDX-License-Identifier: MIT */
+-/* Digitakt Mk1 OS 1.53 and 1.54 adapter for the Sophie fixed-point engine. */
++/* Digitakt Mk1 OS 1.53 and 1.54 adapter for the Sophie fixed-point engine.
++ * Its SRC and LFO pages are drawn by elekloader's machine-pages mod (core 3.0)
++ * from the page below; machine-pages calls ds_inject from its render event. */
+ #include "sophie.h"
++#include "digitakt-mk1/core3.h"     /* elekloader's SDK (sdk/include) */
+ #ifdef OS154                       /* the Digitakt mk1 1.54 (mod.json's port) */
+ #include "os154.h"
+ #else                              /* the Digitakt mk1 1.53 */
+@@ -10,8 +13,8 @@
+ typedef unsigned char u8;
+ typedef unsigned short u16;
+ typedef signed short s16;
+-typedef signed long s32;
+-typedef unsigned long u32;
++typedef int32_t s32;           /* the engine's int32_t: m68k-elf and m68k-linux-gnu differ on long */
++typedef uint32_t u32;
+ 
+ #define DS_MACHINE 7
+ #define TRACKS 8
+@@ -99,10 +102,12 @@ static void ds_read_params(s32 track, struct ds_params *p)
+     p->velocity = (u8)(((u32)(u16)VEL(track) >> 8) & 0x7fu);
+ }
+ 
+-void ds_inject(void)
++/* machine-pages' ev_render_voices, order 20: after playback, before the overdrive */
++void ds_inject(int32_t *blocks)
+ {
+     u32 triggers = TRIG_BITS;
+     s32 track;
++    (void)blocks;                  /* the same blocks as TBUF */
+     for (track = 0; track < TRACKS; ++track) {
+         struct ds_params params;
+         u32 i;
+@@ -124,3 +129,38 @@ void ds_inject(void)
+         ds_fold_block(TBUF(track), DS_BLOCK_SIZE, params.fold);
+     }
+ }
++
++/* ---- the SRC and LFO pages (machine-pages) ---------------------------------------------------------
++ * SLICE's page and parameter slots, A..H = ids 0x84..0x8b, so locks, MIDI and the LFOs reach every
++ * control as before. Each knob: its names (the LFO page uses the same), the stock parameter whose
++ * turn and graphic it borrows (look), its range and default (8.8), and its value's text. */
++#define ID_TUNE 0x84
++#define ID_BR 0x86
++
++static int32_t fmt_model(char *buf, int32_t v, int32_t ctx, int32_t m)
++{ (void)ctx; (void)m; ds_fmt_model(buf, v); return 1; }
++static int32_t fmt_sweep(char *buf, int32_t v, int32_t ctx, int32_t m)
++{ (void)ctx; (void)m; ds_fmt_sweep(buf, v); return 1; }
++static int32_t fmt_u7(char *buf, int32_t v, int32_t ctx, int32_t m)
++{ (void)ctx; (void)m; ds_fmt_u7(buf, v); return 1; }
++/* MODEL's four zones on BR's knob: at 0, 42, 84 and 126 */
++static int32_t gfx_model(int32_t v)
++{ return (int32_t)((((u32)v >> 3) & 0xffffu) * 42u); }
++
++#define KNOB(sn, ln, lk, hi, d, f) { .name = sn, .lname = ln, .look = lk, \
++    .flags = CM_RANGE | CM_DEFAULT, .min = 0, .max = hi, .def = d, .fmt = f }
++const struct cm_ui ds_page = {          /* glue.s ds_machine's tail names it */
++    .abi = cm_ui_v3, .page_from = 3, .group = "SOPH",
++    .knob = {
++        [0] = { .name = "TUNE", .lname = "Tune" },
++        [1] = { .name = "MODEL", .lname = "Model", .look = ID_BR, .flags = CM_RANGE | CM_DEFAULT,
++                .min = 0, .max = 0x1f00, .def = 0, .fmt = fmt_model, .gfx = gfx_model },
++        [2] = { .name = "FOLD", .lname = "Fold" },        /* BR's own slot, knob and range */
++        [3] = { .flags = CM_DEFAULT, .def = 0 },          /* SAMP, unused: a new sound starts at 0 */
++        [4] = KNOB("SWEEP", "Sweep", ID_TUNE, 0x7f00, 0x4000, fmt_sweep),
++        [5] = KNOB("METAL", "Metal", ID_BR, 0x7f00, 0x2800, fmt_u7),
++        [6] = KNOB("FBK", "Feedback", ID_BR, 0x7f00, 0x2000, fmt_u7),
++        [7] = KNOB("COLOR", "Color", ID_BR, 0x7f00, 0x4000, fmt_u7),
++    },
++};
++#undef KNOB
+diff --git a/glue.s b/glue.s
+index dd9e7c2..880d0d6 100644
+--- a/glue.s
++++ b/glue.s
+@@ -6,22 +6,16 @@
+         .else                           | the Digitakt mk1 1.53
+         .include "os153.inc"
+         .endif
+-| Sophie custom machine registration and post-playback render hook.
++| Sophie's machine registration. Its SRC and LFO pages are elekloader's
++| machine-pages mod's (core 3.0): the descriptor's tail names the page it draws
++| them from (digitakt.c ds_page), and machine-pages' render event calls
++| ds_inject (mod.json), so SOPHIE hooks no firmware place of its own.
+         .section .run, "ax"
+-        .globl ds_inject_s
+-ds_inject_s:
+-        lea     -60(%sp), %sp
+-        movem.l %d0-%d7/%a0-%a6, (%sp)
+-        jsr     ds_inject
+-        movem.l (%sp), %d0-%d7/%a0-%a6
+-        lea     60(%sp), %sp
+-        lea     INJECT_LEA, %a4
+-        rts
+-
+         .balign 4
+         .globl ds_machine
+ ds_machine:
+         .long   7, ds_name, ds_short, ds_icon_bmp, 3, 7
++        .long   0x55493330, ds_page     | core 3.0: "UI30", the page
+ ds_name: .asciz "SOPHIE"
+ ds_short: .asciz "SOPH"
+         .balign 4
+@@ -35,369 +29,3 @@ ds_icon_mask:
+         .long 0xfe000000,0xfe000000,0xfe000000,0xfe000000
+         .long 0xfe000000,0xfe000000,0xfe000000,0x00000000
+         .long 0x00000000,0x00000000,0x00000000
+-
+-| Dedicated SOPHIE SRC layout and presentation.  All eight controls retain
+-| SLICE's persistent storage slots, preserving locks and external control.
+-        .equ DS_ID,7
+-        .equ P_TUNE,0x84
+-        .equ P_MODEL,0x85
+-        .equ P_BR,0x86
+-        .equ P_SAMP,0x87
+-        .equ P_SWEEP,0x88
+-        .equ P_METAL,0x89
+-        .equ P_FEEDBACK,0x8a
+-        .equ P_COLOR,0x8b
+-        .section .bss,"aw"
+-        .balign 4
+-        .globl ds_page_m
+-ds_page_m: .long 0
+-ds_lay_ok: .long 0
+-ds_lay: .space 44
+-ds_txt: .space 12
+-        .section .run,"ax"
+-        .globl ds_layout
+-ds_layout:
+-        move.l 4(%sp),%d0
+-        move.l %d0,ds_page_m
+-        cmpi.l #DS_ID,%d0
+-        beq.s 1f
+-        moveq #3,%d1
+-        jmp LAYOUT_ON
+-1:      tst.l ds_lay_ok
+-        bne.s 3f
+-        lea LAY_SLICE,%a0
+-        lea ds_lay,%a1
+-        moveq #11,%d0
+-2:      move.l (%a0)+,(%a1)+
+-        subq.l #1,%d0
+-        bne.s 2b
+-        moveq #1,%d0
+-        move.l %d0,ds_lay_ok
+-3:      move.l #ds_lay,%d0
+-        rts
+-
+-ds_pick:
+-        moveq #DS_ID,%d1
+-        cmp.l ds_page_m,%d1
+-        bne.s 8f
+-        move.l 12(%sp),%d0
+-        subi.l #P_TUNE,%d0
+-        cmpi.l #7,%d0
+-        bhi.s 8f
+-        lsl.l #2,%d0
+-        move.l 0(%a0,%d0.l),%d0
+-        rts
+-8:      moveq #0,%d0
+-        rts
+-        .globl ds_lab_short,ds_lab_long
+-ds_lab_short:
+-        lea ds_short_tab,%a0
+-        bsr.s ds_pick
+-        bne.s 9f
+-        move.l 8(%sp),%d1
+-        cmpi.l #164,%d1
+-        jmp LAB_SHORT_ON
+-ds_lab_long:
+-        lea ds_long_tab,%a0
+-        bsr.s ds_pick
+-        bne.s 9f
+-        move.l 8(%sp),%d1
+-        cmpi.l #164,%d1
+-        jmp LAB_LONG_ON
+-9:      rts
+-
+-| The LFO destination renderer reads the shared SLICE parameter descriptor
+-| directly, bypassing ds_lab_short.  Keep its target ID and drawing path,
+-| replacing only the displayed name while Sophie's layout is active.
+-        .globl ds_lfo_label
+-ds_lfo_label:
+-        moveq #DS_ID,%d1
+-        cmp.l ds_page_m,%d1
+-        bne.s 8f
+-        move.l %d0,%d1              | mapped destination parameter ID
+-        subi.l #P_TUNE,%d1
+-        cmpi.l #7,%d1
+-        bhi.s 8f
+-        lsl.l #2,%d1
+-        lea ds_short_tab,%a0
+-        move.l 0(%a0,%d1.l),%d1
+-        beq.s 8f                   | SAMP keeps its stock label
+-        lea DESC_TAB,%a0
+-        move.l %d1,(%sp)            | replace the stock name argument
+-        jmp LFO_LABEL_ON             | resume drawing at the next instruction
+-8:      lea DESC_TAB,%a0
+-        jmp LFO_LABEL_ORIG             | original descriptor lookup
+-
+-| The destination popup formats rows separately as MACHINE:Parameter.
+-| Its first and fallback draws both need Sophie's full parameter names.
+-ds_chooser_name:
+-        move.l %d1,-(%sp)
+-        move.l %a0,-(%sp)
+-        move.l %d0,%d1              | descriptor byte offset
+-        subi.l #(P_TUNE*52),%d1
+-        cmpi.l #(7*52),%d1
+-        bhi.s 1f
+-        moveq #DS_ID,%d0
+-        cmp.l ds_page_m,%d0
+-        bne.s 1f
+-        divu #52,%d1
+-        andi.l #0xffff,%d1
+-        lsl.l #2,%d1
+-        lea ds_chooser_tab,%a0
+-        move.l 0(%a0,%d1.l),%d0
+-        move.l #ds_short,%d6
+-        bra.s 2f
+-1:      lea DESC_TAB_40,%a0          | descriptor table +40
+-        move.l 0(%a0,%d0.l),%d0
+-2:      move.l (%sp)+,%a0
+-        move.l (%sp)+,%d1
+-        rts
+-        .globl ds_lfo_popup_name,ds_lfo_popup_fallback
+-ds_lfo_popup_name:
+-        bsr ds_chooser_name
+-        move.l %d0,-(%sp)
+-        move.l %d6,-(%sp)
+-        jmp POPUP_NAME_ON
+-ds_lfo_popup_fallback:
+-        move.l %d2,%d0
+-        bsr ds_chooser_name
+-        move.l %d0,-(%sp)
+-        move.l %d6,-(%sp)
+-        jmp POPUP_FALLBACK_ON
+-
+-| The LFO overview uses descriptor fields +44 and +48 for its two-line DEST.
+-        .globl ds_lfo_overview_group,ds_lfo_overview_name
+-ds_lfo_overview_group:
+-        move.l %d1,-(%sp)
+-        moveq #DS_ID,%d1
+-        cmp.l ds_page_m,%d1
+-        bne.s 1f
+-        cmpi.l #P_TUNE,%d3
+-        bcs.s 1f
+-        cmpi.l #P_COLOR,%d3
+-        bhi.s 1f
+-        move.l #ds_short,%d0
+-        bra.s 2f
+-1:      move.l 44(%a0,%d0.l),%d0
+-2:      move.l (%sp)+,%d1
+-        move.l %d0,-(%sp)
+-        move.l %d2,-(%sp)
+-        jmp OVERVIEW_GROUP_ON
+-ds_lfo_overview_name:
+-        moveq #52,%d0
+-        muls.l %d0,%d3
+-        move.l %d1,-(%sp)
+-        move.l %a0,-(%sp)
+-        move.l %d3,%d1
+-        divu #52,%d1
+-        andi.l #0xffff,%d1
+-        moveq #DS_ID,%d0
+-        cmp.l ds_page_m,%d0
+-        bne.s 1f
+-        subi.l #P_TUNE,%d1
+-        cmpi.l #7,%d1
+-        bhi.s 1f
+-        lsl.l #2,%d1
+-        lea ds_overview_tab,%a0
+-        move.l 0(%a0,%d1.l),%d0
+-        bra.s 2f
+-1:      lea DESC_TAB_48,%a0          | descriptor table +48
+-        move.l 0(%a0,%d3.l),%d0
+-2:      move.l (%sp)+,%a0
+-        move.l (%sp)+,%d1
+-        move.l %d0,-(%sp)
+-        jmp OVERVIEW_NAME_ON
+-
+-ds_is_control:
+-        moveq #DS_ID,%d1
+-        cmp.l ds_page_m,%d1
+-        bne.s 8f
+-        cmpi.l #P_TUNE,%d0
+-        bcs.s 8f
+-        cmpi.l #P_COLOR,%d0
+-        bhi.s 8f
+-        cmpi.l #P_BR,%d0
+-        beq.s 8f
+-        cmpi.l #P_SAMP,%d0
+-        beq.s 8f
+-        moveq #1,%d1
+-        rts
+-8:      moveq #0,%d1
+-        rts
+-        .globl ds_knob_gfx
+-ds_knob_gfx:
+-        move.l 8(%sp),%d0
+-        bsr.s ds_is_control
+-        beq.s 2f
+-        cmpi.l #P_TUNE,%d0
+-        beq.s 2f
+-        cmpi.l #P_MODEL,%d0
+-        beq.s 5f
+-        cmpi.l #P_SWEEP,%d0
+-        beq.s 3f
+-1:      move.l #P_BR,%d0
+-        bra.s 4f
+-3:      move.l #P_TUNE,%d0
+-        bra.s 4f
+-5:      move.l 12(%sp),%d0
+-        lsr.l #3,%d0
+-        mulu.w #42,%d0
+-        move.l %d0,12(%sp)
+-        move.l #P_BR,%d0              | ordinary four-position knob
+-4:
+-        move.l %d0,8(%sp)
+-2:      lea -20(%sp),%sp
+-        movem.l %d2-%d6,(%sp)
+-        jmp KNOB_GFX_ON
+-        .globl ds_ui_rec
+-ds_ui_rec:
+-        move.l 4(%sp),%d0
+-        bsr.w ds_is_control
+-        beq.s 1f
+-        cmpi.l #P_TUNE,%d0
+-        beq.s 1f
+-        cmpi.l #P_MODEL,%d0
+-        beq.s 4f
+-        cmpi.l #P_SWEEP,%d0
+-        beq.s 3f
+-        move.l #P_BR,%d1
+-        bra.s 2f
+-3:      move.l #P_TUNE,%d1
+-        bra.s 2f
+-4:      move.l #P_BR,%d1              | ordinary four-position knob
+-        bra.s 2f
+-1:      move.l 4(%sp),%d1
+-2:      cmpi.l #164,%d1
+-        jmp UI_REC_ON
+-
+-| Range lookup is reached by display, stepper, setter and validator.
+-        .globl ds_prange,ds_prange_f
+-ds_prange:
+-        movea.l %a2,%a1
+-        bra.s 1f
+-ds_prange_f:
+-        movea.l 36(%sp),%a1
+-1:      move.l %a1,-(%sp)
+-        move.l %a0,-(%sp)
+-        move.l 12(%sp),-(%sp)
+-        jsr PRANGE_FN
+-        addq.l #4,%sp
+-        movea.l (%sp)+,%a0
+-        movea.l (%sp)+,%a1
+-        move.l 4(%sp),%d1
+-        cmpi.l #P_MODEL,%d1
+-        bcs.s 9f
+-        cmpi.l #P_COLOR,%d1
+-        bhi.s 9f
+-        cmpi.l #P_BR,%d1
+-        beq.s 9f
+-        move.l (%a1),%d0
+-        cmpi.l #PARAM_VT,%d0
+-        bne.s 9f
+-        movea.l 16(%a1),%a1
+-        move.l (%a1),%d0
+-        cmpi.l #SNDREF_VT,%d0
+-        bne.s 9f
+-        movea.l 16(%a1),%a1
+-        moveq #0,%d0
+-        move.b 126(%a1),%d0
+-        cmpi.l #DS_ID,%d0
+-        bne.s 9f
+-        cmpi.l #P_SAMP,%d1
+-        bne.s 8f
+-        clr.l 8(%a0)                   | new Sophie sounds start at SAMP 0
+-        bra.s 9f
+-8:
+-        subi.l #P_MODEL,%d1
+-        lsl.l #3,%d1
+-        lea ds_range_tab,%a1
+-        clr.l (%a0)
+-        move.l 0(%a1,%d1.l),%d0
+-        move.l %d0,4(%a0)
+-        move.l 4(%a1,%d1.l),%d0
+-        move.l %d0,8(%a0)
+-9:      move.l %a0,%d0
+-        rts
+-
+-        .globl ds_val_text,ds_pop_text
+-ds_val_text:
+-        move.l 8(%sp),%d0
+-        cmpi.l #P_MODEL,%d0
+-        beq.s 2f
+-        cmpi.l #P_SWEEP,%d0
+-        beq.s 4f
+-        cmpi.l #P_COLOR,%d0
+-        beq.s 5f
+-        cmpi.l #P_FEEDBACK,%d0
+-        beq.s 5f
+-        cmpi.l #P_METAL,%d0
+-        bne.s 1f
+-5:      move.l #ds_fmt_u7,%a0
+-        bra.s 3f
+-4:
+-        move.l #ds_fmt_sweep,%a0
+-        bra.s 3f
+-2:      move.l #ds_fmt_model,%a0
+-3:
+-        moveq #DS_ID,%d1
+-        cmp.l ds_page_m,%d1
+-        bne.s 1f
+-        move.l 12(%sp),-(%sp)
+-        move.l 20(%sp),-(%sp)
+-        jsr (%a0)
+-        addq.l #8,%sp
+-        rts
+-1:      lea -20(%sp),%sp
+-        movem.l %d2-%d4/%a2-%a3,(%sp)
+-        jmp VAL_TEXT_ON
+-ds_pop_text:
+-        move.l 4(%sp),%d0
+-        cmpi.l #P_MODEL,%d0
+-        beq.s 2f
+-        cmpi.l #P_SWEEP,%d0
+-        beq.s 4f
+-        cmpi.l #P_COLOR,%d0
+-        beq.s 5f
+-        cmpi.l #P_FEEDBACK,%d0
+-        beq.s 5f
+-        cmpi.l #P_METAL,%d0
+-        bne.s 1f
+-5:      move.l #ds_fmt_u7,%a0
+-        bra.s 3f
+-4:
+-        move.l #ds_fmt_sweep,%a0
+-        bra.s 3f
+-2:      move.l #ds_fmt_model,%a0
+-3:
+-        moveq #DS_ID,%d1
+-        cmp.l ds_page_m,%d1
+-        bne.s 1f
+-        move.l 8(%sp),-(%sp)
+-        pea ds_txt
+-        jsr (%a0)
+-        addq.l #8,%sp
+-        rts
+-1:      move.l 4(%sp),%d1
+-        cmpi.l #164,%d1
+-        jmp POP_TEXT_ON
+-        .balign 4
+-ds_short_tab: .long ds_s_tune,ds_s_model,ds_s_fold,0,ds_s_sweep,ds_s_metal,ds_s_feedback,ds_s_color
+-ds_long_tab: .long ds_l_tune,ds_l_model,ds_l_fold,0,ds_l_sweep,ds_l_metal,ds_l_feedback,ds_l_color
+-ds_chooser_tab: .long ds_l_tune,ds_l_model,ds_l_fold,STR_SAMP,ds_l_sweep,ds_l_metal,ds_l_feedback,ds_l_color
+-ds_overview_tab: .long ds_s_tune,ds_s_model,ds_s_fold,ds_s_samp,ds_s_sweep,ds_s_metal,ds_s_feedback,ds_s_color
+-ds_range_tab: .long 0x1f00,0x0000,0x7f00,0x4000,0x7f00,0x2800,0x7f00,0x4000,0x7f00,0x2800,0x7f00,0x2000,0x7f00,0x4000
+-ds_s_tune: .asciz "TUNE"
+-ds_s_model: .asciz "MODEL"
+-ds_s_fold: .asciz "FOLD"
+-ds_s_samp: .asciz "SAMP"
+-ds_s_color: .asciz "COLOR"
+-ds_s_metal: .asciz "METAL"
+-ds_s_sweep: .asciz "SWEEP"
+-ds_s_feedback: .asciz "FBK"
+-ds_l_tune: .asciz "Tune"
+-ds_l_model: .asciz "Model"
+-ds_l_fold: .asciz "Fold"
+-ds_l_color: .asciz "Color"
+-ds_l_metal: .asciz "Metal"
+-ds_l_sweep: .asciz "Sweep"
+-ds_l_feedback: .asciz "Feedback"
+diff --git a/mod.json b/mod.json
+index 302e2d1..22b78ec 100644
+--- a/mod.json
++++ b/mod.json
+@@ -1,61 +1,26 @@
+ {
+   "id": "digisophie",
+-  "version": "1.1.13",
++  "version": "1.2.0",
+   "license": "MIT",
+   "title": "SOPHIE",
+   "category": "Synthesis",
+   "author": "digisophie contributors",
+-  "description": "Two-operator metallic percussion adaptation of Sophie with four distinct models. Its audio enters the normal Digitakt AMP, filter, mixer and sends; the source filter and drive are intentionally not ported.",
++  "description": "Two-operator metallic percussion adaptation of Sophie with four distinct models. Its audio enters the normal Digitakt AMP, filter, mixer and sends; the source filter and drive are intentionally not ported. Its SRC and LFO pages are drawn by machine-pages (core 3.0), so it shares a build with the other machines made for it.",
+   "device": "digitakt-mk1",
+   "os": "1.53",
+   "sources": ["glue.s", "digitakt.c", "sophie.c"],
+-  "sites": [
+-    {"addr": "0x400657cc", "stock": "7203202f0004", "op": "jmp", "target": "ds_layout"},
+-    {"addr": "0x4000fe8a", "stock": "222f00080c81000000a4", "op": "jmp", "target": "ds_lab_short"},
+-    {"addr": "0x4000feac", "stock": "222f00080c81000000a4", "op": "jmp", "target": "ds_lab_long"},
+-    {"addr": "0x40060b8e", "stock": "41f9401a9d9c", "op": "jmp", "target": "ds_lfo_label"},
+-    {"addr": "0x400a4374", "stock": "2f3308282f06", "op": "jmp", "target": "ds_lfo_popup_name"},
+-    {"addr": "0x400a43f0", "stock": "2f3328302f06", "op": "jmp", "target": "ds_lfo_popup_fallback"},
+-    {"addr": "0x40065de6", "stock": "2f30082c2f02", "op": "jmp", "target": "ds_lfo_overview_group"},
+-    {"addr": "0x40065e5e", "stock": "70344c003800", "op": "jmp", "target": "ds_lfo_overview_name"},
+-    {"addr": "0x4000f324", "stock": "4fefffec48d70c1c", "op": "jmp", "target": "ds_val_text"},
+-    {"addr": "0x4000f2bc", "stock": "4fefffec48d7007c", "op": "jmp", "target": "ds_knob_gfx"},
+-    {"addr": "0x40065794", "stock": "222f00040c81000000a4", "op": "jmp", "target": "ds_ui_rec"},
+-    {"addr": "0x400657ee", "stock": "222f00040c81000000a4", "op": "jmp", "target": "ds_pop_text"},
+-    {"addr": "0x4000ff20", "stock": "4eb940078f0c", "op": "keep2", "target": "ds_prange"},
+-    {"addr": "0x400100c4", "stock": "4eb940078f0c", "op": "keep2", "target": "ds_prange"},
+-    {"addr": "0x4000f534", "stock": "4eb940078f0c", "op": "keep2", "target": "ds_prange"},
+-    {"addr": "0x4000f5fc", "stock": "45f940078f0c", "op": "keep2", "target": "ds_prange_f"},
+-    {"addr": "0x40077fba", "stock": "49f94199e444", "op": "jsr", "target": "ds_inject_s"}
+-  ],
+   "ports": {
+     "1.54": {
+       "defsym": {"OS154": "1"},
+-      "cflags": ["-DOS154"],
+-      "sites": [
+-        {"addr": "0x400657cc", "stock": "7203202f0004", "op": "jmp", "target": "ds_layout"},
+-        {"addr": "0x4000fe8a", "stock": "222f00080c81000000a4", "op": "jmp", "target": "ds_lab_short"},
+-        {"addr": "0x4000feac", "stock": "222f00080c81000000a4", "op": "jmp", "target": "ds_lab_long"},
+-        {"addr": "0x40060b8e", "stock": "41f9401aa09c", "op": "jmp", "target": "ds_lfo_label"},
+-        {"addr": "0x400a44d0", "stock": "2f3308282f06", "op": "jmp", "target": "ds_lfo_popup_name"},
+-        {"addr": "0x400a454c", "stock": "2f3328302f06", "op": "jmp", "target": "ds_lfo_popup_fallback"},
+-        {"addr": "0x40065de6", "stock": "2f30082c2f02", "op": "jmp", "target": "ds_lfo_overview_group"},
+-        {"addr": "0x40065e5e", "stock": "70344c003800", "op": "jmp", "target": "ds_lfo_overview_name"},
+-        {"addr": "0x4000f324", "stock": "4fefffec48d70c1c", "op": "jmp", "target": "ds_val_text"},
+-        {"addr": "0x4000f2bc", "stock": "4fefffec48d7007c", "op": "jmp", "target": "ds_knob_gfx"},
+-        {"addr": "0x40065794", "stock": "222f00040c81000000a4", "op": "jmp", "target": "ds_ui_rec"},
+-        {"addr": "0x400657ee", "stock": "222f00040c81000000a4", "op": "jmp", "target": "ds_pop_text"},
+-        {"addr": "0x4000ff20", "stock": "4eb940078f0c", "op": "keep2", "target": "ds_prange"},
+-        {"addr": "0x400100c4", "stock": "4eb940078f0c", "op": "keep2", "target": "ds_prange"},
+-        {"addr": "0x4000f534", "stock": "4eb940078f0c", "op": "keep2", "target": "ds_prange"},
+-        {"addr": "0x4000f5fc", "stock": "45f940078f0c", "op": "keep2", "target": "ds_prange_f"},
+-        {"addr": "0x40077fba", "stock": "49f94199f444", "op": "jsr", "target": "ds_inject_s"}
+-      ]
++      "cflags": ["-DOS154"]
+     }
+   },
+   "contribute": [
+     {"to": "core_machines", "order": 70, "data": "00000000", "relocs": [[0, "abs32", "sym:ds_machine", 0]]}
+   ],
+-  "requires": ["core"],
+-  "resources": {"names": ["machine:7"]}
++  "subscribe": [
++    {"event": "ev_render_voices", "fn": "ds_inject", "order": 20}
++  ],
++  "requires": ["core", "machine-pages"],
++  "resources": {"names": ["machine:7"], "core": "3.0"}
+ }
+diff --git a/os153.inc b/os153.inc
+index fe3e2ac..5f5fead 100755
+--- a/os153.inc
++++ b/os153.inc
+@@ -2,25 +2,3 @@
+ | Digitakt mk1 MAIN OS 1.53: the stock code and data glue.s uses (os153.inc and
+ | os154.inc, one per OS; glue.s includes the one OS154 picks).
+         .equ BMP_VT,            0x401b73b4    | the firmware's Bitmap vtable
+-        .equ LAY_SLICE,         0x4197cf5c    | SLICE's SRC page layout
+-        .equ INJECT_LEA,        0x4199e444    | what the inject site's lea loads into a4
+-        .equ DESC_TAB,          0x401a9d9c    | the parameter descriptor table (52-byte rows)
+-        .equ DESC_TAB_40,       0x401a9dc4    | ...its +40 field (the popup's name)
+-        .equ DESC_TAB_48,       0x401a9dcc    | ...its +48 field (the overview's name)
+-        .equ STR_SAMP,          0x401ccabe    | the stock SAMP parameter's name
+-        .equ PARAM_VT,          0x4017eb58    | the SRC page's parameter object's vtable
+-        .equ SNDREF_VT,         0x40181330    | the vtable of the object at its +16
+-        .equ PRANGE_FN,         0x40078f0c    | the parameter range lookup
+-        .equ LAYOUT_ON,         0x400657d2    | the page layout, past its site
+-        .equ UI_REC_ON,         0x4006579e    | the UI record, past its site
+-        .equ POP_TEXT_ON,       0x400657f8    | the pop-up text, past its site
+-        .equ LAB_SHORT_ON,      0x4000fe94    | the short label, past its site
+-        .equ LAB_LONG_ON,       0x4000feb6    | the long label, past its site
+-        .equ VAL_TEXT_ON,       0x4000f32c    | a knob's value text, past its site
+-        .equ KNOB_GFX_ON,       0x4000f2c4    | a knob's graphic, past its site
+-        .equ LFO_LABEL_ORIG,    0x40060b94    | the LFO destination's descriptor lookup, as stock
+-        .equ LFO_LABEL_ON,      0x40060baa    | the LFO destination label, past its site
+-        .equ POPUP_NAME_ON,     0x400a437a    | the destination popup name, past its site
+-        .equ POPUP_FALLBACK_ON, 0x400a43f6    | the destination popup fallback, past its site
+-        .equ OVERVIEW_GROUP_ON, 0x40065dec    | the LFO overview group, past its site
+-        .equ OVERVIEW_NAME_ON,  0x40065e68    | the LFO overview name, past its site
+diff --git a/os154.inc b/os154.inc
+index 2c8bef5..23e3e66 100755
+--- a/os154.inc
++++ b/os154.inc
+@@ -2,25 +2,3 @@
+ | Digitakt mk1 MAIN OS 1.54: the stock code and data glue.s uses (os153.inc and
+ | os154.inc, one per OS; glue.s includes the one OS154 picks).
+         .equ BMP_VT,            0x401b7734    | the firmware's Bitmap vtable
+-        .equ LAY_SLICE,         0x4197df5c    | SLICE's SRC page layout
+-        .equ INJECT_LEA,        0x4199f444    | what the inject site's lea loads into a4
+-        .equ DESC_TAB,          0x401aa09c    | the parameter descriptor table (52-byte rows)
+-        .equ DESC_TAB_40,       0x401aa0c4    | ...its +40 field (the popup's name)
+-        .equ DESC_TAB_48,       0x401aa0cc    | ...its +48 field (the overview's name)
+-        .equ STR_SAMP,          0x401cce3e    | the stock SAMP parameter's name
+-        .equ PARAM_VT,          0x4017ee58    | the SRC page's parameter object's vtable
+-        .equ SNDREF_VT,         0x40181630    | the vtable of the object at its +16
+-        .equ PRANGE_FN,         0x40078f0c    | the parameter range lookup
+-        .equ LAYOUT_ON,         0x400657d2    | the page layout, past its site
+-        .equ UI_REC_ON,         0x4006579e    | the UI record, past its site
+-        .equ POP_TEXT_ON,       0x400657f8    | the pop-up text, past its site
+-        .equ LAB_SHORT_ON,      0x4000fe94    | the short label, past its site
+-        .equ LAB_LONG_ON,       0x4000feb6    | the long label, past its site
+-        .equ VAL_TEXT_ON,       0x4000f32c    | a knob's value text, past its site
+-        .equ KNOB_GFX_ON,       0x4000f2c4    | a knob's graphic, past its site
+-        .equ LFO_LABEL_ORIG,    0x40060b94    | the LFO destination's descriptor lookup, as stock
+-        .equ LFO_LABEL_ON,      0x40060baa    | the LFO destination label, past its site
+-        .equ POPUP_NAME_ON,     0x400a44d6    | the destination popup name, past its site
+-        .equ POPUP_FALLBACK_ON, 0x400a4552    | the destination popup fallback, past its site
+-        .equ OVERVIEW_GROUP_ON, 0x40065dec    | the LFO overview group, past its site
+-        .equ OVERVIEW_NAME_ON,  0x40065e68    | the LFO overview name, past its site
+diff --git a/scripts/build.sh b/scripts/build.sh
+index 82cb5d4..68c048c 100755
+--- a/scripts/build.sh
++++ b/scripts/build.sh
+@@ -31,18 +31,25 @@ esac
+ 
+ cd "$loader"
+ "$python" -m elekloader.sdk.build mods/core --stock "$stock"
++"$python" -m elekloader.sdk.build mods/machine-pages --stock "$stock"
+ "$python" -m elekloader.sdk.build "$project" --stock "$stock"
+ (
+     cd "$project/diagnostics/digihealth"
+     PYTHONPATH="$loader${PYTHONPATH:+:$PYTHONPATH}" "$python" build.py --stock "$stock"
+ )
+ 
++# core 3.0 or later and machine-pages, which draws Sophie's pages: what the checkout just built
++newest() {
++    ls "$1"-*.elemod | if [ -n "$suffix" ]; then grep -- "$suffix\.elemod\$"; else grep -v -- '-os'; fi | tail -1
++}
++core=$(newest "$loader/mods/core/out/core")
++pages=$(newest "$loader/mods/machine-pages/out/machine-pages")
+ "$python" -m elekloader.lint --stock "$stock" \
+-    "$loader/mods/core/out/core-2.1$suffix.elemod" \
++    "$core" "$pages" \
+     "$project/diagnostics/digihealth/out/digihealth-1.0.1$suffix.elemod" \
+-    "$project/out/digisophie-1.1.13$suffix.elemod"
++    "$project/out/digisophie-1.2.0$suffix.elemod"
+ "$python" -m elekloader.patch --stock "$stock" \
+-    --mod "$loader/mods/core/out/core-2.1$suffix.elemod" \
++    --mod "$core" --mod "$pages" \
+     --mod "$project/diagnostics/digihealth/out/digihealth-1.0.1$suffix.elemod" \
+-    --mod "$project/out/digisophie-1.1.13$suffix.elemod" \
+-    --out "$project/out/Digitakt_OS${os}_SOPHIE_S033.syx" --version S033
++    --mod "$project/out/digisophie-1.2.0$suffix.elemod" \
++    --out "$project/out/Digitakt_OS${os}_SOPHIE_S034.syx" --version S034
+diff --git a/sophie.c b/sophie.c
+index 900b8f5..76b5b47 100644
+--- a/sophie.c
++++ b/sophie.c
+@@ -45,10 +45,11 @@ static uint32_t ds_phase_from_radians_q15(int32_t radians)
+     return (uint32_t)((radians * 5215) >> 14) << 16;
+ }
+ 
+-static uint32_t ds_index_phase(int32_t index_q12, int32_t mod_q15,
++static inline __attribute__((always_inline)) uint32_t ds_index_phase(int32_t index_q12, int32_t mod_q15,
+                                int32_t factor_q15)
+ {
+-    int32_t scaled = ds_mul(mod_q15, factor_q15);
++    /* (mod * 32767) >> 15 is mod - 1 for mod > 0 and mod otherwise (|mod| < 2^15): no multiply */
++    int32_t scaled = factor_q15 == Q15 ? mod_q15 - (mod_q15 > 0) : ds_mul(mod_q15, factor_q15);
+     int32_t n = (scaled >> 4) * index_q12;
+     uint32_t a = n < 0 ? 0u - (uint32_t)n : (uint32_t)n;
+     /* 163/131072 approximates 1/804 within 0.016%. Splitting n before
+@@ -72,7 +73,7 @@ static const uint16_t ds_clip_table[65] = {
+     21729, 21844
+ };
+ 
+-static int32_t ds_soft_clip(int32_t x)
++static inline __attribute__((always_inline)) int32_t ds_soft_clip(int32_t x)
+ {
+     uint32_t a = x < 0 ? 0u - (uint32_t)x : (uint32_t)x;
+     int32_t y;
+@@ -178,54 +179,43 @@ void ds_voice_gate(struct ds_voice *v, int32_t amp_level, int32_t amp_phase)
+     }
+ }
+ 
+-void ds_voice_render(struct ds_voice *v, const struct ds_params *p,
+-                     int trigger, int32_t *out, uint32_t n)
++/* The synthesis of synth samples i, i + 2, .. below end (output frames i .. end - 1, end - i even),
++ * into out. The voice's running state is held in locals (the CPU's registers) meanwhile: the output
++ * buffer is int32_t like most of its fields, so with them in the struct the compiler would reload and
++ * store each one around every output sample. */
++/* the slow controls of a block, as set at its last control tick */
++struct ds_ctl { int32_t color, metal, feedback, fbk, ratio, index, inc, mod_inc; };
++
++static __attribute__((noinline)) void
++ds_render_core(struct ds_voice *v, const struct ds_params *p, uint8_t model,
++               int32_t color_target, int32_t metal_target, int32_t feedback_target,
++               int32_t velocity_target, struct ds_ctl *ctl, int32_t *out, uint32_t i, uint32_t end)
+ {
+-    uint32_t i;
+-    uint8_t model = p->model & 3u;
+-    int32_t color = 0, metal = 0, feedback = 0;
+-    int32_t ratio = 0, index = 0, inc = 0;
+-    int32_t color_target = ds_u7_q15(p->color);
+-    int32_t metal_target = ds_u7_q15(p->metal);
+-    int32_t feedback_target = ds_u7_q15(p->feedback);
+-    int32_t velocity_target = ds_u7_q15(p->velocity);
+-    if (trigger || (v->active && v->model != model)) {
+-        if (!v->active) {
+-            v->color_s = color_target; v->metal_s = metal_target;
+-            v->feedback_s = feedback_target; v->velocity_s = velocity_target;
+-        }
+-        v->tail = v->last;
+-        v->transition = 64;
+-        v->model = model;
+-        v->carrier = v->mod1 = v->mod2 = v->mod3 = 0;
+-        v->sub = v->upper = v->split = 0;
+-        v->amp = Q15;
+-        v->pitch = Q15;
+-        v->attack = 0;
+-        v->feedback_z = v->noise_z = 0;
+-        v->rng ^= 0x9e3779b9u + ((uint32_t)p->velocity << 16);
+-        v->sleeping = v->quiet_blocks = v->fade_left = 0;
+-        v->active = 1;
+-    }
++    int32_t color = ctl->color, metal = ctl->metal, feedback = ctl->feedback, fbk = ctl->fbk;
++    int32_t ratio = ctl->ratio, index = ctl->index, inc = ctl->inc, mod_inc = ctl->mod_inc;
++    uint32_t carrier, mod1;
++    int32_t pitch, amp, attack, feedback_z, noise_z, last, tail;
++    int32_t color_s, metal_s, feedback_s, velocity_s;
++    uint32_t transition, fade_left;
++    carrier = v->carrier; mod1 = v->mod1;
++    pitch = v->pitch; amp = v->amp; attack = v->attack;
++    feedback_z = v->feedback_z; noise_z = v->noise_z; last = v->last; tail = v->tail;
++    color_s = v->color_s; metal_s = v->metal_s; feedback_s = v->feedback_s; velocity_s = v->velocity_s;
++    transition = v->transition; fade_left = v->fade_left;
+     /* A two-operator core at 24 kHz. The models share one inharmonic modulator
+      * and one pitched carrier; only BOOM reads the carrier twice so its clean
+      * low-frequency body survives an aggressively FM'd attack. */
+-    for (i = 0; i < n; i += 2) {
++    for (; i < end; i += 2, out += 2) {
+         int32_t mod, raw, fb, phase_mod;
+         int32_t y;
+         uint32_t control_tick = (i & 7u) == 0;
+-        if (!v->active) {
+-            out[i] = 0;
+-            if (i + 1 < n) out[i + 1] = 0;
+-            continue;
+-        }
+         if (control_tick) {
+-            color = v->color_s = ds_slew8(v->color_s, color_target);
+-            metal = v->metal_s = ds_slew8(v->metal_s, metal_target);
+-            v->feedback_s = ds_slew8(v->feedback_s, feedback_target);
+-            v->velocity_s = ds_slew8(v->velocity_s, velocity_target);
+-            feedback = ds_mul(v->feedback_s, v->feedback_s);
+-            /* COLOR visits different inharmonic bands for each topology. */
++            color = color_s = ds_slew8(color_s, color_target);
++            metal = metal_s = ds_slew8(metal_s, metal_target);
++            feedback_s = ds_slew8(feedback_s, feedback_target);
++            velocity_s = ds_slew8(velocity_s, velocity_target);
++            feedback = ds_mul(feedback_s, feedback_s);
++            fbk = 8192 + ((metal * 40960) >> 15);
+             switch (model) {
+             default: ratio = 1925 + ((ds_mul(color, color) * 31130) >> 15); break;
+             case 1: ratio = 2457 + ((color * 17203) >> 15); break;
+@@ -233,52 +223,39 @@ void ds_voice_render(struct ds_voice *v, const struct ds_params *p,
+             case 3: ratio = 1925 + ((color * 32767) >> 15); break;
+             }
+         }
+-        /* About 28 ms at the equivalent 48 kHz output rate.
+-         * The former coefficient collapsed in under 1 ms, making SWEEP
+-         * audible mostly as a click. */
+-        v->pitch -= (v->pitch * 48 + 32767) >> 15;
+-        /* A separate ~135 ms brightness contour lets the high end open,
+-         * scrape and settle after the faster pitch snap. AMP still owns the
+-         * actual note duration. */
+-        v->amp -= (v->amp * 10 + 32767) >> 15;
+-        if (v->attack < Q15) v->attack = ds_slew32(v->attack, Q15);
+-        /* Ease into feedback and damp its one-sample loop below. This keeps
+-         * the useful metallic range from abruptly becoming Nyquist chatter. */
+-        /* Four synth samples share one pitch step. Phase stays continuous,
+-         * while a moving SWEEP no longer repeats its lookup every sample. */
+-        if (control_tick)
+-            inc = p->sweep ? ds_swept_inc(p->phase_inc, p->sweep, v->pitch)
+-                           : p->phase_inc;
+-        v->carrier += (uint32_t)inc << 17;
+-        v->mod1 += (uint32_t)((inc * ratio) >> 11) << 16;
++        pitch -= (pitch * 48 + 32767) >> 15;
++        amp -= (amp * 10 + 32767) >> 15;
++        if (attack < Q15) attack = ds_slew32(attack, Q15);
++        if (control_tick) {
++            inc = p->sweep ? ds_swept_inc(p->phase_inc, p->sweep, pitch) : p->phase_inc;
++            mod_inc = (inc * ratio) >> 11;
++        }
++        carrier += (uint32_t)inc << 17;
++        mod1 += (uint32_t)mod_inc << 16;
+         /* Diet: with no feedback the loop contributes exactly 0
+          * (ds_mul(z, 0) == 0), so skip the modulator read, the radian
+          * conversion and the smoother update. Bit-exact while FBK stays
+          * 0; raising FBK mid-note reconverges from the frozen smoother
+          * within samples (inaudible). */
+         if (feedback) {
+-            fb = ds_mul(v->feedback_z, feedback);
+-            fb = (fb * (8192 + ((metal * 40960) >> 15))) >> 12;
+-            mod = ds_sin(v->mod1 + ds_phase_from_radians_q15(fb));
++            fb = ds_mul(feedback_z, feedback);
++            fb = (fb * fbk) >> 12;
++            mod = ds_sin(mod1 + ds_phase_from_radians_q15(fb));
+         } else {
+-            mod = ds_sin(v->mod1);
++            mod = ds_sin(mod1);
+         }
+-        /* The pitch contour moves slowly relative to four synth samples.
+-         * Hold FM depth/ceiling across the same eight output frames as the
+-         * other controls; this avoids repeated heavy multiply/divide work. */
+         if (control_tick) {
+-            int32_t shape = 8192 + 3 * (8192 + ds_mul(v->amp, 24576));
++            int32_t shape = 8192 + 3 * (8192 + ds_mul(amp, 24576));
+             int32_t metal2 = ds_mul(metal, metal);
+             int32_t rate = (inc * ratio) >> 12;
+             int32_t bandwidth, ceiling;
+-            index = ((metal2 >> 2) * shape) >> 13; /* Q12 radians */
++            index = ((metal2 >> 2) * shape) >> 13;
+             rate = ((rate >> 4) * (4096 + ((metal * 10240) >> 15))) >> 8;
+             if (rate < 1) rate = 1;
+             bandwidth = 16384 - inc;
+             if (bandwidth < 256) bandwidth = 256;
+             if (index <= 4096 && rate <= 4096 &&
+                 index * rate <= bandwidth * 4096) {
+-                /* The common low/mid-pitch case needs no costly divide. */
+             } else {
+                 ceiling = (bandwidth * 4096) / rate;
+                 if (index > ceiling) index = ceiling;
+@@ -287,36 +264,34 @@ void ds_voice_render(struct ds_voice *v, const struct ds_params *p,
+         phase_mod = ds_index_phase(index, mod, Q15);
+ 
+         switch (model) {
+-        default: /* FUSE: a bright clang that settles as FM depth recedes. */
+-            raw = ds_sin(v->carrier + phase_mod);
++        default:
++            raw = ds_sin(carrier + phase_mod);
+             break;
+-        case 1: { /* BOOM: round sine body, with a decaying FM impact skin. */
+-            int32_t body = ds_sin(v->carrier);
+-            int32_t edge = ds_sin(v->carrier + phase_mod);
+-            int32_t edge_mix = 2048 + ds_mul(metal, v->amp) / 2;
++        case 1: {
++            int32_t body = ds_sin(carrier);
++            int32_t edge = ds_sin(carrier + phase_mod);
++            int32_t edge_mix = 2048 + ds_mul(metal, amp) / 2;
+             raw = ds_mul(body, Q15 - edge_mix) + ds_mul(edge, edge_mix);
+             break;
+         }
+-        case 2: { /* PIPE: cross-modulated sine through an inharmonic ring. */
+-            int32_t body = ds_sin(v->carrier + phase_mod);
++        case 2: {
++            int32_t body = ds_sin(carrier + phase_mod);
+             int32_t ring = ds_mul(body, mod);
+-            int32_t ring_mix = 10240 + (metal >> 1) + (v->amp >> 3);
+-            /* A little ring remains at METAL 0: COLOR tunes the partial
+-             * and FBK bends it, rather than both controls going dead. */
++            int32_t ring_mix = 10240 + (metal >> 1) + (amp >> 3);
+             raw = ds_mul(body, Q15 - ring_mix) + ds_mul(ring, ring_mix);
+-            raw += raw >> 2; /* compensate the ring's lower average level */
++            raw += raw >> 2;
+             break;
+         }
+-        case 3: /* SHARD: quantized tone and a short, scratchy noise bloom. */
+-            raw = ds_sin((v->carrier & 0xf8000000u) + phase_mod);
++        case 3:
++            raw = ds_sin((carrier & 0xf8000000u) + phase_mod);
+             /* Diet: at METAL 0 the bloom term is exactly 0, so skip the
+              * LPF and the LFSR advance. Bit-exact while METAL stays 0;
+              * raising it restarts from frozen state (white restarts
+              * white — statistically identical, inaudible). */
+             if (metal) {
+-                v->noise_z += ds_mul(ds_noise(v) - v->noise_z, 655 + ds_mul(color, 11469));
++                noise_z += ds_mul(ds_noise(v) - noise_z, 655 + ds_mul(color, 11469));
+                 raw = ds_mul(raw, 27852 - (metal >> 2))
+-                    + ds_mul(v->noise_z, ds_mul(ds_mul(metal, v->amp), 13762));
++                    + ds_mul(noise_z, ds_mul(ds_mul(metal, amp), 13762));
+             } else {
+                 raw = ds_mul(raw, 27852);
+             }
+@@ -324,28 +299,80 @@ void ds_voice_render(struct ds_voice *v, const struct ds_params *p,
+         }
+         /* Frozen while feedback is 0 (see above); resumes on raise. */
+         if (feedback)
+-            v->feedback_z += (ds_soft_clip(raw + ((raw * 13) >> 5)) - v->feedback_z) / 8;
+-        if (v->attack < Q15) raw = ds_mul(raw, v->attack);
++            feedback_z += (ds_soft_clip(raw + ((raw * 13) >> 5)) - feedback_z) / 8;
++        if (attack < Q15) raw = ds_mul(raw, attack);
+ 
+-        y = ds_mul(raw, v->velocity_s);
+-        /* Fixed output conditioning, not an extra drive control: a full-scale
+-         * sine reaches 0.25 FS; hotter model sums saturate smoothly. */
++        y = ds_mul(raw, velocity_s);
+         y = ds_soft_clip(y) / 2;
+-        if (v->transition) {
+-            y = (y * (64 - v->transition) + v->tail * v->transition) / 64;
+-            v->transition = v->transition > 2 ? v->transition - 2 : 0;
++        if (transition) {
++            y = (y * (64 - (int32_t)transition) + tail * (int32_t)transition) / 64;
++            transition = transition > 2 ? transition - 2 : 0;
+         }
+-        if (v->fade_left) {
+-            y = (y * v->fade_left) / 128;
+-            if (--v->fade_left == 0) {
++        if (fade_left) {
++            y = (y * (int32_t)fade_left) / 128;
++            if (--fade_left == 0) {
+                 v->sleeping = 1;
+-                v->tail = 0;
+-                v->transition = 0;
++                tail = 0;
++                transition = 0;
+             }
+         }
+-        out[i] = ((v->last + y) / 2) * 65536;
+-        if (i + 1 < n) out[i + 1] = y * 65536;
+-        v->last = v->sleeping ? 0 : y;
++        out[0] = ((last + y) / 2) * 65536;
++        out[1] = y * 65536;
++        last = v->sleeping ? 0 : y;
++    }
++    v->carrier = carrier; v->mod1 = mod1;
++    v->pitch = pitch; v->amp = amp; v->attack = attack;
++    v->feedback_z = feedback_z; v->noise_z = noise_z; v->last = last; v->tail = tail;
++    v->color_s = color_s; v->metal_s = metal_s; v->feedback_s = feedback_s; v->velocity_s = velocity_s;
++    v->transition = (uint8_t)transition; v->fade_left = (uint8_t)fade_left;
++    ctl->color = color; ctl->metal = metal; ctl->feedback = feedback; ctl->fbk = fbk;
++    ctl->ratio = ratio; ctl->index = index; ctl->inc = inc; ctl->mod_inc = mod_inc;
++}
++
++
++void ds_voice_render(struct ds_voice *v, const struct ds_params *p,
++                     int trigger, int32_t *out, uint32_t n)
++{
++    struct ds_ctl ctl = {0, 0, 0, 0, 0, 0, 0, 0};
++    uint32_t i;
++    uint8_t model = p->model & 3u;
++    int32_t color_target = ds_u7_q15(p->color);
++    int32_t metal_target = ds_u7_q15(p->metal);
++    int32_t feedback_target = ds_u7_q15(p->feedback);
++    int32_t velocity_target = ds_u7_q15(p->velocity);
++    if (trigger || (v->active && v->model != model)) {
++        if (!v->active) {
++            v->color_s = color_target; v->metal_s = metal_target;
++            v->feedback_s = feedback_target; v->velocity_s = velocity_target;
++        }
++        v->tail = v->last;
++        v->transition = 64;
++        v->model = model;
++        v->carrier = v->mod1 = v->mod2 = v->mod3 = 0;
++        v->sub = v->upper = v->split = 0;
++        v->amp = Q15;
++        v->pitch = Q15;
++        v->attack = 0;
++        v->feedback_z = v->noise_z = 0;
++        v->rng ^= 0x9e3779b9u + ((uint32_t)p->velocity << 16);
++        v->sleeping = v->quiet_blocks = v->fade_left = 0;
++        v->active = 1;
++    }
++    if (!v->active) {
++        for (i = 0; i < n; i++)
++            out[i] = 0;
++        return;
++    }
++    if (n & 1) {                                /* an odd length: its last frame from a whole sample */
++        int32_t pair[2];
++        ds_render_core(v, p, model, color_target, metal_target, feedback_target, velocity_target,
++                       &ctl, out, 0, n - 1);
++        ds_render_core(v, p, model, color_target, metal_target, feedback_target, velocity_target,
++                       &ctl, pair, n - 1, n + 1);
++        out[n - 1] = pair[0];
++    } else {
++        ds_render_core(v, p, model, color_target, metal_target, feedback_target, velocity_target,
++                       &ctl, out, 0, n);
+     }
+ }
+ 

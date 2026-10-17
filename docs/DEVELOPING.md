@@ -126,7 +126,7 @@ tools/dev.sh elemods
 - **COMPATIBILITY.txt:** elekloader's check for every pair: `ok`, `CLASH` with the overlapping address,
   or `TOO BIG` when the two need more than the mods' RAM (256 KB with core 4.0, 128 KB with older cores). The SRC machine mods describe
   their pages for elekloader's machine-pages (built and published with them), so they combine; SOPHIE
-  1.1.13 patches those places itself and does not combine with them. Several big mods together can still be too
+  is built as 1.2.0 (tools/patches/digisophie-machine-pages.patch, offered to its author), which does too. Several big mods together can still be too
   big for the RAM: the window says so.
 
 Each `.elemod` is built from your own official OS file, so nothing of Elektron's is in it. Then:

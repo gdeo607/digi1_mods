@@ -58,10 +58,11 @@ DigiFilter): every pair, checked by `tools/dev.sh elemods` (COMPATIBILITY.txt). 
 build (checked on OS 1.54), with Tone+FX or Digi EQ: Tone+FX replaces Digi EQ (the two use the same master
 page and render site).
 
-**The SRC machines** (Digi Mono, Digi Macro, DH-101, Digi Poly, DIGISLICER 2.3, NEIGHBOR 0.7, OB-1) describe their pages
-for elekloader's [machine-pages](#machine-pages-elekloaders) mod, so they share a build (checked: all of them
-with Utilities, Matrix, Digi EQ, digihealth and DigiFilter, on OS 1.53 and 1.54). SOPHIE 1.1.13 still patches
-those places itself, so it does not combine with them until its author publishes a machine-pages build.
+**The SRC machines** (Digi Mono, Digi Macro, DH-101, Digi Poly, SOPHIE 1.2.0, DIGISLICER 2.3, NEIGHBOR 0.7, OB-1)
+describe their pages for elekloader's [machine-pages](#machine-pages-elekloaders) mod, so they share a build
+(checked: all of them with Utilities, Matrix, Digi EQ, digihealth and DigiFilter, on OS 1.53 and 1.54). SOPHIE
+1.2.0 is built here from its author's 1.1.13 with the change offered to them
+(tools/patches/digisophie-machine-pages.patch).
 
 **OS 1.54:** every mod here is built for both 1.53 and 1.54, and on 1.54 they pass the same emulator tests
 (Digi Mono, Digi Poly, Digi Matrix, Digi EQ, Digi Utilities' pages). Of the other
@@ -244,8 +245,9 @@ them; it is retired.)
 `tools/dev.sh mods` (and the elekloader app's update button) also fetches and builds these, by other authors,
 from their own repositories, so one update brings everything: **digihealth** (FAST AUDIO, SYSTEM INFO CPU/DSP
 readout), **SOPHIE** (digisophie), **NEIGHBOR** (digineighbor), **DIGISLICER** (digislicer) and **DigiFilter**.
-SOPHIE is built with its render made 7-12 % lighter, the same sound sample for sample
-(tools/patches/digisophie-render.patch, offered to its author; the build's version ends in "f").
+SOPHIE is built as 1.2.0, offered to its author (tools/patches/digisophie-machine-pages.patch): its pages
+drawn by machine-pages, so it combines with every other machine here, and its render 7-12 % lighter, the same
+sound sample for sample.
 `COMPATIBILITY.txt`, written next to the `.elemod` files, says which pairs combine.
 
 ## Stand-alone builds

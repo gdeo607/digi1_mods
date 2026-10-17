@@ -3,6 +3,20 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## SOPHIE 1.2.0: combines with every other machine (machine-pages); offered to its author (HW: not yet)
+- **SOPHIE** (soejrd/digisophie, MIT) is built as 1.2.0 with tools/patches/digisophie-machine-pages.patch,
+  which replaces digisophie-render.patch and is offered to its author as a pull request: the lighter render
+  (as 1.1.13f) and its pages drawn by elekloader's machine-pages. Its descriptor names a page (each knob's
+  names, borrowed look, range, default and value text, as its glue.s set them by hand) and machine-pages'
+  render event calls it at the same point; it hooks none of the 17 places 1.1.13 did. So it now links beside
+  Digi Mono, Digi Macro, DH-101, Digi Poly, NEIGHBOR, DIGISLICER and the rest: a build of every mod here but
+  Tone+FX fits on OS 1.53 and 1.54 (core 4.0: 53-55 KB of the mods' RAM spare). Still machine 7.
+- Checked in digiemu, OS 1.53 and 1.54, against 1.1.13f: the machine menu, its page, every knob turned
+  slowly (values, pop-ups, graphics), the LFO page and its DEST list identical, and the track's blocks
+  identical sample for sample. tests/sophie_fast.py runs on the new patch (40,000 random blocks equal,
+  7-12 % lighter); SOPHIE's `make test`, `make cross-check` and scripts/build.sh pass.
+- tools/dev.sh adds machine-pages to a build with SOPHIE; elemods/ has digisophie 1.2.0 in place of 1.1.13f.
+
 ## DH-101 0.23 (new mod, contributed by Robbie): on machine-pages, with Digi Mono 0.24 (HW: 0.22 on OS 1.54)
 - **New mod `digi101`** (mods/digi101, its README), from pull request #7: DH-101, an SH-101-style machine
   Digi Mono hosts (machine 29), as Digi Macro's MACRO. SRC page: RNGE, SAW, NOIS, PULS, PW, PWM (MAN / LFO /
