@@ -82,5 +82,6 @@ int sh101_pwm_mode(int v);         /* 0 MAN, 1 LFO, 2 ENV                   */
 int sh101_pwm_amount(int v);       /* LFO rate / ENV decay step, 1..59      */
 int sh101_sub_mode(int v);         /* 0 -1 oct, 1 -2 oct, 2 -2 oct 25 %     */
 int sh101_sub_level(int v);        /* 0..127 within the zone                */
+uint32_t sh101_lfo_rate(int v);    /* RATE 0..127 -> the LFO's phase step a sample (48 kHz) */
 
 #endif

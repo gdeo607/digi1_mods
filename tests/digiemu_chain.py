@@ -35,8 +35,12 @@ ap.add_argument("--blocks-at", default="0x40077fc0", help="where --blocks reads 
 ap.add_argument("--os", default="1.53", help="the build's OS release (1.53, 1.54): the firmware addresses here are"
                 " 1.53's, moved by tools/os154.json")
 ap.add_argument("--after", default="", help="keys after the tracks' pages, comma-separated: a key's name (SRC,"
-                " LFO, FLTR, AMP, TRIG, NO, YES, UP, DOWN), K:+n (knob K turned n notches), snap:NAME (DIR/NAME.png),"
-                " wait:n (steps)")
+                " LFO, FLTR, AMP, TRIG, NO, YES, UP, DOWN, REC, FUNC), K:+n (knob K turned n notches), snap:NAME"
+                " (DIR/NAME.png), wait:n (steps), trig:N (trig key N tapped), hold:N / rel:N (trig key N pressed /"
+                " released: a knob turned meanwhile locks that step)")
+ap.add_argument("--words", default="", help="track:index pairs of the render's voice parameter words (53 a track, 0-7"
+                " A-H, 29-35 machine-pages' page-2 parameters 8-14) to record each block while playing: DIR/words.json")
+ap.add_argument("--play-only", action="store_true", help="--play records the pattern as it is (no trigs added)")
 ap.add_argument("--out", required=True)
 a = ap.parse_args()
 
@@ -72,6 +76,8 @@ def fw(x):
     return _fw(x, a.os)
 AFTER_INJECT = fw(int(a.blocks_at, 0))                 # 0x40077fc0: the instruction after the site at 0x40077fba
 BLOCK_TRACKS = [int(x) for x in filter(None, a.blocks.split(","))]
+WORDS = [tuple(int(y) for y in x.split(":")) for x in filter(None, a.words.split(","))]
+WORDLOG = []
 BLOCKS = {t_: [] for t_ in BLOCK_TRACKS}
 
 SNAP = [os.path.join(dp, f) for dp, _, fs in os.walk(FW + "/snapshots") for f in fs if f == "gui.snap"][0]
@@ -117,10 +123,16 @@ for track, index in TRACKS:
             at(3, "encoder", 1 + "ABCDEFGH".index(k), 4 if n > 0 else -4)
         at(25, "snap", "t%d_%s" % (track, k))
         at(80 + a.settle, "wait")
-KEYS = {"FUNC": FUNC, "NO": NO, "YES": YES, "DOWN": DOWN, "UP": 14, "TRIG": 19, "SRC": SRC, "FLTR": 21,
+KEYS = {"REC": RECORD, "FUNC": FUNC, "NO": NO, "YES": YES, "DOWN": DOWN, "UP": 14, "TRIG": 19, "SRC": SRC, "FLTR": 21,
         "AMP": 22, "LFO": 23}
 for tok in filter(None, a.after.split(",")):
-    if tok.startswith("snap:"):
+    if tok.startswith("trig:"):
+        tap(TRIG + int(tok[5:]) - 1, 20, 60)
+    elif tok.startswith("hold:"):
+        at(1, "press", TRIG + int(tok[5:]) - 1); at(40, "wait")
+    elif tok.startswith("rel:"):
+        at(1, "release", TRIG + int(tok[4:]) - 1); at(60, "wait")
+    elif tok.startswith("snap:"):
         at(25, "snap", tok[5:])
     elif tok.startswith("wait:"):
         at(int(tok[5:]), "wait")
@@ -135,6 +147,12 @@ at(0, "machines")
 
 
 def record(tracks, name):
+    if a.play_only:
+        at(0, "clear")
+        tap(PLAY, 20, 20)
+        at(2600, "take", name)
+        tap(STOP, 20, 200)
+        return
     tap(RECORD, 20, 60)
     for track in tracks:
         combo(TRK, TRIG + track - 1, 60)
@@ -159,6 +177,9 @@ def after_inject(u, ad, sz, d):
     if st["rec"] is None:
         return
     sb = struct.unpack(">I", u.mem_read(0x80001228, 4))[0]
+    if WORDS:                                       # the render's voice parameter words (0x80002794, 106 a track)
+        WORDLOG.append([st["rec"], sb] + [struct.unpack(">h", u.mem_read(0x80002794 + 106 * (tr - 1) + 2 * k, 2))[0]
+                                          for tr, k in WORDS])
     for tr in BLOCK_TRACKS:
         v = tr - 1
         BLOCKS[tr].append([st["rec"], (sb >> v) & 1,
@@ -168,7 +189,7 @@ def after_inject(u, ad, sz, d):
 _spin = G.spin
 def spin(m, pc, *args, **kw):
     n = st["n"]
-    if n == 0 and BLOCK_TRACKS:
+    if n == 0 and (BLOCK_TRACKS or WORDS):
         m.uc.hook_add(UC_HOOK_CODE, after_inject, begin=AFTER_INJECT, end=AFTER_INJECT)
     for when, act in PLAN:
         if when != n:
@@ -199,6 +220,9 @@ def spin(m, pc, *args, **kw):
             if BLOCK_TRACKS:
                 with open(os.path.join(OUT, "blocks.json"), "w") as fh:
                     json.dump(BLOCKS, fh)
+            if WORDS:
+                with open(os.path.join(OUT, "words.json"), "w") as fh:
+                    json.dump(WORDLOG, fh)
     st["n"] += 1
     r = _spin(m, pc, *args, **kw)
     if st["n"] >= STEPS:

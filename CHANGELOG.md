@@ -3,6 +3,31 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## DH-101 0.24 (test build, branch dh101-src16): page 2 lockable, on machine-pages' second SRC page (HW: not yet)
+- **Page 2 is a real SRC page now**, through machine-pages with the second SRC page (elekloader pull request
+  #103 by simonjohansson, not merged yet): PORT, FREQ, RESO, ENV, MOD, KYB, VIB and RATE are parameters the
+  firmware keeps, so each takes **p-locks**, **both LFOs** reach each of them (the LFO page lists all 15 knobs
+  of both pages), and they are saved with the sound, copied, pasted and cleared with the page. SRC flips the
+  two pages. DH-101 reads their values as played (locks, smoothing, LFOs) with `cm_src_value`.
+- Gone: 0.23's own page 2 (keys, knobs, drawing), its packing of the filter into slots 46 and 47 and the
+  save / load hooks that kept them, the per-pattern PORT, the LFO rerouting of RNGE / PW / PWM's
+  destinations and the TRK message hooks. DH-101 patches no firmware place and uses no firmware address
+  (core's `fw_amp_env`, `fw_voice_start`, `fw_bitmap_vt`), so ENV and the idle rest now work on OS 1.53 too.
+- PORT is per sound (was per pattern); KYB and RATE are continuous (were 4 and 16 steps); RATE shows Hz from
+  the engine's own table. Defaults as 0.23's: FREQ open, RATE 4.5 Hz, the rest 0.
+- Its descriptor takes SLICE's params (machine-pages' second page reads SLICE's ids); knob values are where
+  they were. Sounds saved by 0.23 load with page 2 at its defaults.
+- Needs that machine-pages: 0.23 and pull request #103's machine-pages do not link together (they patch the
+  same sound-save and message places), so 0.24 is what DH-101 needs once #103 is merged. Until then it is a
+  test build; main keeps 0.23.
+- Checked: tests/digi101_page.c (the pages as machine-pages validates them, values reaching the engine, texts,
+  rest / fade), tests/digi101_fw.py on 1.53 and 1.54 (machine-pages accepts the pages; the LFO page names
+  both pages), every pair with this repo's and the other authors' mods, a full build on both OSes, and in digiemu (1.54;
+  1.53 for the pages and the list): SRC flips 1/2 and 2/2, page 2's knobs turn with their texts, a p-lock on
+  FREQ reaches the render's parameter word on its step only, LFO 1 set to 101:Filter Freq moves it, the LFO
+  list ends with page 2's eight, and at the defaults the track's audio is identical to 0.23's sample for
+  sample. Not checked yet: a sound saved and loaded again (machine-pages' part; its author has it open too).
+
 ## SOPHIE 1.2.0: combines with every other machine (machine-pages); offered to its author (HW: not yet)
 - **SOPHIE** (soejrd/digisophie, MIT) is built as 1.2.0 with tools/patches/digisophie-machine-pages.patch,
   which replaces digisophie-render.patch and is offered to its author as a pull request: the lighter render

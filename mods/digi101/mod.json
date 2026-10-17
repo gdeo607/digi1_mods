@@ -1,33 +1,19 @@
 {
  "id": "digi101",
- "version": "0.23",
+ "version": "0.24",
  "title": "DH-101",
  "category": "Sound",
  "author": "Robbie",
  "license": "MIT",
- "description": "DH-101, a machine in the FUNC+SRC list after the SH-101 (clean-room). SRC page: RANGE 16'/8'/4'/2' (B), a mixer of SAW (C), PULSE (E), SUB (H: -1 oct square, -2 oct square or -2 oct 25% pulse, level within each zone) and NOISE (D), PULSE WIDTH (F) set by hand or swept by its own LFO or envelope (G: MAN / LFO rate / ENV decay). SRC pressed again: the DH-101 page: A PORT (portamento, per track, saved with the pattern) and the 101's filter, a 4-pole ladder before the track's own FLTR: B FREQ, C RESO (self-oscillates at the top), D ENV (follows the AMP envelope), E MOD (LFO), F KYB, G VIB (LFO to pitch), H RATE (the LFO); saved in the sound (slots 46 and 47). On a DH-101 track the LFO page's destinations are TUNE, SAW, NOISE, PULSE, PWM Source (the PWM knob within MAN and LFO), SUB, then Filter Freq and Filter Reso (OS 1.54). TRK + a trig shows DH-101 (OS 1.54). Needs Digi Mono 0.24 or later, which renders its voices, and machine-pages, which draws its SRC and LFO pages (core 3.0).",
+ "description": "DH-101, a machine in the FUNC+SRC list after the SH-101 (clean-room). SRC page 1: RNGE 16'/8'/4'/2' (B), a mixer of SAW (C), PULS (E), SUB (H: -1 oct square, -2 oct square or -2 oct 25% pulse, level within each zone) and NOIS (D), PW (F) set by hand or swept by its own LFO or envelope (G PWM: MAN / LFO rate / ENV decay). SRC again, page 2: A PORT (portamento) and the 101's filter, a 4-pole ladder before the track's own FLTR: B FREQ, C RESO (self-oscillates at the top), D ENV (follows the AMP envelope), E MOD (LFO), F KYB, G VIB (LFO to pitch), H RATE (the LFO). Every knob of both pages takes p-locks, both LFOs reach it and it is saved with the sound. Needs Digi Mono 0.24 or later, which renders its voices, and machine-pages with the second SRC page (elekloader pull request #103), which draws its pages and keeps page 2's parameters.",
  "device": "digitakt-mk1",
  "os": "1.53",
  "sources": [
   "digi101.c",
   "sh101.c",
-  "glue.s",
   "vcf.s"
  ],
- "sites": [
-  {
-   "addr": "0x4007a61a",
-   "stock": "712a002a20310c00",
-   "op": "jsr",
-   "target": "digi101_save_hook"
-  },
-  {
-   "addr": "0x4007a2cc",
-   "stock": "712a001c7405",
-   "op": "jsr",
-   "target": "digi101_load_hook153"
-  }
- ],
+ "sites": [],
  "contribute": [
   {
    "to": "core_machines",
@@ -63,103 +49,16 @@
  ],
  "resources": {
   "names": [
-   "machine:29",
-   "sound:slots 46 47 saved"
+   "machine:29"
   ],
   "core": "3.0"
  },
  "ports": {
   "1.54": {
-   "sites": [
-    {
-     "addr": "0x4007a61a",
-     "stock": "712a002a20310c00",
-     "op": "jsr",
-     "target": "digi101_save_hook"
-    },
-    {
-     "addr": "0x4007a2cc",
-     "stock": "712a001c740520310c00",
-     "op": "jsr",
-     "target": "digi101_load_hook"
-    },
-    {
-     "addr": "0x4003a6c4",
-     "stock": "4eb94007912c",
-     "op": "jsr",
-     "target": "digi101_name_d5"
-    },
-    {
-     "addr": "0x4003a6ce",
-     "stock": "4879401c41c0",
-     "op": "keep2",
-     "target": "digi101_popup_fmt"
-    },
-    {
-     "addr": "0x4003b508",
-     "stock": "4eb94007912c",
-     "op": "jsr",
-     "target": "digi101_name_d5"
-    },
-    {
-     "addr": "0x4003b512",
-     "stock": "4879401c41c0",
-     "op": "keep2",
-     "target": "digi101_popup_fmt"
-    },
-    {
-     "addr": "0x4003bd58",
-     "stock": "4eb94007912c",
-     "op": "jsr",
-     "target": "digi101_name_d3"
-    },
-    {
-     "addr": "0x4003bd62",
-     "stock": "4879401c41c0",
-     "op": "keep2",
-     "target": "digi101_popup_fmt"
-    },
-    {
-     "addr": "0x4007a2dc",
-     "stock": "712a002c20310c00",
-     "op": "jsr",
-     "target": "digi101_load2_hook"
-    },
-    {
-     "addr": "0x40078f44",
-     "stock": "2f027234206f0008",
-     "op": "jsr",
-     "target": "digi101_slot2id"
-    }
-   ],
-   "defsym": {
-    "OS154": 1
-   },
+   "sites": [],
    "cflags": [
     "-DOS154"
    ]
   }
- },
- "subscribe": [
-  {
-   "event": "ev_tick",
-   "fn": "digi101_tick",
-   "order": 56
-  },
-  {
-   "event": "ev_key",
-   "fn": "digi101_key",
-   "order": 45
-  },
-  {
-   "event": "ev_enc",
-   "fn": "digi101_enc",
-   "order": 45
-  },
-  {
-   "event": "ev_draw",
-   "fn": "digi101_draw",
-   "order": 45
-  }
- ]
+ }
 }

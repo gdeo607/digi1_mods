@@ -454,6 +454,7 @@ static void vcf_block(struct sh101_voice *v, int16_t *io, int n, int32_t pitch)
 /* ---- the knobs ------------------------------------------------------------------------------------- */
 
 int sh101_range(int v)      { return v >> 5; }
+uint32_t sh101_lfo_rate(int v) { return SH_LFO_RATE[v & 127]; }
 int sh101_pwm_mode(int v)   { return v < 10 ? 0 : v < 69 ? 1 : 2; }
 int sh101_pwm_amount(int v) { return v < 10 ? 0 : v < 69 ? v - 9 : v - 68; }
 int sh101_sub_mode(int v)   { return v < 43 ? 0 : v < 86 ? 1 : 2; }
