@@ -3,6 +3,28 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## DH-101 0.23 (new mod, contributed by Robbie): on machine-pages, with Digi Mono 0.24 (HW: 0.22 on OS 1.54)
+- **New mod `digi101`** (mods/digi101, its README), from pull request #7: DH-101, an SH-101-style machine
+  Digi Mono hosts (machine 29), as Digi Macro's MACRO. SRC page: RNGE, SAW, NOIS, PULS, PW, PWM (MAN / LFO /
+  ENV), SUB. SRC again: PORT and the 101 filter (FREQ RESO ENV MOD KYB VIB RATE), saved in sound slots 46
+  and 47 (glue.s makes the firmware save and load them), PORT in free bytes of src/kitstore.h's map. OS
+  1.54: the LFO page lists Filter Freq, Filter Reso and PWM Source on its tracks; TRK + a trig shows
+  "DH-101". 0.22, as contributed, was tested on a unit (OS 1.54) with Digi Mono 0.23.1 and digichain.
+- **0.23, for machine-pages**: its descriptor has core 3.0's page (B RNGE, C SAW, D NOIS, E PULS, F PW,
+  G PWM, H SUB, their defaults and Digi Mono's value texts), and the page names the three LFO destinations
+  (lfo, lfo_long), where 0.22 needed Digi Mono 0.23.1's `digimono_dests`; that collection is not carried
+  into 0.24, which has no naming of its own any more. Needs core 3.0, machine-pages and Digi Mono 0.24. Its
+  sites (sound save / load, the DEST list's order, the TRK message) are none of machine-pages' and link
+  beside it on OS 1.53 and 1.54.
+- **Fix:** SRC page 2 opens on a track just turned to DH-101. It asked the render's machine for the track
+  (core_track_machine), which is set only once the track has played; it now reads the track's sound.
+- tools/build_elemods.py and tools/dev.sh build `digi101` with the others; elemods/ has it.
+- Checked: tests/digi101_page.c (also the page's names and defaults), tests/digi101_vcf.py,
+  tests/digi101_engine.py, tests/digi101_hooks_fw.py on OS 1.54 (core 4.0, machine-pages, Digi Mono 0.24:
+  the DEST list's order and machine-pages' names from the page), and digiemu on OS 1.54 (its SRC page and
+  values, page 2 opened, turned and closed, the LFO page's DEST list, a pattern played). The OS 1.53 build
+  is not tested on a unit.
+
 ## Digi Mono 0.24, Digi Macro 1.2, Digi Poly 2.1: on elekloader's machine-pages; digichain retired (HW: not yet)
 - **The SRC machines' pages now come from machine-pages**, elekloader's mod that owns the SRC and LFO pages'
   firmware places once and draws each added machine's page from its description (core 3.0 and later),

@@ -198,6 +198,20 @@ One page, one band per column (bands 1-4 = knobs A/E, B/F, C/G, D/H):
      still answer at once. Repeat, one track at a time, until they don't (usually as the peak nears 100 %).
   5. Once with every track's trigs on the same steps (the worst case), once shifted by a step a track.
 
+## DH-101 (elekloader mod `digi101`, 0.23; needs Digi Mono 0.24 and machine-pages, ticked with it)
+
+An SH-101-style machine, by Robbie: FUNC+SRC, **DH-101** (after Digi Mono's machines and MACRO).
+
+- **SRC page:** A TUNE, B RNGE (16' 8' 4' 2'), C SAW, D NOIS, E PULS, F PW, G PWM (MAN, LFO 1-59, ENV
+  1-59), H SUB (-1, -2, -2P, the level rising across each zone).
+- **SRC again** (on a DH-101 track's SRC page): its own page, A PORT (glide, per track, saved with the
+  pattern), B FREQ, C RESO, D ENV, E MOD, F KYB, G VIB, H RATE (the 101's filter and LFO, saved with the
+  sound). SRC again, NO or any page key goes back.
+- **LFO page (OS 1.54):** on a DH-101 track the DEST list reads Tune, Saw Level, Noise Level, Pulse Level,
+  PWM Source, Sub Osc, Filter Freq, Filter Reso.
+
+Everything else: [mods/digi101/README.md](../mods/digi101/README.md).
+
 ## Song mode
 Stand-alone builds (tools/build.py): disabled, pattern chains work as usual.
 Digi utilities 1.7a and later (elekloader): Song mode works as stock; the utility page opens on a held "...".

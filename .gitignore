@@ -12,3 +12,4 @@ tests/png/
 .DS_Store
 *.elemod
 !elemods/*.elemod
+tools/digi101_render

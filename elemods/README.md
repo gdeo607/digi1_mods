@@ -3,11 +3,13 @@
 Ready to add to [elekloader](https://github.com/irpina/elekloader): open it, choose your own official
 Digitakt mk1 **OS 1.53** or **OS 1.54** file, **Install** these, tick the ones you want and build. Files
 ending `-os1.54` are for OS 1.54, the others for 1.53: elekloader lists the ones that fit your file.
-It brings the core mod (`core-4.0`); the SRC machine mods (Digi Mono, Digi Macro, Digi Poly, DIGISLICER, NEIGHBOR)
-tick machine-pages, which draws their pages, and Digi Macro (MACRO) ticks Digi Mono.
+It brings the core mod (`core-4.0`); the SRC machine mods (Digi Mono, Digi Macro, DH-101, Digi Poly, DIGISLICER,
+NEIGHBOR) tick machine-pages, which draws their pages, and Digi Macro (MACRO) and DH-101 tick Digi Mono.
 
 | file | sha256 |
 |---|---|
+| `digi101-0.23-os1.54.elemod` | `29af430efd8faafb` |
+| `digi101-0.23.elemod` | `7a9c27fb055023a7` |
 | `digieq-1.0c-os1.54.elemod` | `d0ee392ba21d6590` |
 | `digieq-1.0c.elemod` | `eb5c75fbc5b1ecda` |
 | `digifilter-1.1a-os1.54.elemod` | `7403e3270142ca58` |
@@ -49,6 +51,8 @@ column says (the tools named are in this repository). digi1_mods' own mods are u
 
 **machine-pages** (`machine-pages`) is elekloader's ([irpina/elekloader@8972d70](https://github.com/irpina/elekloader/tree/8972d70629f230af99c63c8624a886b33ec08299/mods/machine-pages),
 GPL-2.0-or-later, [text](licenses/machine-pages-LICENSE)), built unchanged: it draws the SRC machines' pages.
+
+**DH-101** (`digi101`) is Robbie's, contributed to this repository (mods/digi101, MIT).
 
 **Tone+FX** (`tonefx`) is a port kept in this repository (mods/tonefx): Digital Alchemy DSP's Tone+FX 3.2a
 ([DigiAlchemydsp/RingTone@0310695](https://github.com/DigiAlchemydsp/RingTone)), GPL-2.0-or-later

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Build the elekloader mods (mods/digipoly, mods/digiutils, mods/digimatrix, mods/digieq, mods/digimono; mods/dt8poly on
-request) from this repo's sources.
+"""Build the elekloader mods (mods/digipoly, mods/digiutils, mods/digimatrix, mods/digieq, mods/digimono, mods/digimacro,
+mods/digi101; mods/dt8poly on request) from this repo's sources.
 
     python3 tools/build_elemods.py --stock <official OS 1.53 .syx> --elekloader <path to elekloader checkout> [--out out/elk]
         [--mods digipoly digiutils digimatrix digieq dt8poly]
 
 digipoly (Digi Poly) is the POLY machine with chords and voice stealing; digimatrix (Digi Matrix) is the
 LFO modulation matrix; digieq (Digi EQ) is the master EQ; digimono (Digi Mono) adds synth machines (it needs
-core 2.1, and does not combine with digipoly 1.0f); dt8poly is the earlier POLY mod
+core 2.1, and does not combine with digipoly 1.0f); digi101 (DH-101) is an SH-101-style machine Digi Mono hosts; dt8poly is the earlier POLY mod
 (internal MIDI cable, voice rotation), superseded by digipoly and kept for tests/elk_equiv.py.
 
 Each mod folder holds its mod.json and the files only it needs; the shared sources come from src/ and
@@ -25,7 +25,7 @@ SHARED = {  # file -> folder it comes from
     "cable.s": "src", "cc.s": "src", "lock.s": "src", "scope.s": "src", "tuner.s": "src",
     "spectrum.s": "src", "songoff.s": "src", "kitstore.h": "src", "spec_tables.inc": "bin", "spec_sin.bin": "bin",
 }
-MODS = ["digipoly", "digiutils", "digimatrix", "digieq", "digimono", "digimacro"]
+MODS = ["digipoly", "digiutils", "digimatrix", "digieq", "digimono", "digimacro", "digi101"]
 
 
 def main():
@@ -44,11 +44,12 @@ def main():
             sys.exit("no m68k cross toolchain found: install binutils-m68k-linux-gnu + gcc-m68k-linux-gnu (Linux) "
                      "or `brew install m68k-elf-gcc m68k-elf-binutils` (macOS), or set ELEKLOADER_CROSS to the prefix")
     built = []
-    # Digi Mono's machine interface: Digi Macro carries a copy, so each mod's folder builds on its own
-    # (elekloader's SDK, the elekloader app); the two must be the same
-    ext = [os.path.join(ROOT, "mods", m, "digimono_ext.h") for m in ("digimono", "digimacro")]
-    if open(ext[0]).read() != open(ext[1]).read():
-        sys.exit("mods/digimacro/digimono_ext.h differs from mods/digimono/digimono_ext.h: copy it over")
+    # Digi Mono's machine interface: Digi Macro and DH-101 carry a copy, so each mod's folder builds on its
+    # own (elekloader's SDK, the elekloader app); the copies must be the same
+    ext = [os.path.join(ROOT, "mods", m, "digimono_ext.h") for m in ("digimono", "digimacro", "digi101")]
+    for e in ext[1:]:
+        if open(ext[0]).read() != open(e).read():
+            sys.exit("%s differs from mods/digimono/digimono_ext.h: copy it over" % os.path.relpath(e, ROOT))
     for mid in a.mods:
         src_dir = os.path.join(ROOT, "mods", mid)
         stage = os.path.join(a.out, mid)

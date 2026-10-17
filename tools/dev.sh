@@ -20,7 +20,7 @@
 #                                          they hold no firmware bytes), with elemods/README.md; with
 #                                          STOCK154=your OS 1.54 file, the -os1.54 ones too
 #
-# Mods for build/all: digimono, digimacro (MACRO; needs digimono), digipoly, digiutils, digimatrix, digieq, tonefx (this repo); digisophie, digislicer,
+# Mods for build/all: digimono, digimacro (MACRO; needs digimono), digi101 (DH-101; needs digimono), digipoly, digiutils, digimatrix, digieq, tonefx (this repo); digisophie, digislicer,
 # digifilter, digineighbor, digihealth (fetched by setup).
 # The SRC machine mods (Digi Mono, Digi Macro, Digi Poly here; DIGISLICER, NEIGHBOR and the others' newer
 # versions) describe their pages for elekloader's machine-pages mod, which owns the page's firmware sites
@@ -206,7 +206,7 @@ cmd_build() {
             digifilter) files+=("$(build_one digifilter "$TOOLS/digifilter")") ;;
             digineighbor) files+=("$(build_one digineighbor "$TOOLS/digineighbor")") ;;
             digihealth) files+=("$(build_one digihealth "$TOOLS/digihealth")") ;;
-            digimono|digimacro|digiutils|digimatrix|digieq|digipoly)
+            digimono|digimacro|digi101|digiutils|digimatrix|digieq|digipoly)
                 PYTHONPATH=$TOOLS/elekloader python3 "$ROOT/tools/build_elemods.py" --stock "$STOCK" \
                     --elekloader "$TOOLS/elekloader" --out "$BUILD/mods" --mods "$m" > "$LOG/build-$m.log" 2>&1 \
                     || die "$m failed to build: $LOG/build-$m.log"
@@ -214,7 +214,7 @@ cmd_build() {
             *) die "unknown mod: $m" ;;
         esac
     done
-    if printf '%s\n' "${files[@]}" | grep -qE -- '/(digimono|digimacro|digipoly|digislicer|digineighbor)-[^/]*\.elemod$'; then
+    if printf '%s\n' "${files[@]}" | grep -qE -- '/(digimono|digimacro|digi101|digipoly|digislicer|digineighbor)-[^/]*\.elemod$'; then
         files+=("$(build_one machine-pages "$TOOLS/elekloader/mods/machine-pages")")   # draws their pages
     fi
     for f in "${files[@]}"; do echo "  $(basename "$f")"; done
@@ -272,7 +272,7 @@ cmd_emutest() {
     say "every machine passed; recordings in $LOG/MONO_*.wav, screens in $LOG/png_*"
 }
 
-ELEMOD_ALL=(digimono digimacro digiutils digimatrix digieq digipoly tonefx digisophie digislicer digifilter digineighbor digihealth)
+ELEMOD_ALL=(digimono digimacro digi101 digiutils digimatrix digieq digipoly tonefx digisophie digislicer digifilter digineighbor digihealth)
 
 FETCHED=(elekloader digiemu digisophie digislicer digifilter digineighbor digihealth)
 
@@ -352,7 +352,7 @@ cmd_elemods() {   # every mod as an .elemod, in one folder, with which pairs com
         case $m in
             tonefx) f=$(build_one "$m" "$ROOT/mods/$m") \
                 || { echo "  $m: FAILED (see $LOG/build-$m.log)"; continue; } ;;
-            digimono|digimacro|digiutils|digimatrix|digieq|digipoly)
+            digimono|digimacro|digi101|digiutils|digimatrix|digieq|digipoly)
                 PYTHONPATH=$TOOLS/elekloader python3 "$ROOT/tools/build_elemods.py" --stock "$STOCK" \
                     --elekloader "$TOOLS/elekloader" --out "$BUILD/mods" --mods "$m" > "$LOG/build-$m.log" 2>&1 \
                     || { echo "  $m: FAILED (see $LOG/build-$m.log)"; continue; }
@@ -370,7 +370,7 @@ cmd_elemods() {   # every mod as an .elemod, in one folder, with which pairs com
         for ((j = i + 1; j < ${#ok[@]}; j++)); do
             a=${ok[i]}; b=${ok[j]}
             with=(--mod "$core")
-            local r   # the mods a or b require (Digi Macro: Digi Mono), from this folder
+            local r   # the mods a or b require (Digi Macro, DH-101: Digi Mono), from this folder
             while IFS= read -r r; do
                 [[ -n $r && $r != "$a" && $r != "$b" && $r != "$chain" ]] && with+=(--mod "$r")
             done < <(python3 - "$out" "$a" "$b" <<'PY'
@@ -462,8 +462,8 @@ cmd_publish() {   # the latest elekloader and mods, then all of them into elemod
         echo "Ready to add to [elekloader](https://github.com/irpina/elekloader): open it, choose your own official"
         echo "Digitakt mk1 **OS 1.53** or **OS 1.54** file, **Install** these, tick the ones you want and build. Files"
         echo "ending \`-os1.54\` are for OS 1.54, the others for 1.53: elekloader lists the ones that fit your file."
-        echo "It brings the core mod (\`${core}\`); the SRC machine mods (Digi Mono, Digi Macro, Digi Poly, DIGISLICER, NEIGHBOR)"
-        echo "tick machine-pages, which draws their pages, and Digi Macro (MACRO) ticks Digi Mono."
+        echo "It brings the core mod (\`${core}\`); the SRC machine mods (Digi Mono, Digi Macro, DH-101, Digi Poly, DIGISLICER,"
+        echo "NEIGHBOR) tick machine-pages, which draws their pages, and Digi Macro (MACRO) and DH-101 tick Digi Mono."
         echo
         echo "| file | sha256 |"
         echo "|---|---|"
@@ -485,6 +485,8 @@ cmd_publish() {   # the latest elekloader and mods, then all of them into elemod
         echo
         echo "**machine-pages** (\`machine-pages\`) is elekloader's ([irpina/elekloader@$(git -C "$TOOLS/elekloader" log -1 --format=%h)](https://github.com/irpina/elekloader/tree/$(git -C "$TOOLS/elekloader" log -1 --format=%H)/mods/machine-pages),"
         echo "GPL-2.0-or-later, [text](licenses/machine-pages-LICENSE)), built unchanged: it draws the SRC machines' pages."
+        echo
+        echo "**DH-101** (\`digi101\`) is Robbie's, contributed to this repository (mods/digi101, MIT)."
         echo
         echo "**Tone+FX** (\`tonefx\`) is a port kept in this repository (mods/tonefx): Digital Alchemy DSP's Tone+FX 3.2a"
         echo "([DigiAlchemydsp/RingTone@0310695](https://github.com/DigiAlchemydsp/RingTone)), GPL-2.0-or-later"

@@ -34,6 +34,9 @@ ap.add_argument("--blocks-at", default="0x40077fc0", help="where --blocks reads 
                 " after the render step at 0x40077fba; 0x40078142: before the mixer, every track stage done)")
 ap.add_argument("--os", default="1.53", help="the build's OS release (1.53, 1.54): the firmware addresses here are"
                 " 1.53's, moved by tools/os154.json")
+ap.add_argument("--after", default="", help="keys after the tracks' pages, comma-separated: a key's name (SRC,"
+                " LFO, FLTR, AMP, TRIG, NO, YES, UP, DOWN), K:+n (knob K turned n notches), snap:NAME (DIR/NAME.png),"
+                " wait:n (steps)")
 ap.add_argument("--out", required=True)
 a = ap.parse_args()
 
@@ -114,6 +117,20 @@ for track, index in TRACKS:
             at(3, "encoder", 1 + "ABCDEFGH".index(k), 4 if n > 0 else -4)
         at(25, "snap", "t%d_%s" % (track, k))
         at(80 + a.settle, "wait")
+KEYS = {"FUNC": FUNC, "NO": NO, "YES": YES, "DOWN": DOWN, "UP": 14, "TRIG": 19, "SRC": SRC, "FLTR": 21,
+        "AMP": 22, "LFO": 23}
+for tok in filter(None, a.after.split(",")):
+    if tok.startswith("snap:"):
+        at(25, "snap", tok[5:])
+    elif tok.startswith("wait:"):
+        at(int(tok[5:]), "wait")
+    elif ":" in tok:
+        k, n = tok.split(":")
+        for _ in range(abs(int(n))):
+            at(3, "encoder", 1 + "ABCDEFGH".index(k.upper()), 4 if int(n) > 0 else -4)
+        at(40, "wait")
+    else:
+        tap(KEYS[tok.upper()], 20, 120)
 at(0, "machines")
 
 
