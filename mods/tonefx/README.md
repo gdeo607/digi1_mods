@@ -1,6 +1,6 @@
 # Tone+FX for the DT1
 
-**Tone+FX 3.5r** by Digital Alchemy DSP, ported from its original FM-groovebox
+**Tone+FX 4.0a** by Digital Alchemy DSP, ported from its original FM-groovebox
 version to the DT1 (OS 1.53 and 1.54). The source is theirs
 ([DigiAlchemydsp/RingTone](https://github.com/DigiAlchemydsp/RingTone); the
 release repo is [DigiAlchemydsp/Tone-FX](https://github.com/DigiAlchemydsp/Tone-FX)),
@@ -13,9 +13,9 @@ Unofficial. Flash at your own risk and keep the official OS file for recovery.
 ## What it does
 
 Master effects on every output (main, headphones and USB audio), in this order:
-**ring → TILT (low/high shelf) → CRUSH → FOLD → WAVE (PITCH / STEREO) → output
-ceiling → meter**. There are **eleven pages** after the stock master pages
-(FUNC+LFO, then LEFT / RIGHT):
+**ring → TILT (low/high shelf) → CRUSH → FOLD → WAVE (PITCH / STEREO) → WRMZ
+(DELAYS) → output ceiling → meter**. There are **twelve pages** after the stock
+master pages (FUNC+LFO, then LEFT / RIGHT):
 
 | page | knobs | |
 |---|---|---|
@@ -25,12 +25,14 @@ ceiling → meter**. There are **eleven pages** after the stock master pages
 | **DIGI CRUSH** | A on/off · D mode (BITS/SR/CRUNCH) · E amount · F tune | |
 | **DIGI PITCH** | A on/off · D mode (WOB/SHFT) · E speed · F depth · G mix | |
 | **DIGI STEREO** | A on/off · D mode (FLAN/PAN/WIDE) · E speed · F depth · G mix · H feedback | |
+| **DELAYS** | A on/off · D mode (WRMZ/GRAINZ) · B/C/E/F/G/H = TIM, FB, TON, MOD, RAT, MIX (WRMZ) or DEN, SIZ, PIT, SPR, FB, MIX (GRAINZ) | one delay line, two modes; a fixed MIX slider + a secondary slider for the last-moved param |
 | **PERFORM** | A–H = one depth per engine | static; 16 momentary trig pads |
 | **WASH · RADIO · DESTROY · SPACE** | A on/off · B–H amount | one-slider macros, each driving a bundle of engines |
 
-**Page order (3.5r, two trees).** LEFT / RIGHT cycle the stock master pages
+**Page order (4.0a, two trees).** LEFT / RIGHT cycle the stock master pages
 (Compressor, internal mixer, external mixer) then the FX pages in play order
-**FOLD · CRUSH · RING · STEREO · PITCH · TILT**. **UP** (or **DOWN**) toggles the
+**FOLD · CRUSH · RING · STEREO · PITCH · TILT · DELAYS** — only master-FX and
+tonefx pages are in the cycle. **UP** (or **DOWN**) toggles the
 macro tree **PERFORM · WASH · RADIO · DESTROY · SPACE**; within it LEFT/RIGHT
 cycle the five, and UP/DOWN returns to the FX page you left. PERFORM is not in
 the FX cycle.
@@ -76,9 +78,9 @@ The other controls:
   24..39, FUNC held = flags bit 1. The PERFORM pads ignore a trig while FUNC,
   TRK, PTN, BANK, SONG, GLOBAL, SAMPLE or TEMPO is held, so **PTN + trig still
   changes the pattern** on the PERFORM page.
-- **Knobs.** `DC_PER_STEP = 4`, the same as digictl on the original: one step
-  per notch (the 3.2a3 port used 16, which moved every knob four times too
-  slowly).
+- **Knobs.** `DC_PER_STEP = 1`: one step per knob notch on the DT1 (the
+  Digitone's 4 was only ever right in the emulator, which injects ±4 counts per
+  detent; the hardware sends ~1).
 - **MIDI CC.** The hook is the DT1's CC entry (0x400d4a90; 0x400d4cb8 on
   1.54). It runs once per incoming CC, on any channel, while MIDI CC receive is
   on, and every CC still reaches the stock handler too.
@@ -100,23 +102,27 @@ The other controls:
     | 96 | EQ high shelf | 51 | WAVE feedback |
     | | | 52 | STEREO mode (also selects STEREO) |
     | | | 53 | WAVE group (>= 64 STEREO) |
+    | 80 | DELAYS on/off | 81 | DELAYS mode (WRMZ/GRAINZ) |
+    | 82 | DELAYS 1 (TIM/DEN) | 83 | DELAYS 2 (FB/SIZ) |
+    | 84 | DELAYS 3 (TON/PIT) | 85 | DELAYS 4 (MOD/SPR) |
+    | 86 | DELAYS 5 (RAT/FB) | 87 | DELAYS 6 (MIX) |
 
   - None of these numbers is in the DT1's CC tables. They were read from
     the running firmware (tests/digiemu_tonefx.py).
 - **Per-pattern settings.** The settings follow the pattern, as on the original.
-  - 3.5r has **35 params** (the six FX, the meter, the four macros and the WAVE
-    dry/wet). The kit's RAM-only spare is 34 bytes (kit + 0x530 .. 0x551), so
-    they are stored **7 bits each, packed** after a 3-byte header ("DX",
-    version 8): `ceil(35 * 7 / 8) = 31` bytes, 34 in all. Everything, the
-    macros included, stays per-pattern.
+  - 4.0a has **48 params** (the six FX, the meter, the four macros, the WAVE
+    dry/wet, and the DELAYS module). The kit's RAM-only spare is 34 bytes (kit +
+    0x530 .. 0x551): the on/off/switch params take **1 bit** each and the 0..127
+    values 7 bits, packed after a 3-byte header (`"DX"`, **version 9**) =
+    **34 bytes**. Everything, the macros and DELAYS included, stays per-pattern.
   - Those bytes are **not written to the +Drive**. The settings are kept while
     the unit is on, but **not over a power cycle or a project load**, where a
     pattern starts from the live values.
   - The original keeps them in a saved part of its pattern. The DT1's
     saved spare bytes per pattern (48) are taken by Digi Matrix, Digi Poly and
     Digi EQ.
-- **RAM.** All mods share 128 KB. Tone+FX 3.5r takes 36.9 KB in all (`.run`
-  25.8 KB, `.bss` 10.8 KB).
+- **RAM.** All mods share 128 KB. Tone+FX 4.0a takes ~59 KB in all (`.run`
+  22.6 KB, `.bss` 37.9 KB — the delay line is the bulk, and it is s16/halved).
 - **Track-LFO bridge.** It is parked on the original (nothing sets it), and is
   off here.
 
@@ -237,12 +243,12 @@ tests (`tests/digiemu_tonefx.py`, `tests/emu_tonefx.py` here; the Digitone's
 - `elemods/README.md` names the versions and licences; `CHANGELOG.md` records
   what changed; `COMPATIBILITY.txt` says which pairs combine.
 
-## 5. What is NOT yet done (3.5r)
+## 5. What is NOT yet done (4.0a)
 
 - The later Digitone **UI pass** (full-height sliders, the value centred on the
   middle digit / one-line caption, the meter moved left of the arrow) is **not**
-  applied to the DT1; the port has the 3.5r UI plus DOWN navigation.
-- `tests/digiemu_tonefx.py` was updated for the 3.5r order and 11 pages but not
-  run to completion.
-- No DT1 unit test yet for 3.5r; the packed store (`"DX"` v8) and the macros
-  need a hardware check.
+  applied to the DT1.
+- `tests/digiemu_tonefx.py` still assumes ±4 encoder deltas and 11 pages; it
+  needs a pass for the 12-page layout and the v9 store.
+- The 4.0a elemods were hardware-tested on a DT1 (OS 1.53 / 1.54) by Digital
+  Alchemy DSP.
