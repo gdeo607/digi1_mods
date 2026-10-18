@@ -47,7 +47,7 @@ CROSS=${ELEKLOADER_CROSS:-}
 
 # The versions everything here was checked with.
 ELEKLOADER_URL=https://github.com/irpina/elekloader
-ELEKLOADER_REV=b95bcccc70f72e17ce0b8638e741eecd760ce1bb
+ELEKLOADER_REV=05d571c6d7968fb274e5fbc5c415fabb27c703f3
 DIGIEMU_URL=https://github.com/irpina/digiemu
 DIGIEMU_REV=3206402661923d94f22a586ce7e971b263f70c6a
 DIGISOPHIE_URL=https://github.com/soejrd/digisophie

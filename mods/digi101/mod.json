@@ -1,11 +1,11 @@
 {
  "id": "digi101",
- "version": "0.24",
+ "version": "0.25",
  "title": "DH-101",
  "category": "Sound",
  "author": "Robbie",
  "license": "MIT",
- "description": "DH-101, a machine in the FUNC+SRC list after the SH-101 (clean-room). SRC page 1: RNGE 16'/8'/4'/2' (B), a mixer of SAW (C), PULS (E), SUB (H: -1 oct square, -2 oct square or -2 oct 25% pulse, level within each zone) and NOIS (D), PW (F) set by hand or swept by its own LFO or envelope (G PWM: MAN / LFO rate / ENV decay). SRC again, page 2: A PORT (portamento) and the 101's filter, a 4-pole ladder before the track's own FLTR: B FREQ, C RESO (self-oscillates at the top), D ENV (follows the AMP envelope), E MOD (LFO), F KYB, G VIB (LFO to pitch), H RATE (the LFO). Every knob of both pages takes p-locks, both LFOs reach it and it is saved with the sound. Needs Digi Mono 0.24 or later, which renders its voices, and machine-pages with the second SRC page (elekloader pull request #103), which draws its pages and keeps page 2's parameters.",
+ "description": "DH-101, a machine in the FUNC+SRC list after the SH-101 (clean-room). SRC page 1: RNGE 16'/8'/4'/2' (B), a mixer of SAW (C), PULS (E), SUB (H: -1 oct square, -2 oct square or -2 oct 25% pulse, level within each zone) and NOIS (D), PW (F) set by hand or swept by its own LFO or envelope (G PWM: MAN / LFO rate / ENV decay). SRC again, page 2: A PORT (portamento) and the 101's filter, a 4-pole ladder before the track's own FLTR: B FREQ, C RESO (self-oscillates at the top), D ENV (follows the AMP envelope), E the track's LFO 1 depth (aim LFO 1 at 101:Filter Freq for the 101's MOD), F KYB, G VIB (its LFO to pitch), H RATE (its LFO). Every knob of both pages takes p-locks, both LFOs reach it and it is saved with the sound. Needs Digi Mono 0.24 or later, which renders its voices, and machine-pages 1.2 or later, which draws its two SRC pages and keeps page 2's parameters.",
  "device": "digitakt-mk1",
  "os": "1.53",
  "sources": [

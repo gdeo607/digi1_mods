@@ -3,10 +3,11 @@
  * draws its two SRC pages and its LFO destinations from the page its descriptor names; this mod brings
  * the engine (sh101.c), its state and its page.
  *
- * 0.24: the second SRC page is machine-pages' own (elekloader pull request #103, cm_ui_v5): eight more
- * parameters the firmware itself keeps, so each takes p-locks, both LFOs reach it and it is saved with the
- * sound. SRC flips between the two pages. DH-101 reads their final values (locks, smoothing and LFOs
- * applied) with cm_src_value in the render. It patches no firmware place of its own.
+ * 0.25: the second SRC page is machine-pages 1.2's (cm_ui_v32): seven more parameters the firmware itself
+ * keeps (the sound's free slots 46..52), so each takes p-locks, both LFOs reach it and it is saved with
+ * the sound; its eighth knob shows the track's LFO 1 depth. SRC flips between the two pages. DH-101 reads
+ * their final values (locks, smoothing and LFOs applied) with cm_src_value in the render. It patches no
+ * firmware place of its own.
  *
  * Two registrations: the machine list entry (core_machines: id 29, DH-101, its icon; SLICE's params, as
  * machine-pages' second page needs; core 3.0's tail: its page) and the engine (Digi Mono's collection
@@ -161,9 +162,10 @@ static const struct bitmap icon = {fw_bitmap_vt, 11, 7, 1, icon_px, icon_mask, 0
 /* ---- its two SRC pages and its LFO destinations (machine-pages' cm_ui5) ------------------------------ *
  * Page 1, SLICE's page: A TUNE, B RNGE, C SAW, D NOIS, E PULS, F PW, G PWM, H SUB, each a 0..127 knob drawn
  * as BR's, its value text from Digi Mono's (which asks knob_text above). Page 2 (SRC again): A PORT, B FREQ,
- * C RESO, D ENV, E MOD, F KYB, G VIB, H RATE: machine-pages' parameters 8..15, kept by the firmware in the
- * sound (slots 46..52 and 0), so they take locks, the LFOs and the save as any other. The LFO page's list
- * names all fifteen in the group "101". */
+ * C RESO, D ENV, F KYB, G VIB, H RATE: machine-pages' parameters 8..14, kept by the firmware in the sound
+ * (slots 46..52), so they take locks, the LFOs and the save as any other; E is the track's own LFO 1 depth
+ * (stock parameter 59), where 0.24 had MOD: LFO 1 aimed at 101:Filter Freq does what MOD did, lockable.
+ * The LFO page's list names all fourteen in the group "101". */
 #define P_BR 0x86
 #define KNOB(sn, ln, d, i, f) { .name = sn, .lname = ln, .look = P_BR, .flags = CM_RANGE | CM_DEFAULT | (f), \
     .min = 0, .max = 127 << 8, .def = (d) << 8, .fmt = digimono_fmt_##i }
@@ -220,14 +222,15 @@ static int32_t fmt_rate(char *buf, int32_t v, int32_t ctx, int32_t m)
 #define KNOB2(sn, ln, d, f) { .name = sn, .lname = ln, .look = P_BR, .flags = CM_RANGE | CM_DEFAULT, \
     .min = 0, .max = 127 << 8, .def = (d) << 8, .fmt = f }
 
+#define ID_LFO1_DEP 59                          /* the track's LFO 1 depth (a stock sound parameter) */
 static const struct cm_src_page pages[2] = {
-    {"DH-101 1/2", {0, 1, 2, 3, 4, 5, 6, 7}},
-    {"DH-101 2/2", {8, 9, 10, 11, 12, 13, 14, 15}},
+    {"DH-101 1/2", {0, 1, 2, 3, 4, 5, 6, 7}, 0, {0, 0, 0}},
+    {"DH-101 2/2", {8, 9, 10, 11, ID_LFO1_DEP, 12, 13, 14}, CM_SRC_STOCK(4), {0, 0, 0}},
 };
 
-const struct cm_ui5 digi101_page = {
+const struct cm_ui32 digi101_page = {
     .base = {
-        .abi = cm_ui_v5, .page_from = 3, .group = "101",
+        .abi = cm_ui_v32, .page_from = 3, .group = "101",
         .knob = {
             [0] = { .name = "TUNE", .lname = "Tune" },
             [1] = KNOB("RNGE", "Range", 32, 1, 0),
@@ -244,7 +247,6 @@ const struct cm_ui5 digi101_page = {
         KNOB2("FREQ", "Filter Freq", 127, fmt_num),
         KNOB2("RESO", "Filter Reso", 0, fmt_num),
         KNOB2("ENV", "Env Depth", 0, fmt_num),
-        KNOB2("MOD", "LFO Depth", 0, fmt_num),
         KNOB2("KYB", "Keyboard Follow", 0, fmt_kyb),
         KNOB2("VIB", "Vibrato", 0, fmt_num),
         KNOB2("RATE", "LFO Rate", RATE_DEF, fmt_rate),
@@ -262,13 +264,14 @@ const struct cm_machine digi101_m29 = {29, "DH-101", "101", &icon, 3, 0, CM_UI_T
 static void track_page2(struct sh101_voice *v, int t)
 {
     int32_t a;
-    uint8_t *f[8];
+    uint8_t *f[CM_EXTRAS];
     int i;
     if ((unsigned)t > 7)
         return;
     f[0] = &v->port; f[1] = &v->f_cut; f[2] = &v->f_res; f[3] = &v->f_env;
-    f[4] = &v->f_mod; f[5] = &v->f_kyb; f[6] = &v->f_vib; f[7] = &v->f_rate;
-    for (i = 0; i < 8; i++) {
+    f[4] = &v->f_kyb; f[5] = &v->f_vib; f[6] = &v->f_rate;
+    v->f_mod = 0;                               /* MOD (0.24) is the track's LFO 1 on 101:Filter Freq now */
+    for (i = 0; i < CM_EXTRAS; i++) {
         int32_t w = cm_src_value(t, 8 + i);     /* 8.8, 0 .. 0x7f00 */
         int x = (int)((w + 128) >> 8);
         *f[i] = (uint8_t)(x < 0 ? 0 : x > 127 ? 127 : x);

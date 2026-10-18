@@ -1,6 +1,5 @@
-"""DH-101 0.24 linked into the real OS image (1.53 or 1.54) with core and machine-pages (elekloader pull request
-#103), run under Unicorn (ColdFire V4e): machine-pages accepts its two-page description, and names both pages'
-parameters on the LFO page (page 1 by SLICE's ids, page 2 by the eight ids machine-pages adds, 164..171).
+"""DH-101 0.25 linked into the real OS image (1.53 or 1.54) with core and machine-pages (1.2), run under Unicorn (ColdFire V4e): machine-pages accepts its two-page description, and names both pages'
+parameters on the LFO page (page 1 by SLICE's ids, page 2 by the seven ids machine-pages adds, 164..170).
 Usage: tests/digi101_hooks_fw.py STOCK.syx mod.elemod ... (the same mods as the firmware build)."""
 import sys, os, struct
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -55,8 +54,8 @@ def call(fn, args, ret, regs=None):
 
 ACTIVE = sym.get('fw_active_track')
 KITP = sym.get('fw_kit')
-ui5 = sym.get('machine-pages:mp_ui5') or sym.get('mp_ui5')
-check(ui5 is not None and call(ui5, [29], STOP) != 0, 'machine-pages accepts DH-101\'s two pages (mp_ui5(29))')
+ui5 = sym.get('machine-pages:mp_ui32') or sym.get('mp_ui32')
+check(ui5 is not None and call(ui5, [29], STOP) != 0, 'machine-pages accepts DH-101\'s two pages (mp_ui32(29))')
 check(call(ui5, [7], STOP) == 0, 'and no other machine as one')
 
 KIT = 0x41f00000
@@ -70,7 +69,7 @@ STOCKS = 0x41f10000
 uc.mem_write(STOCKS, b'stock\0')
 names = [(0x84, 1, 'Tune'), (0x85, 1, 'Range'), (0x86, 2, 'SAW'), (0x87, 1, 'Noise Level'), (0x8b, 1, 'Sub Osc'),
          (0x85, 0, '101'), (164, 1, 'Portamento'), (165, 1, 'Filter Freq'), (165, 2, 'FREQ'), (166, 1, 'Filter Reso'),
-         (167, 1, 'Env Depth'), (169, 1, 'Keyboard Follow'), (171, 1, 'LFO Rate'), (171, 0, '101')]
+         (167, 1, 'Env Depth'), (168, 1, 'Keyboard Follow'), (169, 1, 'Vibrato'), (170, 1, 'LFO Rate'), (170, 0, '101')]
 for i, what, want in names:
     got = cstr(call(dd, [i * 52, what, STOCKS], STOP))
     check(got == want, 'DEST name of id %d, field %d: %s (%s)' % (i, what, want, got))

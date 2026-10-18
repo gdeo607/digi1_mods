@@ -8,8 +8,8 @@ DIGISLICER, NEIGHBOR) tick machine-pages, which draws their pages, and Digi Macr
 
 | file | sha256 |
 |---|---|
-| `digi101-0.23-os1.54.elemod` | `29af430efd8faafb` |
-| `digi101-0.23.elemod` | `7a9c27fb055023a7` |
+| `digi101-0.25-os1.54.elemod` | `4285b1c619d6b8bc` |
+| `digi101-0.25.elemod` | `ea7c3956baeeb2de` |
 | `digieq-1.0c-os1.54.elemod` | `d0ee392ba21d6590` |
 | `digieq-1.0c.elemod` | `eb5c75fbc5b1ecda` |
 | `digifilter-1.1a-os1.54.elemod` | `7403e3270142ca58` |
@@ -32,12 +32,12 @@ DIGISLICER, NEIGHBOR) tick machine-pages, which draws their pages, and Digi Macr
 | `digisophie-1.2.0.elemod` | `8b93281ff902404c` |
 | `digiutils-1.9a-os1.54.elemod` | `ed13ca17753e4885` |
 | `digiutils-1.9a.elemod` | `8697ac1fe883cb8f` |
-| `machine-pages-1.1-os1.54.elemod` | `35000bab117b829a` |
-| `machine-pages-1.1.elemod` | `417e353b98a91641` |
+| `machine-pages-1.2-os1.54.elemod` | `e46f152200085fd1` |
+| `machine-pages-1.2.elemod` | `36459ae4c12059ea` |
 | `tonefx-3.2a3-os1.54.elemod` | `c490c6f22fcdd727` |
 | `tonefx-3.2a3.elemod` | `c37a8a727594392f` |
 
-Built with elekloader 8972d70, 2026-10-15 (core `4.0`) by `tools/dev.sh publish`. Every pair combines with
+Built with elekloader 8972d70, 2026-10-15 (core `4.0`), machine-pages 1.2 and DH-101 0.25 with 05d571c, by `tools/dev.sh publish`. Every pair combines with
 core (`elekloader --check`). Several big mods together can need more than the mods' RAM (256 KB with core 4.0, 128 KB before):
 elekloader says so when you build. An `.elemod` holds the mod's own code: where it repeats firmware
 bytes, elekloader stores a reference to your own file instead, and the few original bytes at each place
@@ -49,7 +49,7 @@ These are built here from their authors' repositories at the commit named, their
 their licenses are in `licenses/`, and the source of each build is that commit plus what the last
 column says (the tools named are in this repository). digi1_mods' own mods are under its license.
 
-**machine-pages** (`machine-pages`) is elekloader's ([irpina/elekloader@8972d70](https://github.com/irpina/elekloader/tree/8972d70629f230af99c63c8624a886b33ec08299/mods/machine-pages),
+**machine-pages** (`machine-pages`) is elekloader's ([irpina/elekloader@05d571c](https://github.com/irpina/elekloader/tree/05d571c6d7968fb274e5fbc5c415fabb27c703f3/mods/machine-pages),
 GPL-2.0-or-later, [text](licenses/machine-pages-LICENSE)), built unchanged: it draws the SRC machines' pages.
 
 **DH-101** (`digi101`) is Robbie's, contributed to this repository (mods/digi101, MIT).

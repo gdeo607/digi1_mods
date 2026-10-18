@@ -44,7 +44,7 @@ your OS file from your own official one.
 |---|---|---|---|
 | [Digi Mono](#digi-mono) (`digimono`) | synth machines: MONO SIN, NOISE, SAW, PULSE, ENS, VO, POLY SIN and CHORDS | 0.24 | not yet tested (0.22 **confirmed**) |
 | [Digi Macro](#digi-macro) (`digimacro`) | MACRO: Plaits' engines as a machine (needs Digi Mono) | 1.2 | not yet tested (1.0 **confirmed**: no freezes) |
-| [DH-101](#dh-101) (`digi101`) | an SH-101-style monosynth machine with the 101's filter and glide (needs Digi Mono), by Robbie | 0.23 | not yet tested (0.22 **confirmed** on OS 1.54) |
+| [DH-101](#dh-101) (`digi101`) | an SH-101-style monosynth machine with the 101's filter and glide (needs Digi Mono), by Robbie | 0.25 | not yet tested (0.22 **confirmed** on OS 1.54) |
 | [Digi Matrix](#digi-matrix) (`digimatrix`) | an LFO modulation matrix, 8 cross-track slots | 1.0c | **confirmed** |
 | [Digi Utilities](#digi-utilities) (`digiutils`) | waveform, spectrum and X-Y pages, tuner, track activity | 1.9a | **confirmed** |
 | [Digi EQ](#digi-eq) (`digieq`) | a 4-band master EQ on every output | 1.0c | **confirmed** |
@@ -129,14 +129,14 @@ pattern is renamed "DEMO". Only screenshots are published here - no firmware, an
 
 ## DH-101
 
-**DH-101** (elekloader mod `digi101`, 0.23, needs Digi Mono 0.24 and machine-pages, which elekloader ticks with it) - an
+**DH-101** (elekloader mod `digi101`, 0.25, needs Digi Mono 0.24 and machine-pages 1.2, which elekloader ticks with it) - an
 SH-101-style monosynth, by Robbie
 - **DH-101** in the FUNC+SRC list: the 101's oscillator (saw, pulse with PWM by hand, LFO or envelope,
   sub-oscillator in three modes, noise) on the SRC page, all from one oscillator so they stay locked.
-- **Press SRC again** for its own page: PORT (the 101's glide, per track) and the 101's 4-pole resonant
-  filter (FREQ, RESO up to self-oscillation, ENV from the AMP envelope, MOD, KYB, VIB, RATE), before the
-  track's own FLTR. Stock knob graphics and pop-ups; saved with the sound.
-- **The LFOs** reach Filter Freq, Filter Reso and PWM Source (OS 1.54).
+- **SRC flips to page 2**: PORT (the 101's glide) and the 101's 4-pole resonant filter (FREQ, RESO up to
+  self-oscillation, ENV from the AMP envelope, KYB, VIB, RATE), before the track's own FLTR, and the track's
+  LFO 1 depth. A real SRC page (machine-pages 1.2): **every knob of both pages takes p-locks**, both LFOs reach
+  each of them (LFO 1 on 101:Filter Freq is the 101's MOD), and they are saved with the sound.
 - A clean-room engine, the filter calibrated against TAL-BassLine-101 recordings. Tested on a unit (OS 1.54):
   three tracks with the filter running play without gaps with FAST AUDIO. Details:
   [mods/digi101/README.md](mods/digi101/README.md).

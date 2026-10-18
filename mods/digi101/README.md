@@ -3,13 +3,15 @@
 An SH-101-style oscillator section for the DT1 (OS 1.53 and 1.54), as an
 [elekloader](https://github.com/irpina/elekloader) mod (id `digi101`). It adds **DH-101** to the FUNC+SRC machine list,
 as one of [Digi Mono](../digimono)'s hosted machines (like Digi Macro's MACRO). Needs Digi Mono 0.24 or later and
-elekloader's machine-pages **with the second SRC page** ([elekloader pull request #103](https://github.com/irpina/elekloader/pull/103),
-not merged yet), which draws its two SRC pages and keeps page 2's parameters.
+elekloader's machine-pages 1.2 or later, which draws its two SRC pages and keeps page 2's parameters
+(elekloader ticks both with it).
 
-**0.24 (test build):** page 2 is now a real SRC page of the firmware's, through machine-pages: every knob of
-both pages takes **p-locks**, **both LFOs** reach every one of them, and they are saved with the sound. 0.23's
-own page, its packed storage and its LFO rerouting are gone, and DH-101 patches no firmware place of its own.
-Sounds saved by 0.23 load with page 2 at its defaults (their filter settings are not carried over).
+**0.25:** page 2 is a real SRC page of the firmware's, through machine-pages 1.2: every knob of both pages
+takes **p-locks**, **both LFOs** reach every one of them, and they are saved with the sound. 0.23's own page,
+its packed storage and its LFO rerouting are gone, and DH-101 patches no firmware place of its own. A sound
+has room for seven new parameters, so page 2's knob E is the track's own **LFO 1 depth** where 0.23 had MOD:
+aim LFO 1 at 101:Filter Freq for the 101's LFO on the cutoff (lockable, any waveform). Sounds saved by 0.23
+load with page 2 at its defaults (their filter settings are not carried over).
 By Robbie (designed and tested on a unit), MIT, as the rest of this repository.
 The track's own FILTER, AMP, LFO and effects follow it, as they follow a sample.
 
@@ -41,21 +43,22 @@ which: DH-101 1/2, 2/2). Page 2 is drawn by machine-pages as any SRC page: the f
 | B | FREQ | the 101 filter's cutoff (127 = open, the filter out of the way) |
 | C | RESO | resonance; the top of its range self-oscillates |
 | D | ENV | how far the track's AMP envelope opens the filter (up to 7 octaves) |
-| E | MOD | the 101 LFO on the cutoff |
+| E | DEP | the track's LFO 1 depth (the LFO page's own knob, shown here): LFO 1 aimed at 101:Filter Freq is the 101's MOD |
 | F | KYB | the cutoff follows the note: OFF .. 100 % (100 %: a self-oscillating filter plays in tune) |
 | G | VIB | the 101 LFO on the pitch (vibrato) |
 | H | RATE | the 101 LFO's rate, 0.1 .. 30 Hz |
 
 **LFO destinations.** On a DH-101 track the LFO page's DEST list names every knob of both pages, in the
 group 101: Tune, Range, Saw Level, Noise Level, Pulse Level, Pulse Width, PWM Source, Sub Osc, then
-Portamento, Filter Freq, Filter Reso, Env Depth, LFO Depth, Keyboard Follow, Vibrato, LFO Rate. DEST holds
-the parameter, saved as any other.
+Portamento, Filter Freq, Filter Reso, Env Depth, Keyboard Follow, Vibrato, LFO Rate (at the end of the list,
+after the AMP's). DEST holds the parameter, saved as any other.
 
-How it works: page 2's eight knobs are machine-pages' parameters 8..15 (`struct cm_ui5`, `extra[8]` and
-`pages[2]` in `digi101.c`), which machine-pages gives eight parameter ids of their own (164..171) and keeps
-in the sound (slots 46..52 and 0); the firmware's own lock, LFO and save code then handles them. In the
-render DH-101 reads each one's value as played (locks, smoothing and both LFOs applied) with
-`cm_src_value(track, 8..15)`.
+How it works: page 2's seven own knobs are machine-pages' parameters 8..14 (`struct cm_ui32`, `extra[7]` and
+`pages[2]` in `digi101.c`), which machine-pages gives seven parameter ids of their own (164..170) and keeps
+in the sound's free slots 46..52; the firmware's own lock, LFO and save code then handles them. Knob E names
+a stock parameter (LFO 1's DEP, id 59, `CM_SRC_STOCK`), which is simply the firmware's knob shown on this page
+too. In the render DH-101 reads each value as played (locks, smoothing and both LFOs applied) with
+`cm_src_value(track, 8..14)`.
 
 
 The filter is a 4-pole ladder after the 101's VCF (clean-room, calibrated by ear and measurement against
@@ -82,7 +85,7 @@ at least 5 ms. A note from silence fades in over 64 samples (1.3 ms); a note ove
 the oscillator running, as the 101's VCO does. On a unit (OS 1.54, FAST AUDIO on), three DH-101 tracks
 with the filter running play without gaps.
 
-**Messages.** 0.24 leaves TRK + a trig's message to the firmware and machine-pages (0.23 printed "DH-101").
+**Messages.** 0.25 leaves TRK + a trig's message to the firmware and machine-pages (0.23 printed "DH-101").
 
 ## Files
 
@@ -103,7 +106,7 @@ with the filter running play without gaps.
 
 ```sh
 python3 tools/gen_digi101_tables.py                       # mods/digi101/sh101_tables.h
-ELK=/path/to/elekloader                                   # a checkout with pull request #103
+ELK=out/dev/tools/elekloader                              # tools/dev.sh setup fetches it (machine-pages 1.2)
 gcc -O1 -DHOST_TEST -I$ELK/elekloader/sdk/include -o out/digi101_page tests/digi101_page.c \
     mods/digi101/digi101.c mods/digi101/sh101.c -lm && out/digi101_page
 gcc -O2 -o tools/digi101_render tools/digi101_render.c mods/digi101/sh101.c -lm && python3 tests/digi101_engine.py

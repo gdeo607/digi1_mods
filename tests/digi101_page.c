@@ -1,5 +1,4 @@
-/* Desktop test of DH-101 0.24 (digi101.c): its two SRC pages as machine-pages reads them (cm_ui5, elekloader
- * pull request #103), page 2's values reaching the engine from cm_src_value (locks and LFOs applied there),
+/* Desktop test of DH-101 0.25 (digi101.c): its two SRC pages as machine-pages 1.2 reads them (cm_ui32), page 2's values reaching the engine from cm_src_value (locks and LFOs applied there),
  * the value texts, the voice a state belongs to, and the rest / fade around the AMP envelope. The firmware's
  * exports (digitakt-mk1/core3.h) are stood in for here. Build and run, from the top folder:
  *   gcc -O1 -DHOST_TEST -I<elekloader with PR #103>/elekloader/sdk/include -o out/digi101_page \
@@ -16,7 +15,7 @@ volatile int32_t fw_amp_env[24];
 volatile uint32_t fw_voice_start;
 const char fw_bitmap_vt[4];
 volatile uint8_t core_track_machine[8];
-const char cm_ui_v5[1];
+const char cm_ui_v32[1];
 static int32_t src[8][16];                     /* cm_src_value's answers: [track][parameter], 8.8 */
 int32_t cm_src_value(int32_t t, int32_t k) { return (unsigned)t < 8 && (unsigned)k < 16 ? src[t][k] : 0; }
 /* Digi Mono's */
@@ -28,21 +27,21 @@ FMT(1) FMT(2) FMT(3) FMT(4) FMT(5) FMT(6) FMT(7)
 
 extern const struct digimono_ext digi101_ext;
 extern const struct cm_machine digi101_m29;
-extern const struct cm_ui5 digi101_page;
+extern const struct cm_ui32 digi101_page;
 
 static int fails;
 #define CHECK(c, ...) do { if (c) printf("PASS "); else { printf("FAIL "); fails++; } printf(__VA_ARGS__); printf("\n"); } while (0)
 
 /* machine-pages' own check of a cm_ui5 page (mods/machine-pages/src.c, valid()): a page it refuses is not
  * drawn at all */
-static int mp_valid(const struct cm_machine *m, const struct cm_ui5 *u)
+static int mp_valid(const struct cm_machine *m, const struct cm_ui32 *u)
 {
     int k, page;
     if (m->id < 4 || m->id > 127 || m->params != 3 || u->base.page_from > 3 || u->base.flags ||
         u->base.reserved || u->page_count < 1 || u->page_count > 2 || !u->pages ||
         u->reserved[0] || u->reserved[1] || u->reserved[2])
         return 0;
-    for (k = 0; k < 8; ++k) {
+    for (k = 0; k < CM_EXTRAS; ++k) {
         const struct cm_knob *p = &u->extra[k];
         if (!p->look || p->look >= 164 || p->reserved || (p->flags & ~31) ||
             (p->flags & (CM_RANGE | CM_DEFAULT)) != (CM_RANGE | CM_DEFAULT) ||
@@ -50,11 +49,16 @@ static int mp_valid(const struct cm_machine *m, const struct cm_ui5 *u)
             return 0;
     }
     for (page = 0; page < u->page_count; ++page) {
-        if (!u->pages[page].title)
+        const struct cm_src_page *p = &u->pages[page];
+        if (!p->title || p->reserved[0] || p->reserved[1] || p->reserved[2])
             return 0;
-        for (k = 0; k < 8; ++k)
-            if (u->pages[page].parameter[k] != CM_SRC_BLANK && u->pages[page].parameter[k] >= 16)
+        for (k = 0; k < 8; ++k) {
+            if (p->stock & CM_SRC_STOCK(k)) {   /* the filter's, amp's or LFOs' (descriptor owners 6, 4, 15, 16) */
+                if (p->parameter[k] < 30 || p->parameter[k] > 69)
+                    return 0;
+            } else if (p->parameter[k] != CM_SRC_BLANK && p->parameter[k] >= 8 + CM_EXTRAS)
                 return 0;
+        }
     }
     return 1;
 }
@@ -77,9 +81,10 @@ static int any(const int16_t *o)
 
 int main(void)
 {
-    static const char *const n2[8] = {"PORT", "FREQ", "RESO", "ENV", "MOD", "KYB", "VIB", "RATE"};
+    static const char *const n2[CM_EXTRAS] = {"PORT", "FREQ", "RESO", "ENV", "KYB", "VIB", "RATE"};
+    static const uint8_t p2[8] = {8, 9, 10, 11, 59, 12, 13, 14};
     static const char *const n1[8] = {"TUNE", "RNGE", "SAW", "NOIS", "PULS", "PW", "PWM", "SUB"};
-    const struct cm_ui5 *u = &digi101_page;
+    const struct cm_ui32 *u = &digi101_page;
     char st[8][1024];
     uint8_t p[7] = {32, 100, 0, 0, 0, 0, 0};
     int16_t out[32];
@@ -87,14 +92,15 @@ int main(void)
 
     /* ---- the pages machine-pages reads ---- */
     CHECK(digi101_m29.id == 29 && digi101_m29.params == 3 && digi101_m29.tag == CM_UI_TAG &&
-          digi101_m29.ui == &u->base && u->base.abi == cm_ui_v5, "descriptor: machine 29, SLICE's params, a cm_ui_v5 page");
+          digi101_m29.ui == &u->base && u->base.abi == cm_ui_v32, "descriptor: machine 29, SLICE's params, a cm_ui_v32 page");
     CHECK(mp_valid(&digi101_m29, u), "machine-pages accepts the page (its own checks)");
     for (i = 0, ok = 1; i < 8; i++)
-        ok &= !strcmp(u->base.knob[i].name, n1[i]) && !strcmp(u->extra[i].name, n2[i]) &&
-              u->pages[0].parameter[i] == i && u->pages[1].parameter[i] == 8 + i;
-    CHECK(ok && u->page_count == 2, "page 1 TUNE RNGE SAW NOIS PULS PW PWM SUB, page 2 PORT FREQ RESO ENV MOD KYB VIB RATE");
+        ok &= !strcmp(u->base.knob[i].name, n1[i]) && (i == 7 || !strcmp(u->extra[i].name, n2[i])) &&
+              u->pages[0].parameter[i] == i && u->pages[1].parameter[i] == p2[i];
+    CHECK(ok && u->page_count == 2 && !u->pages[0].stock && u->pages[1].stock == CM_SRC_STOCK(4),
+          "page 1 TUNE RNGE SAW NOIS PULS PW PWM SUB, page 2 PORT FREQ RESO ENV, LFO 1 DEP (stock 59), KYB VIB RATE");
     CHECK(u->base.knob[3].flags & CM_NOT_SAMPLE, "knob D (NOIS) opens no sample list");
-    CHECK(u->extra[0].def == 0 && u->extra[1].def == 127 << 8 && u->extra[2].def == 0 && u->extra[7].def == 85 << 8,
+    CHECK(u->extra[0].def == 0 && u->extra[1].def == 127 << 8 && u->extra[2].def == 0 && u->extra[6].def == 85 << 8,
           "defaults: PORT off, FREQ open, RESO 0, RATE 85 (0.23's)");
     CHECK(!strcmp(u->base.group, "101") && !strcmp(u->extra[1].lname, "Filter Freq") && !u->extra[1].lfo,
           "LFO page: group 101, page 2's long names (Filter Freq ...)");
@@ -102,27 +108,27 @@ int main(void)
     /* ---- value texts ---- */
     CHECK(!strcmp(text(&u->extra[0], 0), "OFF") && !strcmp(text(&u->extra[0], 45), "45"), "PORT: OFF, 45");
     CHECK(!strcmp(text(&u->extra[1], 100), "100"), "FREQ: 100");
-    CHECK(!strcmp(text(&u->extra[5], 0), "OFF") && !strcmp(text(&u->extra[5], 127), "100%") &&
-          !strcmp(text(&u->extra[5], 42), "33%"), "KYB: OFF, 33%%, 100%%");
+    CHECK(!strcmp(text(&u->extra[4], 0), "OFF") && !strcmp(text(&u->extra[4], 127), "100%") &&
+          !strcmp(text(&u->extra[4], 42), "33%"), "KYB: OFF, 33%%, 100%%");
     {
         static const int rv[5] = {0, 50, 85, 100, 127};
         static const char *const rt[5] = {".10Hz", ".94Hz", "4.5Hz", "8.9Hz", "30Hz"};
         for (i = 0; i < 5; i++)
-            CHECK(!strcmp(text(&u->extra[7], rv[i]), rt[i]), "RATE %d: %s (%s)", rv[i], rt[i], text(&u->extra[7], rv[i]));
+            CHECK(!strcmp(text(&u->extra[6], rv[i]), rt[i]), "RATE %d: %s (%s)", rv[i], rt[i], text(&u->extra[6], rv[i]));
     }
 
     /* ---- the voice a state belongs to, and page 2's values reaching it ---- */
     core_track_machine[0] = 29;
     core_track_machine[2] = 29;
     for (t = 0; t < 8; t++) {                   /* page 2 at its defaults, as a new sound has it */
-        for (i = 0; i < 8; i++)
+        for (i = 0; i < CM_EXTRAS; i++)
             src[t][8 + i] = u->extra[i].def;
     }
     src[2][8] = 12 << 8;                        /* track 3: PORT 12 */
     src[0][8] = 45 << 8;                        /* track 1: PORT 45, and a whole page of values, as a */
     src[0][9] = 100 << 8;                       /* p-lock or an LFO leaves them (cm_src_value's) */
     src[0][10] = (127 << 8) + 0x7f;
-    src[0][11] = 12 << 8; src[0][12] = 16 << 8; src[0][13] = 42 << 8; src[0][14] = 127 << 8; src[0][15] = 102 << 8;
+    src[0][11] = 12 << 8; src[0][12] = 42 << 8; src[0][13] = 127 << 8; src[0][14] = 102 << 8;
     digi101_ext.init(st[0]);
     digi101_ext.init(st[2]);
     fw_voice_start = 1 << 2;                    /* voice 3 alone */
@@ -137,7 +143,7 @@ int main(void)
         digi101_ext.trig(st[2]);
         fw_amp_env[1] = -0x40000000;            /* voice 1's AMP envelope at half, either sign */
         digi101_ext.render(st[0], p, 0x01000000, out, 32);
-        CHECK(v1->port == 45 && v1->f_cut == 100 && v1->f_res == 127 && v1->f_env == 12 && v1->f_mod == 16 &&
+        CHECK(v1->port == 45 && v1->f_cut == 100 && v1->f_res == 127 && v1->f_env == 12 && v1->f_mod == 0 &&
               v1->f_kyb == 42 && v1->f_vib == 127 && v1->f_rate == 102,
               "voice 1 beside a known voice 3: track 1's page 2 (%d %d %d %d %d %d %d %d)", v1->port, v1->f_cut,
               v1->f_res, v1->f_env, v1->f_mod, v1->f_kyb, v1->f_vib, v1->f_rate);
