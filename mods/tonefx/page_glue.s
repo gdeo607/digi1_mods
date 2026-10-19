@@ -1,5 +1,5 @@
 | SPDX-License-Identifier: GPL-2.0-or-later
-| Tone+FX, DT1 port: the master view's page title, and a page change done the stock way.
+| Tone+FX, DT1 port: a page change done the stock way (the titles are core 4.1's, core_mpages).
 | Addresses are OS 1.53's (tools/port_os.py names the 1.54 ones).
 
 | ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ----
@@ -18,20 +18,6 @@
 
 
         .section .run, "ax"
-
-| ---- the title (vtable slot 19 of the master view, 0x40184628; stock 0x40030930) ----------------
-| std::string getTitle(view): the result is built where a0 points. Our seven pages are all kind 0, whose
-| names the title is made from, so the names are set to the page shown first (digictl_names, digictl.c),
-| then the stock getter runs as it was called.
-        .balign 2
-        .globl  digictl_title
-digictl_title:
-        move.l  %a0, -(%sp)                     | the result's address
-        move.l  8(%sp), -(%sp)                  | the view
-        jsr     digictl_names
-        addq.l  #4, %sp
-        move.l  (%sp)+, %a0
-        jmp     0x40030930
 
 | ---- dt_page_show(view): what the stock page key does after it moves the page index ------------------
 | (0x4003376c..0x400337b8): invalidate the view, reset its knob state (+148), show the title popup

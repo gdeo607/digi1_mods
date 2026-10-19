@@ -166,8 +166,8 @@ STEPS = t + 2
 
 state = {"n": 0, "ph": 0, "blocks": 0, "insn": 0, "sq_in": 0.0, "sq_out": 0.0, "diff": 0, "wav": []}
 _spin = G.spin
-lo_fx, hi_fx = sym("digimeter_render_in"), sym("dc_block")            # (incl. master.c)            # the effect stages, meter .. wave
-lo_ctl, hi_ctl = sym("digictl_mod_in"), sym("digictl_mdraw")         # mod_in + limit_out
+lo_fx, hi_fx = sym("digimeter_render_in"), sym("digictl_mod_in")      # (incl. master.c)            # the effect stages, meter .. wave
+lo_ctl, hi_ctl = sym("digictl_mod_in"), sym("dc_draw")         # mod_in + limit_out
 
 
 def spin(m, pc, *args, **kw):
@@ -229,8 +229,8 @@ def spin(m, pc, *args, **kw):
                     args = struct.unpack(">4I", u.mem_read(sp + 4, 16))
                     print("TRACE %s step %d args %s" % (name, state["n"], [hex(x) for x in args]), flush=True)
                 return f
-            for nm, ad in (("op_new", fw(0x400d4180)), ("mdraw", sym("digictl_mdraw")), ("stock_draw", fw(0x400395dc)),
-                           ("add_page?", sym("dc_block"))):
+            for nm, ad in (("op_new", fw(0x400d4180)), ("mdraw", sym("dc_draw")), ("stock_draw", fw(0x400395dc)),
+                           ("shown", sym("core_mpage_shown"))):
                 uc.hook_add(UC_HOOK_CODE, tr(nm), begin=ad, end=ad)
     def rd(name):
         return struct.unpack(">i", uc.mem_read(sym(name), 4))[0]

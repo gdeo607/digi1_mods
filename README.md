@@ -47,16 +47,18 @@ your OS file from your own official one.
 | [DH-101](#dh-101) (`digi101`) | an SH-101-style monosynth machine with the 101's filter and glide (needs Digi Mono), by Robbie | 0.25 | not yet tested (0.22 **confirmed** on OS 1.54) |
 | [Digi Matrix](#digi-matrix) (`digimatrix`) | an LFO modulation matrix, 8 cross-track slots | 1.0c | **confirmed** |
 | [Digi Utilities](#digi-utilities) (`digiutils`) | waveform, spectrum and X-Y pages, tuner, track activity | 1.9a | **confirmed** |
-| [Digi EQ](#digi-eq) (`digieq`) | a 4-band master EQ on every output | 1.0c | **confirmed** |
+| [Digi EQ](#digi-eq) (`digieq`) | a 4-band master EQ on every output | 1.0c (1.1: core 4.1) | **confirmed** (1.1 not yet) |
 | [Digi Poly](#digi-poly) (`digipoly`) | POLY: chords from a track's own trigs, borrowing other tracks' voices | 2.1 | not yet tested (2.0a **confirmed**) |
-| [Tone+FX](#tonefx) (`tonefx`) | Digital Alchemy DSP's master effects (ring, fold, tilt EQ, crush, pitch / stereo, PERFORM pads), ported; GPL-2.0 | 3.2a3 | not yet tested |
+| [Tone+FX](#tonefx) (`tonefx`) | Digital Alchemy DSP's master effects (ring, fold, tilt EQ, crush, pitch / stereo, PERFORM pads), ported; GPL-2.0 | 3.2a3 (3.2a4: core 4.1) | not yet tested |
 
 They all need core 2.1 or later (elekloader brings its newest, core 4.0, which gives the mods 256 KB of RAM
 instead of 128 KB) and combine with each other and with the
 [other mods kept up to date](#other-mods-kept-up-to-date) here (digihealth, SOPHIE, NEIGHBOR, DIGISLICER,
 DigiFilter): every pair, checked by `tools/dev.sh elemods` (COMPATIBILITY.txt). With core 4.0 they fit in one
-build (checked on OS 1.54), with Tone+FX or Digi EQ: Tone+FX replaces Digi EQ (the two use the same master
-page and render site).
+build (checked on OS 1.54), with Tone+FX or Digi EQ: up to Digi EQ 1.0c and Tone+FX 3.2a3 the two use the same
+master page and render site. Digi EQ 1.1 and Tone+FX 3.2a4 are built on core 4.1's master output and master pages
+(our elekloader pull request, not merged yet), so they combine: everything here, both included, links in one
+build on core 4.1 (checked on OS 1.54).
 
 **The SRC machines** (Digi Mono, Digi Macro, DH-101, Digi Poly, SOPHIE 1.2.0, DIGISLICER 2.3, NEIGHBOR 0.7, OB-1)
 describe their pages for elekloader's [machine-pages](#machine-pages-elekloaders) mod, so they share a build
@@ -237,7 +239,8 @@ them; it is retired.)
 - Seven pages after the stock master pages (FUNC+LFO, then LEFT/RIGHT): DIGI RING, FOLD, TILT, CRUSH, PITCH,
   STEREO, and PERFORM (UP), whose 16 trigs are momentary pads. MIDI CC controls every parameter.
 - Settings follow the pattern while the unit is on; they are not saved over a power cycle.
-- **Not with Digi EQ** (the same master page and render site). 36.4 KB of the mods' RAM (256 KB with core 4.0).
+- **Not with Digi EQ** up to 3.2a3 (the same master page and render site); 3.2a4 combines with Digi EQ 1.1 on core
+  4.1 (pending). 36.4 KB of the mods' RAM (256 KB with core 4.0).
 - No boot splash since 3.2a3. Details and what the port changed: [mods/tonefx/README.md](mods/tonefx/README.md).
 
 ## Other mods kept up to date

@@ -6,9 +6,9 @@
 
 Links the mods as elekloader does, runs the linked code in unicorn (ColdFire V4e; the EMAC needs the
 patched unicorn that digiemu installs) and checks:
-  1. knobs -> coefficients: random knob turns and knob pushes through the master page's handlers
-     (digieq_menc, digieq_mkey, on a view showing the EQ page), every coefficient of the live set
-     equal to the model's;
+  1. knobs -> coefficients: random knob turns and knob pushes through the master view's entries in core
+     4.1 (core_mview_enc, core_mview_key, on a view showing the EQ page, which core hands to Digi EQ's
+     page), every coefficient of the live set equal to the model's;
   2. audio: digieq_run on sine/noise blocks of the master mix (32-bit samples, 8 bits hotter than the
      24-bit words the model works in), output equal to EQ.block bit for bit, over many blocks and
      settings (bands switching on/off and between the seven types);
@@ -85,15 +85,23 @@ def page(idx):
     uc.mem_write(VIEW + 144, struct.pack(">i", idx))
 
 
+def place():
+    """Digi EQ's page in the view, as core_mpage_add puts it there: second, after COMP."""
+    uc.mem_write(MAP["digieq_page"] + 24, struct.pack(">Ii", VIEW, 1))
+
+
+place()
+
+
 def knob(model, enc, delta):
-    """Turn a knob on the unit (digieq_menc) and in the model; returns the handler's result."""
+    """Turn a knob on the unit (through core's knob entry) and in the model; returns the handler's result."""
     if delta and random.random() < 0.3:                  # the same steps as two partial turns
         uc.mem_write(EV + 12, struct.pack(">ii", enc, PER * delta - PER // 2))
-        call("digieq_menc", VIEW, EV)
+        call("core_mview_enc", VIEW + 4, EV)
         uc.mem_write(EV + 12, struct.pack(">ii", enc, PER // 2))
     else:
         uc.mem_write(EV + 12, struct.pack(">ii", enc, PER * delta))
-    r = call("digieq_menc", VIEW, EV)
+    r = call("core_mview_enc", VIEW + 4, EV)
     b = (enc - 1) & 3
     if enc <= 4:
         if alt[enc - 1]:
@@ -111,7 +119,7 @@ def knob(model, enc, delta):
 def push(k):
     """Press knob k (0..7 = A..H): it switches between its two settings."""
     uc.mem_write(KEV, struct.pack(">IIIIII", 0, 0, 0, 40 + k, 1, 0))
-    r = call("digieq_mkey", VIEW, KEV)
+    r = call("core_mview_key", VIEW, KEV)
     alt[k] ^= 1
     return r & 0xff
 
@@ -206,6 +214,7 @@ def run_block(buf):
 blocks = 0
 uc.mem_write(bss0, bytes(bss1 - bss0))       # fresh audio state
 uc.mem_write(ddr0, run)                      # fresh settings (initialised data)
+place()
 alt[:] = [0] * 8
 model = M.EQ()
 f_list = [55.0, 180.0, 440.0, 1250.0, 5000.0, 13000.0]
@@ -291,7 +300,7 @@ def check(name, got, want):
 
 
 uc.mem_write(KIT1, bytes(0x600)); uc.mem_write(KIT2, bytes(0x600))
-uc.mem_write(bss0, bytes(bss1 - bss0)); uc.mem_write(ddr0, run)
+uc.mem_write(bss0, bytes(bss1 - bss0)); uc.mem_write(ddr0, run); place()
 alt[:] = [0] * 8
 model = M.EQ()
 setkit(KIT1)

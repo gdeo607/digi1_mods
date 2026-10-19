@@ -111,8 +111,11 @@ The other controls:
 
 ## Using it with other mods
 
-- **Digi EQ: not together.** Both take the master view's draw (vtable slot 4)
-  and the render site 0x400721e6, and both use kind-0 pages.
+- **Digi EQ: together from 3.2a4 and Digi EQ 1.1, on core 4.1.** Up to 3.2a3 both
+  took the master view's draw (vtable slot 4) and the render site 0x400721e6 for
+  themselves. 3.2a4's pages are core 4.1's master pages (`core_mpages`) and its
+  master stage is core's `ev_render_master`, as Digi EQ 1.1's are: core puts every
+  page in the list (Master EQ 2/11, DIGI RING 5/11) and runs both on the master.
 - **Everything else: combines.** machine-pages, digiutils, digimatrix, digipoly,
   digimono, SOPHIE, DigiFilter and digihealth (elekloader's check, OS 1.54).
 - **RAM is the limit.** The 2.1j build (with Digi EQ and MACRO) has 2.5 KB left,

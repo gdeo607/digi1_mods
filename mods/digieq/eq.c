@@ -20,9 +20,9 @@
  * now overrides every pattern's own - each pattern the unit reaches is given these settings (so they are kept
  * with the project when you save it). With it off, every pattern goes back to its own.
  *
- * The page: the master view (vtable 0x401845dc) shows a list of page kinds (+124 vector, +144 index; 11 COMP,
- * 12 internal mixer, 13 external mixer). digieq_mdraw inserts kind 0 (the firmware's unused "None" page, no
- * knobs) after 11; while it is shown, its draw, knobs and knob pushes are ours (sites on the view's vtable).
+ * The page: a page of core's master pages (core 4.1, core_mpages), after COMP; core puts it in the master
+ * view's list, names it and gives it the view's drawing, knobs and knob pushes while it is shown. The audio
+ * is core's ev_render_master, the MASTER EQ row its ev_fxmix: the mod hooks no firmware code itself.
  */
 
 /* ---- firmware addresses that moved in OS 1.54 (tools/port_os.py, tools/os154.json) ---- */
@@ -34,9 +34,7 @@
 #define F_400c317c 0x400c33a4
 #define F_400c3220 0x400c3448
 #define F_400c9812 0x400c9a3a
-#define F_400d4180 0x400d43a8
 #define F_40200b0c 0x40200ebc
-#define F_4197cf88 0x4197df88
 #define F_4199dc44 0x4199ec44
 #define F_421f7a3c 0x421f8a3c
 #else
@@ -47,9 +45,7 @@
 #define F_400c317c 0x400c317c
 #define F_400c3220 0x400c3220
 #define F_400c9812 0x400c9812
-#define F_400d4180 0x400d4180
 #define F_40200b0c 0x40200b0c
-#define F_4197cf88 0x4197cf88
 #define F_4199dc44 0x4199dc44
 #define F_421f7a3c 0x421f7a3c
 #endif
@@ -59,6 +55,7 @@ typedef int int32;
 typedef unsigned int uint32;
 
 #include "eq_tables.h"
+#include "digitakt-mk1/core3.h"            /* struct core_mpage (core 4.1) */
 
 /* ---- firmware (OS 1.53) ---- */
 typedef void (*fillrect_t)(void *bmp, int x0, int y0, int x1, int y1, int colour);
@@ -68,13 +65,8 @@ typedef void (*text_t)(void *bmp, const void *font, int x, int y, int flags, con
 #define TEXT     ((text_t)F_400c257c)
 #define FONT5    ((const void *)F_40200b0c)
 #define INVALIDATE ((void (*)(void *))F_400c9812)
-#define OP_NEW(n) ((int32 *)((uint32 (*)(uint32))F_400d4180)(n))   /* the firmware returns pointers in d0 */
 #define KEYID    ((int (*)(void *))F_400c317c)
 #define KEYPRESS ((char (*)(void *))F_400c3220)
-#define PAGEKINDS ((char **)F_4197cf88)             /* kind 0's short and long page names */
-#define STOCK_DRAW ((void (*)(void *, void *))0x400395dc)
-#define STOCK_ENC  ((int (*)(void *, void *))0x40038614)
-#define STOCK_KEY  ((int (*)(void *, void *))0x40038b36)
 #define BLIT     ((void (*)(void *, const void *, int, int, int))F_400c2960)
 #define CHECKBOXES (*(const char **)F_421f7a3c)     /* two bitmaps, 0x1c bytes each: empty, ticked */
 #define UI_KIT   (*(unsigned char *volatile *)F_4199dc44)
@@ -398,41 +390,8 @@ static void eq_knob(int id, int d)
 /* ---------------- the master page ---------------- */
 static const char name_short[] = "EQ", name_long[] = "Master EQ";
 
-static int cur_kind(char *view)
-{
-    int32 *v = *(int32 **)(view + 124), *e = *(int32 **)(view + 128), i = *(int32 *)(view + 144);
-    if (!v || i < 0 || i >= e - v)
-        return -1;
-    return v[i];
-}
-
-/* kinds {11, ...} without 0 -> {11, 0, ...} (once per view) */
-static void add_page(char *view)
-{
-    int32 *v = *(int32 **)(view + 124), *e = *(int32 **)(view + 128), *nv, n = e - v, i, j;
-    if (!v || n < 1 || n > 15 || v[0] != 11)
-        return;
-    for (i = 0; i < n; i++)
-        if (v[i] == 0)
-            return;
-    nv = OP_NEW(4 * (n + 1));
-    if (!nv)
-        return;
-    for (i = j = 0; i < n; i++) {
-        nv[j++] = v[i];
-        if (i == 0)
-            nv[j++] = 0;
-    }
-    i = *(int32 *)(view + 144);
-    *(int32 **)(view + 124) = nv;
-    *(int32 **)(view + 128) = nv + n + 1;
-    *(int32 **)(view + 132) = nv + n + 1;
-    if (i >= 1)
-        *(int32 *)(view + 144) = i + 1;             /* stay on the same page */
-    /* the old 12 bytes are left alone: they do not come from the heap operator delete checks */
-    PAGEKINDS[0] = (char *)name_short;              /* kind 0's names ("NONE", "None", unused): the title bar */
-    PAGEKINDS[1] = (char *)name_long;
-}
+/* core 4.1 puts the page in the master view's list after COMP (kind 11), names it and calls the three
+ * functions at the end while it is shown (core_mpages; mod.json contributes digieq_page) */
 
 static void put_db(char *p, int db2)                /* "+3.5", "-10.5", " 0.0" */
 {
@@ -570,41 +529,36 @@ static void eq_body(void *bmp)
     }
 }
 
-/* vtable slot 4 of the master view: draw */
-void digieq_mdraw(char *view, void *bmp)
+/* the page's drawing, after the stock draw has drawn the title bar */
+static void page_draw(void *view, void *bmp)
 {
-    add_page(view);
-    if (cur_kind(view) != 0) {
-        STOCK_DRAW(view, bmp);
-        return;
-    }
+    (void)view;
     if (!digieq_live)
         commit();
-    STOCK_DRAW(view, bmp);
     eq_body(bmp);
 }
 
-/* the view's knob listener (reached through its +4 subobject, see osc_glue.s): event +12 knob 1..8 = A..H,
- * 9 = LEVEL; +16 the turn; +20 set while the knob is held down */
+/* the view's knobs while the page is shown: event +12 knob 1..8 = A..H, 9 = LEVEL; +16 the turn; +20 set while
+ * the knob is held down. LEVEL is left to the stock handler. */
 int32 digieq_mlast[2];                           /* the last event's knob and turn (for tests) */
-int digieq_menc(char *view, void *ev)
+static int page_enc(void *view, void *ev)
 {
     int id = *(int32 *)((char *)ev + 12);
     digieq_mlast[0] = id;
     digieq_mlast[1] = *(int32 *)((char *)ev + 16);
-    if (cur_kind(view) != 0 || id < 1 || id > 8)
-        return STOCK_ENC(view, ev);
+    if (id < 1 || id > 8)
+        return 0;
     eq_knob(id, *(int32 *)((char *)ev + 16));
     INVALIDATE(view);
     return 1;
 }
 
-/* vtable slot 2: keys. Knob pushes (40..47 = A..H) switch that knob between its two settings. */
-int digieq_mkey(char *view, void *ev)
+/* its keys: knob pushes (40..47 = A..H) switch that knob between its two settings */
+static int page_key(void *view, void *ev)
 {
     int id = KEYID(ev);
-    if (cur_kind(view) != 0 || id < 40 || id > 47)
-        return STOCK_KEY(view, ev);
+    if (id < 40 || id > 47)
+        return 0;
     if (KEYPRESS(ev)) {
         alt[id - 40] ^= 1;
         last = id - 40;
@@ -612,3 +566,5 @@ int digieq_mkey(char *view, void *ev)
     }
     return 1;
 }
+
+struct core_mpage digieq_page = {11, name_short, name_long, page_draw, page_key, page_enc, 0, 0};

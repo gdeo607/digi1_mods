@@ -3,6 +3,24 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Digi EQ 1.1 and Tone+FX 3.2a4: together, on core 4.1 (HW: not yet; needs core 4.1, an elekloader pull request)
+- **The two combine.** Both hooked the same firmware places (the master mix site 0x400721e6 and the master
+  view's draw), so a build took one or the other. Core 4.1 (our pull request on elekloader) owns those places
+  once: `ev_render_master` (the master pair before it goes out), `core_mpages` (pages of the master view) and
+  `ev_fxmix` (rows in SETTINGS > GLOBAL FX/MIX). Both mods now use them: Master EQ is page 2 after COMP, the
+  seven DIGI pages follow the stock ones, and both run on the master, Digi EQ first.
+- **Digi EQ 1.1 hooks no firmware place**: its audio is `ev_render_master`, its page a `core_mpages` page
+  (draw, knobs, knob pushes), its MASTER EQ row an `ev_fxmix` row. Sound and settings as 1.0c.
+- **Tone+FX 3.2a4**: its seven pages are seven `core_mpages` pages (core names them and calls their drawing),
+  its chain `ev_render_master`; it keeps its own MIDI CC entry. LEFT/RIGHT still rotate every master page (it
+  sees the view drawn through core's `core_mview_draws`).
+- Both need core 4.1 (`resources.core`): until elekloader releases it, elemods/ keeps 1.0c and 3.2a3.
+- Checked: tests/emu_eq.py (knobs and pushes through core's entries, audio bit-exact, the kit), tests/emu_tonefx.py
+  (the chain bit-exact with every effect off, each mode, registers; with Digi EQ in the chain too), digiemu on
+  1.53 and 1.54 (tests/digiemu_eq.py: the page, the USB bus level against the model, the MASTER EQ row;
+  tests/digiemu_master.py: core alone is stock, elekloader's master-mono example), the two together in digiemu
+  (Master EQ 2/11, DIGI RING 5/11), and every mod here in one OS 1.54 build with core 4.1.
+
 ## DH-101 0.25: page 2 a real SRC page, every knob lockable (machine-pages 1.2) (HW: not yet; 0.24 test build out)
 - **Page 2 is a real SRC page now**, through elekloader's machine-pages 1.2 (its second SRC page, pull requests
   #103, #107 and #108 by simonjohansson): PORT, FREQ, RESO, ENV, KYB, VIB and RATE are parameters the firmware

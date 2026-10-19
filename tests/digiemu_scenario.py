@@ -201,7 +201,7 @@ def spin(m, pc, *args, **kw):
         if INJECT:                                 # a test tone in place of the (sample-less) render output
             # Into the master mix, before Digi EQ runs on it (the master is 8 bits hotter than the words
             # the outputs take, so the tone goes in at AMP << 8 and comes out measured against AMP).
-            _mst = MAP.get("digieq_master")
+            _mst = MAP.get("digieq_master") or ("digieq_run" in MAP and MAP.get("core_render_master"))
             def inject(u, ad, s, d):
                 buf = 0x8000ea70 if _mst else struct.unpack(">I", u.mem_read(u.reg_read(UC_M68K_REG_A7) + 4, 4))[0]
                 sc = 256 if _mst else 1

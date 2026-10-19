@@ -115,10 +115,10 @@ at(400, "measure", "band 1 -6 dB")
 at(80, "snap", "e3_band1_down")
 # 4. SETTINGS > GLOBAL FX/MIX > MASTER EQ
 tap(6)
-for _ in range(22):
-    tap(15, 10, 45)
-for _ in range(5):
-    tap(14, 10, 45)
+for _ in range(14):                    # up to the first row (PROJECT) ...
+    tap(14, 20, 120)
+for _ in range(7):                     # ... and down to GLOBAL FX/MIX
+    tap(15, 20, 120)
 at(60, "snap", "e4_settings_row")
 tap(12)
 at(80, "snap", "e5_globalfx")
@@ -149,7 +149,7 @@ def spin(m, pc, *args, **kw):
                 state["ph"] += 1
                 out += struct.pack(">ii", v, v)
             u.mem_write(MASTER, bytes(out))
-        uc.hook_add(UC_HOOK_CODE, inject, begin=MAP["digieq_master"], end=MAP["digieq_master"])
+        uc.hook_add(UC_HOOK_CODE, inject, begin=MAP["core_render_master"], end=MAP["core_render_master"])
 
         def measure(u, ad, s_, d):                 # the bus the USB stream is built from
             v = [struct.unpack(">i", u.mem_read(BUS + 48 * i, 4))[0] for i in range(32)]

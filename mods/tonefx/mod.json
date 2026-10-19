@@ -1,13 +1,13 @@
 {
  "id": "tonefx",
- "version": "3.2a3",
+ "version": "3.2a4",
  "title": "Tone+FX",
  "category": "Sound",
  "author": "Digital Alchemy DSP (DT1 port: gdeo607)",
  "license": "GPL-2.0-or-later",
  "device": "digitakt-mk1",
  "os": "1.53",
- "description": "Tone+FX 3.2a by Digital Alchemy DSP (github.com/DigiAlchemydsp/RingTone), ported from its original FM-groovebox version: a master effect suite on every output: main, headphones and USB. Master ring modulator, a low-shelf/high-shelf master EQ (TILT), a Crunch/Redux lo-fi stage (BITS / SR / CRUNCH), a wavefolder with a continuous CLEAN/MUD/DIST/TRSH fold type, a five-mode modulation insert (PITCH: WOB / SHFT, STEREO: FLAN / PAN / WIDE), an output meter and a soft output ceiling. Seven pages after the stock master pages (FUNC+LFO; LEFT/RIGHT rotate the pages): DIGI RING, FOLD, TILT, CRUSH, PITCH, STEREO and PERFORM. PERFORM is reached with UP from any of the six: the eight knobs set one depth per FX block, and the 16 trigs are momentary performance pads (four blocks of four intensities: ring / fold+crush / pitch / pan) that ramp their block up while held and back on release. Settings follow the pattern while the unit is on (they are not saved over a power cycle on the DT1), and the FX answer incoming MIDI CC. The unit starts with its own intro (no boot splash).",
+ "description": "Tone+FX 3.2a by Digital Alchemy DSP (github.com/DigiAlchemydsp/RingTone), ported from its original FM-groovebox version: a master effect suite on every output: main, headphones and USB. Master ring modulator, a low-shelf/high-shelf master EQ (TILT), a Crunch/Redux lo-fi stage (BITS / SR / CRUNCH), a wavefolder with a continuous CLEAN/MUD/DIST/TRSH fold type, a five-mode modulation insert (PITCH: WOB / SHFT, STEREO: FLAN / PAN / WIDE), an output meter and a soft output ceiling. Seven pages after the stock master pages (FUNC+LFO; LEFT/RIGHT rotate the pages): DIGI RING, FOLD, TILT, CRUSH, PITCH, STEREO and PERFORM. PERFORM is reached with UP from any of the six: the eight knobs set one depth per FX block, and the 16 trigs are momentary performance pads (four blocks of four intensities: ring / fold+crush / pitch / pan) that ramp their block up while held and back on release. Settings follow the pattern while the unit is on (they are not saved over a power cycle on the DT1), and the FX answer incoming MIDI CC. From 3.2a4 its pages and its master stage are core 4.1's (master pages, ev_render_master), so it combines with Digi EQ. The unit starts with its own intro (no boot splash).",
  "sources": [
   "meter.c",
   "eq.c",
@@ -16,30 +16,11 @@
   "crush.c",
   "wave.c",
   "master.c",
-  "master_glue.s",
   "digictl.c",
   "cc_glue.s",
   "page_glue.s"
  ],
  "sites": [
-  {
-   "addr": "0x400721e6",
-   "stock": "283c8000ea70",
-   "op": "jsr",
-   "target": "tonefx_master_glue"
-  },
-  {
-   "addr": "0x401845ec",
-   "stock": "400395dc",
-   "op": "ptr",
-   "target": "digictl_mdraw"
-  },
-  {
-   "addr": "0x40184628",
-   "stock": "40030930",
-   "op": "ptr",
-   "target": "digictl_title"
-  },
   {
    "addr": "0x400d4a90",
    "stock": "4fefffe048d70cfc",
@@ -48,6 +29,11 @@
   }
  ],
  "subscribe": [
+  {
+   "event": "ev_render_master",
+   "fn": "tonefx_master",
+   "order": 60
+  },
   {
    "event": "ev_render_in",
    "fn": "digictl_mod_in",
@@ -104,43 +90,117 @@
    "order": 40
   }
  ],
+ "contribute": [
+  {
+   "to": "core_mpages",
+   "order": 50,
+   "data": "00000000",
+   "relocs": [
+    [
+     0,
+     "abs32",
+     "sym:dc_pages",
+     0
+    ]
+   ]
+  },
+  {
+   "to": "core_mpages",
+   "order": 51,
+   "data": "00000000",
+   "relocs": [
+    [
+     0,
+     "abs32",
+     "sym:dc_pages",
+     32
+    ]
+   ]
+  },
+  {
+   "to": "core_mpages",
+   "order": 52,
+   "data": "00000000",
+   "relocs": [
+    [
+     0,
+     "abs32",
+     "sym:dc_pages",
+     64
+    ]
+   ]
+  },
+  {
+   "to": "core_mpages",
+   "order": 53,
+   "data": "00000000",
+   "relocs": [
+    [
+     0,
+     "abs32",
+     "sym:dc_pages",
+     96
+    ]
+   ]
+  },
+  {
+   "to": "core_mpages",
+   "order": 54,
+   "data": "00000000",
+   "relocs": [
+    [
+     0,
+     "abs32",
+     "sym:dc_pages",
+     128
+    ]
+   ]
+  },
+  {
+   "to": "core_mpages",
+   "order": 55,
+   "data": "00000000",
+   "relocs": [
+    [
+     0,
+     "abs32",
+     "sym:dc_pages",
+     160
+    ]
+   ]
+  },
+  {
+   "to": "core_mpages",
+   "order": 56,
+   "data": "00000000",
+   "relocs": [
+    [
+     0,
+     "abs32",
+     "sym:dc_pages",
+     192
+    ]
+   ]
+  }
+ ],
  "requires": [
   "core"
  ],
  "resources": {
   "names": [
-   "ui:master pages kind 0",
    "ui:master page DIGI RING",
    "ui:master DIGI FOLD",
    "ui:master DIGI TILT",
    "ui:master DIGI CRUSH",
    "ui:master DIGI WAVE",
    "ui:master PERFORM",
-   "kit:+0x530 (RAM-only, per pattern)",
-   "render:master mix (0x400721e6)"
-  ]
+   "kit:+0x530 (RAM-only, per pattern)"
+  ],
+  "core": "4.1"
  },
  "ports": {
   "1.54": {
    "sites": [
-    {
-     "addr": "0x400721e6",
-     "stock": "283c8000ea70",
-     "op": "jsr",
-     "target": "tonefx_master_glue"
-    },
-    {
-     "addr": "0x401848ec",
-     "stock": "400395dc",
-     "op": "ptr",
-     "target": "digictl_mdraw"
-    },
-    {
-     "addr": "0x40184928",
-     "stock": "40030930",
-     "op": "ptr",
-     "target": "digictl_title"
-    },
     {
      "addr": "0x400d4cb8",
      "stock": "4fefffe048d70cfc",

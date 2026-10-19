@@ -1,54 +1,48 @@
 {
  "id": "digieq",
- "version": "1.0c",
+ "version": "1.1",
  "title": "Digi EQ",
  "category": "Sound",
  "author": "gdeo607",
  "device": "digitakt-mk1",
  "os": "1.53",
- "description": "A 4-band master EQ on every output - main, headphones and USB alike - as a page of the master pages (FUNC+LFO) between Compressor and Internal Mixer. Knobs A-D: band level; press one for that band's Q. Knobs E-H: band frequency; press one for its type (HP, low shelf, bell, notch, band pass, high shelf, LP). The response curve is drawn above the knobs. The settings belong to the pattern: they live in the kit, so every pattern has its own EQ and it is saved with the project and kept over a power-off. SETTINGS > GLOBAL FX/MIX > MASTER EQ makes the EQ you can hear override every pattern's own.",
+ "description": "A 4-band master EQ on every output - main, headphones and USB alike - as a page of the master pages (FUNC+LFO) between Compressor and Internal Mixer. Knobs A-D: band level; press one for that band's Q. Knobs E-H: band frequency; press one for its type (HP, low shelf, bell, notch, band pass, high shelf, LP). The response curve is drawn above the knobs. From 1.1 it is built on core 4.1's master output and master pages, so it combines with Tone+FX and other master-page mods. The settings belong to the pattern: they live in the kit, so every pattern has its own EQ and it is saved with the project and kept over a power-off. SETTINGS > GLOBAL FX/MIX > MASTER EQ makes the EQ you can hear override every pattern's own.",
  "sources": [
   "eq_glue.s",
   "eq_dsp.s",
   "eq.c"
  ],
- "sites": [
-  {
-   "addr": "0x400721e6",
-   "stock": "283c8000ea70",
-   "op": "jsr",
-   "target": "digieq_master"
-  },
-  {
-   "addr": "0x40044acc",
-   "stock": "205448780002",
-   "op": "jsr",
-   "target": "digieq_gfx"
-  },
-  {
-   "addr": "0x401845e4",
-   "stock": "40038b36",
-   "op": "ptr",
-   "target": "digieq_mkey"
-  },
-  {
-   "addr": "0x401845ec",
-   "stock": "400395dc",
-   "op": "ptr",
-   "target": "digieq_mdraw"
-  },
-  {
-   "addr": "0x401846bc",
-   "stock": "400388ee",
-   "op": "ptr",
-   "target": "digieq_menc_thunk"
-  }
- ],
+ "sites": [],
  "subscribe": [
   {
    "event": "ev_tick",
    "fn": "digieq_tick",
    "order": 50
+  },
+  {
+   "event": "ev_render_master",
+   "fn": "digieq_run",
+   "order": 40
+  },
+  {
+   "event": "ev_fxmix",
+   "fn": "digieq_fxmix",
+   "order": 50
+  }
+ ],
+ "contribute": [
+  {
+   "to": "core_mpages",
+   "order": 40,
+   "data": "00000000",
+   "relocs": [
+    [
+     0,
+     "abs32",
+     "sym:digieq_page",
+     0
+    ]
+   ]
   }
  ],
  "requires": [
@@ -59,42 +53,11 @@
    "ui:master page EQ",
    "settings:GLOBAL FX/MIX MASTER EQ",
    "sound:slot 48, 49 of tracks 1-4 (master EQ)"
-  ]
+  ],
+  "core": "4.1"
  },
  "ports": {
   "1.54": {
-   "sites": [
-    {
-     "addr": "0x400721e6",
-     "stock": "283c8000ea70",
-     "op": "jsr",
-     "target": "digieq_master"
-    },
-    {
-     "addr": "0x40044acc",
-     "stock": "205448780002",
-     "op": "jsr",
-     "target": "digieq_gfx"
-    },
-    {
-     "addr": "0x401848e4",
-     "stock": "40038b36",
-     "op": "ptr",
-     "target": "digieq_mkey"
-    },
-    {
-     "addr": "0x401848ec",
-     "stock": "400395dc",
-     "op": "ptr",
-     "target": "digieq_mdraw"
-    },
-    {
-     "addr": "0x401849bc",
-     "stock": "400388ee",
-     "op": "ptr",
-     "target": "digieq_menc_thunk"
-    }
-   ],
    "defsym": {
     "OS154": 1
    },

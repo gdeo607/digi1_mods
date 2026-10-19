@@ -11,7 +11,7 @@ Links the mods as elekloader does and runs the linked image in unicorn (ColdFire
      and the stack and every register the stock code relies on are as the two displaced instructions
      leave them.
   2. the chain: digictl_mod_in / the render_in handlers, then the render's master stage entered at the
-     patched site 0x400721e6 (master_glue.s -> master.c), on random master blocks (8 bits hot, random low
+     patched site 0x400721e6 (core 4.1's ev_render_master -> master.c), on random master blocks (8 bits hot, random low
      bits). All off: the master bit-exact. Each effect on: the block changes, stays within 24 bits, and
      every register the stage has live, the stack and d4 are as the replaced instruction leaves them.
 """
@@ -151,7 +151,8 @@ rng = random.Random(7)
 
 def block(half, amp=1 << 21):
     """one render block: the ev_render_in handlers, then the render's master stage entered at the patched
-    site (0x400721e6 -> master_glue -> tonefx_master) with the master pair 8 bits hot, low bits random"""
+    site (0x400721e6 -> core 4.1's core_render_master -> ev_render_master -> tonefx_master) with the master
+    pair 8 bits hot, low bits random"""
     v = [(rng.randint(-amp, amp) << 8) | rng.randrange(256) for _ in range(64)]
     b = struct.pack(">64i", *v)
     uc.mem_write(MASTER, b)
@@ -217,8 +218,8 @@ for name, setup in (("RING", {"digiring_on": 1, "digiring_depth": 100, "digiring
 # ---- 3. cost: instructions a block, every effect on at once (the heaviest modes), and the defaults ----
 from unicorn import UC_HOOK_CODE
 cnt = [0]
-hk = uc.hook_add(UC_HOOK_CODE, lambda u, ad, sz, d: cnt.__setitem__(0, cnt[0] + 1), begin=0x47be0000, end=0x47bfffff)
-uc.ctl_remove_cache(0x47be0000, 0x47c00000)           # code translated before the hook would not count
+hk = uc.hook_add(UC_HOOK_CODE, lambda u, ad, sz, d: cnt.__setitem__(0, cnt[0] + 1), begin=ddr0, end=run_end - 1)
+uc.ctl_remove_cache(ddr0, run_end)                     # code translated before the hook would not count
 def cost(setup, label):
     for n in NAMES:
         wr(n, 0)

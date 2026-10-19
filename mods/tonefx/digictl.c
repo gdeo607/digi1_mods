@@ -40,9 +40,9 @@
  * The DT1's master pages (FUNC+LFO) are the same view class: vtable 0x401845dc, kinds at +124/+128,
  * index +144, stock kinds {11 COMP, 12 internal mixer, 13 external mixer}. Its kinds 1..10 are real
  * parameter pages (TRIG, SRC, ...) that the stock draw, keys and knobs would act on, and only kind 0
- * ("None") has no knobs, so the seven pages are seven kind-0 entries inserted after the stock pages, told
- * apart by their place in the vector (dc_page). Before the stock draw of one of them, kind 0's names (the
- * layout table 0x4197cf88) are set to that page's. Key ids are the DT1's (UP 14, LEFT 16, RIGHT 17,
+ * ("None") has no knobs, so the seven pages are seven kind-0 entries after the stock pages. From 3.2a4 they
+ * are core 4.1's master pages (core_mpages): core puts them in the list, names them and calls dc_draw, so
+ * Tone+FX combines with other master-page mods (Digi EQ); its audio is core's ev_render_master. Key ids are the DT1's (UP 14, LEFT 16, RIGHT 17,
  * trigs 24..39, FUNC held = flags bit 1); everything else - the effects, the pages, the PERFORM pads, the
  * store and the CC map - is the original's code. Where the settings live and the CC entry differ: see
  * those sections.
@@ -82,6 +82,7 @@
 
 
 #include "corea.h"
+#include "digitakt-mk1/core3.h"    /* core 4.1: struct core_mpage, core_mpage_shown, core_mview */
 #include "sin256.h"
 
 /* fillRect / frameRect: (bmp, x0, y0, x1, y1, colour), y = 0 the BOTTOM row; colour 0 clear, 1 set,
@@ -93,9 +94,6 @@
 #define DN_INVALIDATE ((void (*)(void *))F_400c9812)
 /* operator new: the firmware returns the pointer in d0, where this toolchain (m68k-linux-gnu) reads a
  * returned pointer from a0, so it is declared as returning an integer */
-#define DN_OP_NEW(n)  ((int *)((unsigned (*)(unsigned))F_400d4180)(n))
-#define DN_STOCK_DRAW ((void (*)(void *, void *))0x400395dc)
-#define DN_PAGENAMES  ((const char **)F_4197cf88)   /* kind 0's short and long names (layout table) */
 #define DN_FXKIND     0
 #define DN_FEKIND     1
 #define DN_EQKIND     2
@@ -497,95 +495,33 @@ static int master_live(char *v)
     return dc_vis > 0 && v && *(int *)v == DN_MASTER_VT;
 }
 
-/* DT1 port: our seven pages are seven kind-0 entries in a row (DT_KIND, the "None" page); the
- * page number is the place in that run. The run's start in the vector, or -1. */
-#define DT_KIND 0
-static int dc_block(char *view)
-{
-    int *v = *(int **)(view + 124), *e = *(int **)(view + 128), n, i, m;
-    if (!v || !e || e <= v)
-        return -1;
-    n = e - v;
-    for (i = 0; i + DN_NPAGES <= n; i++) {
-        for (m = 0; m < DN_NPAGES; m++)
-            if (v[i + m] != DT_KIND)
-                break;
-        if (m == DN_NPAGES)
-            return i;
-    }
-    return -1;
-}
+/* DT1 port: our seven pages are seven of core's master pages (core 4.1, core_mpages: mod.json contributes
+ * dc_pages[0..6]), after the stock pages. Core puts them in the master view's list (as kind-0 entries, the
+ * firmware's unused "None" page), names them for the title bar and pop-up, and draws them through dc_draw. */
+static void dc_draw(void *view, void *bmp);
+struct core_mpage dc_pages[DN_NPAGES] = {
+    {13, "RING",   "DIGI RING",   dc_draw, 0, 0, 0, 0},
+    {13, "FOLD",   "DIGI FOLD",   dc_draw, 0, 0, 0, 0},
+    {13, "TILT",   "DIGI TILT",   dc_draw, 0, 0, 0, 0},
+    {13, "CRUSH",  "DIGI CRUSH",  dc_draw, 0, 0, 0, 0},
+    {13, "PITCH",  "DIGI PITCH",  dc_draw, 0, 0, 0, 0},
+    {13, "STEREO", "DIGI STEREO", dc_draw, 0, 0, 0, 0},
+    {13, "PERF",   "PERFORM",     dc_draw, 0, 0, 0, 0},
+};
 
-/* the page shown: 0..6 (DN_FXKIND .. DN_PFKIND) for ours, -1 for a stock page */
+/* the page shown: 0..6 (DN_FXKIND .. DN_PFKIND) for ours, -1 for any other */
 static int cur_kind(char *view)
 {
-    int *v = *(int **)(view + 124), *e = *(int **)(view + 128), i = *(int *)(view + 144);
-    int b = dc_block(view);
-    if (!v || i < 0 || i >= e - v || b < 0 || i < b || i >= b + DN_NPAGES)
+    struct core_mpage *p = core_mpage_shown(view);
+    if (p < dc_pages || p >= dc_pages + DN_NPAGES)
         return -1;
-    return i - b;
+    return p - dc_pages;
 }
 
 /* the index of our page `k` in the master vector, or -1 */
 static int dc_find_kind(char *view, int k)
 {
-    int b = dc_block(view);
-    return b < 0 ? -1 : b + k;
-}
-
-static void add_page(char *view)
-{
-    int *v = *(int **)(view + 124), *e = *(int **)(view + 128), *nv;
-    int n = e - v, i, j, pos;
-    if (!v || n < 1 || n > 13)
-        return;
-    for (i = 0; i < n; i++)
-        if (v[i] == DT_KIND)                /* ours (or another mod's kind-0 page) is in */
-            return;
-    pos = n >= 4 ? 3 : n;                   /* after the stock master pages */
-    nv = DN_OP_NEW(4u * (unsigned)(n + DN_NPAGES));
-    if (!nv)
-        return;
-    for (i = j = 0; i < n; i++) {
-        if (i == pos) {
-            int m;
-            for (m = 0; m < DN_NPAGES; m++)
-                nv[j++] = DT_KIND;
-        }
-        nv[j++] = v[i];
-    }
-    if (pos == n) {
-        int m;
-        for (m = 0; m < DN_NPAGES; m++)
-            nv[j++] = DT_KIND;
-    }
-    i = *(int *)(view + 144);
-    *(int **)(view + 124) = nv;
-    *(int **)(view + 128) = nv + n + DN_NPAGES;
-    *(int **)(view + 132) = nv + n + DN_NPAGES;
-    /* the old buffer is left alone (the firmware's operator delete halts on one not from its heap) */
-    if (i >= pos && i < n)
-        *(int *)(view + 144) = i + DN_NPAGES;   /* stay on the same stock page */
-    else if (i >= n + DN_NPAGES || i < 0)
-        *(int *)(view + 144) = 0;
-}
-
-/* the title bar's names for our pages: kind 0's short and long name, set to the page shown before the
- * stock code reads them (its draw, and the title, vtable slot 19: page_glue.s) */
-static const char *const dc_short[DN_NPAGES] = {
-    "RING", "FOLD", "TILT", "CRUSH", "PITCH", "STEREO", "PERF"
-};
-static const char *const dc_long[DN_NPAGES] = {
-    "DIGI RING", "DIGI FOLD", "DIGI TILT", "DIGI CRUSH", "DIGI PITCH", "DIGI STEREO", "PERFORM"
-};
-
-void digictl_names(void *view)
-{
-    int k = cur_kind((char *)view);
-    if (k >= 0) {
-        DN_PAGENAMES[0] = dc_short[k];
-        DN_PAGENAMES[1] = dc_long[k];
-    }
+    return dc_pages[k].view == view ? dc_pages[k].pos : -1;
 }
 
 /* DT1: a page change as the stock page key makes one (the title popup "DIGI RING (4/10)"), page_glue.s */
@@ -953,13 +889,10 @@ static void dg_perf_page(void *bmp)
     }
 }
 
-/* vtable slot 4 of the master view: draw */
-void digictl_mdraw(void *view, void *bmp)
+/* our pages' drawing (core calls it after the stock draw) */
+static void dc_draw(void *view, void *bmp)
 {
     int k;
-    add_page((char *)view);
-    digictl_names(view);
-    DN_STOCK_DRAW(view, bmp);
     dc_view = (char *)view;
     dc_vis = 4;
     k = cur_kind(dc_view);
@@ -983,8 +916,14 @@ void digictl_mdraw(void *view, void *bmp)
  * animation, the meter and LEFT/RIGHT navigation always keep working */
 void digictl_tick(void *ctrl)
 {
+    static uint32_t seen;
     (void)ctrl;
     dn_store_sync();
+    if (core_mview_draws != seen) {          /* core drew the master view (any of its pages) */
+        seen = core_mview_draws;
+        dc_view = (char *)core_mview;
+        dc_vis = 4;
+    }
     if (dc_vis)
         dc_vis--;
     if (dc_vis > 0 && dc_view && *(int *)dc_view == DN_MASTER_VT)
