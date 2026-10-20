@@ -25,7 +25,7 @@ SHARED = {  # file -> folder it comes from
     "cable.s": "src", "cc.s": "src", "lock.s": "src", "scope.s": "src", "tuner.s": "src",
     "spectrum.s": "src", "songoff.s": "src", "kitstore.h": "src", "spec_tables.inc": "bin", "spec_sin.bin": "bin",
 }
-MODS = ["digipoly", "digiutils", "digimatrix", "digieq", "digimono", "digimacro", "digi101"]
+MODS = ["digipoly", "digiutils", "digimatrix", "digieq", "digimono", "digimacro", "digi101", "digitx"]
 
 
 def main():
@@ -46,7 +46,7 @@ def main():
     built = []
     # Digi Mono's machine interface: Digi Macro and DH-101 carry a copy, so each mod's folder builds on its
     # own (elekloader's SDK, the elekloader app); the copies must be the same
-    ext = [os.path.join(ROOT, "mods", m, "digimono_ext.h") for m in ("digimono", "digimacro", "digi101")]
+    ext = [os.path.join(ROOT, "mods", m, "digimono_ext.h") for m in ("digimono", "digimacro", "digi101", "digitx")]
     for e in ext[1:]:
         if open(ext[0]).read() != open(e).read():
             sys.exit("%s differs from mods/digimono/digimono_ext.h: copy it over" % os.path.relpath(e, ROOT))

@@ -3,8 +3,9 @@
  * Digi Mono renders its machines' voices in the audio render, on a stack of its own, and gives each machine's
  * knobs their names, ranges and values on the SRC and LFO pages. A mod that adds a machine of the same kind
  * registers it twice:
- *   - in core 2.1's core_machines: its descriptor (an id 20..29, its name and icon; params and render
- *     ONESHOT), as Digi Mono's own machines are (the ids in 20..29 that Digi Mono does not use: 27);
+ *   - in core 2.1's core_machines: its descriptor (an id 20..31, its name and icon; params and render
+ *     ONESHOT), as Digi Mono's own machines are (the ids that Digi Mono does not use: 27, 29, 30, 31; 30 and
+ *     31 from Digi Mono 0.25);
  *   - in Digi Mono's collection digimono_ext: a pointer to a struct digimono_ext below.
  * Digi Mono then calls its init, trig and render for every voice that plays it, with the knobs' values,
  * and asks it for the knobs' value texts. A voice's state lives in Digi Mono's voice, in the memory its
@@ -25,7 +26,7 @@
 #define DIGIMONO_EXT_STATE 1024
 
 struct digimono_ext {
-    uint32_t id;                                    /* its machine id (core_machines), 20..29           */
+    uint32_t id;                                    /* its machine id (core_machines), 20..31 (0.25)    */
     uint32_t state_size;                            /* a voice's state, bytes (DIGIMONO_EXT_STATE max)  */
     const char *mshort;                             /* the LFO page's group name for its knobs ("MACR") */
     const int8_t *knob_p;                           /* [7] knob -> parameter index, or -1               */

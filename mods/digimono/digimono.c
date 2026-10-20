@@ -37,7 +37,7 @@
 #pragma GCC optimize("Os", "no-tree-loop-distribute-patterns")
 
 #define MACH_FIRST   20                      /* digimono_m20..m28 in glue.s: SIN NOIS SAW PULS ENS VO PSIN, 28 CHORDS */
-#define MACH_SLOTS   10                      /* 20..29: Digi Mono's and other mods' (27: Digi Macro's MACRO) */
+#define MACH_SLOTS   12                      /* 20..31: Digi Mono's and other mods' (27 MACRO, 29 DH-101, 30 TX KIT) */
 #define VOICE_MACH   core_track_machine
 #define VOICE_START  (*(volatile const uint32_t *)0x80001228) /* bit v: voice v (re)started this block */
 #define VOICE_NOTE   ((volatile const int32_t *)0x80001f28)   /* per voice: MIDI note << 16 */
