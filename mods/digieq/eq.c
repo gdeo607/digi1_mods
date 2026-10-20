@@ -568,3 +568,55 @@ static int page_key(void *view, void *ev)
 }
 
 struct core_mpage digieq_page = {11, name_short, name_long, page_draw, page_key, page_enc, 0, 0};
+
+/* ---- FUNC + CLEAR on the page: the EQ back to its defaults --------------------------------------
+ * CLEAR (FUNC + PLAY, key 10) reaches the UI's key dispatch, not the view: on the master pages the stock
+ * code clears the pattern's sequence with it. While the master view is the screen's (the UI's current
+ * view, brain +0x54 -> +0x48) and shows this page, Digi EQ takes it (core's ev_key) and sets the four
+ * bands to their defaults, in the pattern's kit too, with "Master EQ reset!" in the title bar. The
+ * GLOBAL FX/MIX setting is left as it is. */
+void digieq_popup(void *view, const char *msg);     /* eq_glue.s: the title pop-up, as the stock shows */
+#define K_PLAY 10                                   /* FUNC + PLAY is CLEAR */
+static unsigned char clr_taken;
+
+static void *cur_view(void *brain)
+{
+    char *ui = brain ? *(char **)((char *)brain + 0x54) : 0;
+    return ui ? *(void **)(ui + 0x48) : 0;
+}
+
+static void eq_reset(void)
+{
+    int k;
+    defaults();
+    for (k = 0; k < 8; k++)
+        alt[k] = 0;
+    for (k = 0; k < 9; k++)
+        eacc[k] = 0;
+    last = -1;
+    commit();
+    store(UI_KIT);
+}
+
+int digieq_key(void *brain, void *ev)
+{
+    int id = *(int32 *)((char *)ev + 12), fl = *(int32 *)((char *)ev + 16);
+    void *v = core_mview;
+    if (id != K_PLAY)
+        return 0;
+    if (!(fl & 1)) {                                /* a release: ours if we took its press */
+        if (!clr_taken)
+            return 0;
+        clr_taken = 0;
+        return 1;
+    }
+    if (fl & 8)                                     /* a repeat */
+        return clr_taken;
+    if (!(fl & 2) || !v || cur_view(brain) != v || core_mpage_shown(v) != &digieq_page)
+        return 0;
+    clr_taken = 1;
+    eq_reset();
+    INVALIDATE(v);
+    digieq_popup(v, "Master EQ reset!");
+    return 1;
+}

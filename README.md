@@ -180,7 +180,8 @@ waveform -> spectrum -> X-Y; Song mode is kept.
 **Digi EQ** (elekloader mod `digieq`, 1.0c) - a 4-band master EQ, on **every output**
 - A master page (FUNC+LFO, after Compressor): 4 bands, each with level/Q (knobs A-D, press to switch) and
   frequency/type (knobs E-H, press to switch: HP, low shelf, bell, notch, band pass, high shelf, LP), with the
-  response curve drawn above the knobs.
+  response curve drawn above the knobs. From 1.1, FUNC+CLEAR on the page sets the four bands back to their
+  defaults ("Master EQ reset!"); on the other master pages CLEAR still clears the sequence, as stock.
 - It runs on the **master mix**, before the render hands it to the analog outputs and to the USB stream, so
   main outs, headphones and USB audio all carry it - as the compressor does. (Up to 1.8a it sat on the
   codec's transmit buffer, which is the analog path only, so USB audio came out unequalized.)

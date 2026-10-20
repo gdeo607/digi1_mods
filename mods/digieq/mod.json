@@ -6,7 +6,7 @@
  "author": "gdeo607",
  "device": "digitakt-mk1",
  "os": "1.53",
- "description": "A 4-band master EQ on every output - main, headphones and USB alike - as a page of the master pages (FUNC+LFO) between Compressor and Internal Mixer. Knobs A-D: band level; press one for that band's Q. Knobs E-H: band frequency; press one for its type (HP, low shelf, bell, notch, band pass, high shelf, LP). The response curve is drawn above the knobs. From 1.1 it is built on core 4.1's master output and master pages, so it combines with Tone+FX and other master-page mods. The settings belong to the pattern: they live in the kit, so every pattern has its own EQ and it is saved with the project and kept over a power-off. SETTINGS > GLOBAL FX/MIX > MASTER EQ makes the EQ you can hear override every pattern's own.",
+ "description": "A 4-band master EQ on every output - main, headphones and USB alike - as a page of the master pages (FUNC+LFO) between Compressor and Internal Mixer. Knobs A-D: band level; press one for that band's Q. Knobs E-H: band frequency; press one for its type (HP, low shelf, bell, notch, band pass, high shelf, LP). FUNC+CLEAR on the page sets the EQ back to its defaults. The response curve is drawn above the knobs. From 1.1 it is built on core 4.1's master output and master pages, so it combines with Tone+FX and other master-page mods. The settings belong to the pattern: they live in the kit, so every pattern has its own EQ and it is saved with the project and kept over a power-off. SETTINGS > GLOBAL FX/MIX > MASTER EQ makes the EQ you can hear override every pattern's own.",
  "sources": [
   "eq_glue.s",
   "eq_dsp.s",
@@ -28,6 +28,11 @@
    "event": "ev_fxmix",
    "fn": "digieq_fxmix",
    "order": 50
+  },
+  {
+   "event": "ev_key",
+   "fn": "digieq_key",
+   "order": 40
   }
  ],
  "contribute": [

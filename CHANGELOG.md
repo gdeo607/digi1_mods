@@ -11,6 +11,10 @@ All builds change only the MAIN OS section; bootloader, updater, I/O firmware an
   seven DIGI pages follow the stock ones, and both run on the master, Digi EQ first.
 - **Digi EQ 1.1 hooks no firmware place**: its audio is `ev_render_master`, its page a `core_mpages` page
   (draw, knobs, knob pushes), its MASTER EQ row an `ev_fxmix` row. Sound and settings as 1.0c.
+- **Digi EQ 1.1: FUNC+CLEAR on its page resets it**: the four bands back to their defaults (flat, 80 Hz low
+  shelf, 400 Hz and 2.5 kHz bells, 10 kHz high shelf), in the pattern's kit too, with "Master EQ reset!" in the
+  title bar; GLOBAL FX/MIX > MASTER EQ is left as it is. Before, CLEAR there cleared the pattern's sequence, as
+  it does on the stock master pages (it still does on those). tests/digiemu_eq_clear.py, 1.53 and 1.54.
 - **Tone+FX 3.2a4**: its seven pages are seven `core_mpages` pages (core names them and calls their drawing),
   its chain `ev_render_master`; it keeps its own MIDI CC entry. LEFT/RIGHT still rotate every master page (it
   sees the view drawn through core's `core_mview_draws`).
