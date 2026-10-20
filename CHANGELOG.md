@@ -11,10 +11,11 @@ All builds change only the MAIN OS section; bootloader, updater, I/O firmware an
   seven DIGI pages follow the stock ones, and both run on the master, Digi EQ first.
 - **Digi EQ 1.1 hooks no firmware place**: its audio is `ev_render_master`, its page a `core_mpages` page
   (draw, knobs, knob pushes), its MASTER EQ row an `ev_fxmix` row. Sound and settings as 1.0c.
-- **Digi EQ 1.1: FUNC+CLEAR on its page resets it**: the four bands back to their defaults (flat, 80 Hz low
-  shelf, 400 Hz and 2.5 kHz bells, 10 kHz high shelf), in the pattern's kit too, with "Master EQ reset!" in the
-  title bar; GLOBAL FX/MIX > MASTER EQ is left as it is. Before, CLEAR there cleared the pattern's sequence, as
-  it does on the stock master pages (it still does on those). tests/digiemu_eq_clear.py, 1.53 and 1.54.
+- **Digi EQ 1.1: CLEAR PAGE resets it**: FUNC, then LFO held, then PLAY (the stock "clear page") on the EQ page shows
+  "CLEAR PAGE EQ" and sets the four bands back to their defaults, in the pattern's kit too; the knobs' modes and
+  GLOBAL FX/MIX > MASTER EQ are kept (core 4.1's page clear, `core_mpage.clear`). Up to 1.0c it showed the pop-up
+  and changed nothing. The fix and the narrower "EQ" box (x 1..13, aligned with the pattern header) follow
+  Modwerk's Digi EQ 1.0.2 (repeat98; reported by bimbom, Modwerk issue #185). tests/digiemu_eq_clear.py.
 - **Tone+FX 3.2a4**: its seven pages are seven `core_mpages` pages (core names them and calls their drawing),
   its chain `ev_render_master`; it keeps its own MIDI CC entry. LEFT/RIGHT still rotate every master page (it
   sees the view drawn through core's `core_mview_draws`).

@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""Digi EQ's FUNC+CLEAR (FUNC + PLAY) in the real firmware (digiemu, headless).
+"""Digi EQ's page CLEAR (FUNC + a held LFO + PLAY) in the real firmware (digiemu, headless).
 
     python3 tests/digiemu_eq_clear.py --digiemu <checkout, after --add of the build> --fw <firmware folder>
         --stock <official .syx> --elekloader <checkout> --mods <core> <digieq> --png <dir>
 
-On the Master EQ page (FUNC+LFO twice), band 1's level is turned up and FUNC+CLEAR pressed: the four bands
-must be back at their defaults, the pattern's kit holding them too, with no "Sequence cleared!" (the
-pattern's trigs are counted before and after). On the Compressor page FUNC+CLEAR stays the stock one. Prints
-PASS/FAIL.
+On the Master EQ page (FUNC+LFO twice), band 1's level is turned up and the page cleared (ORDER=lf: LFO
+held, then FUNC, then PLAY; fl: FUNC first): the four bands must be back at their defaults, the pattern's kit
+holding them too. Prints PASS/FAIL; the screens show the stock pop-up.
 """
 import argparse, math, os, struct, sys, time, types, zlib
 
@@ -78,8 +77,11 @@ def at(dt, *act):
     PLAN.append((t, act))
 def funclfo():
     at(1, "press", 1); at(20, "press", 23); at(20, "release", 23); at(5, "release", 1); at(200, "wait")
+ORDER = os.environ.get("ORDER", "lf")
 def clear():
-    at(1, "press", 1); at(20, "press", 10); at(20, "release", 10); at(5, "release", 1); at(200, "wait")
+    first, second = (23, 1) if ORDER == "lf" else (1, 23)
+    at(1, "press", first); at(20, "press", second); at(20, "press", 10); at(20, "release", 10)
+    at(5, "release", second); at(5, "release", first); at(200, "wait")
 
 funclfo(); funclfo()
 at(80, "snap", "c1_eq")
@@ -90,7 +92,7 @@ at(0, "state", "turned")
 at(0, "snap", "c2_turned")
 clear()
 at(0, "snap", "c3_cleared")
-at(0, "state", "after FUNC+CLEAR")
+at(0, "state", "after CLEAR")
 at(600, "wait")
 at(0, "snap", "c4_later")
 STEPS = t + 20
@@ -130,10 +132,10 @@ print("\n".join(log))
 fails = []
 if E.error:
     fails.append("the firmware stopped: %s" % E.error)
-t_ = got.get("turned"); c_ = got.get("after FUNC+CLEAR")
+t_ = got.get("turned"); c_ = got.get("after CLEAR")
 if not t_ or t_[0][0] == 24:
     fails.append("knob A did not move band 1: %s" % (t_,))
 if not c_ or c_[0] != [24, 24, 24, 24] or c_[1] != 24:
-    fails.append("FUNC+CLEAR did not reset the EQ (and the kit): %s" % (c_,))
+    fails.append("CLEAR did not reset the EQ (and the kit): %s" % (c_,))
 print("\n%s" % ("PASS" if not fails else "FAIL\n  " + "\n  ".join(fails)))
 sys.exit(1 if fails else 0)

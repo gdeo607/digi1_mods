@@ -444,7 +444,7 @@ static void put_q(char *p, int q10)                 /* "Q.3", "Q.9", "Q1.5", "Q8
 }
 
 /* screen: 128 x 64, bitmap row 0 = the bottom. The firmware draws the title bar ("Master EQ (2/4)").
- *   x 1..17      a box with "EQ" (as the other master pages' icons)
+ *   x 1..13      a box with "EQ", aligned with the pattern header (after Modwerk's Digi EQ 1.0.2)
  *   rows 21..51  the graph: 0 dB dotted, +-12 dB, 20 Hz .. 20 kHz, the response, band points 1-4
  *   rows 11..19  knobs A-D: level (or Q, inverted while the knob is switched to it)
  *   rows 1..9    knobs E-H: frequency (or type, inverted while switched); the knob turned last underlined */
@@ -486,8 +486,8 @@ static void eq_body(void *bmp)
     int x, b, prev = -1;
     char v[12];
     FILLRECT(bmp, 0, 0, 127, 52, 0);
-    FRAMERECT(bmp, 1, 27, 17, 50, 1);               /* the page's box */
-    TEXT(bmp, FONT5, 5, 36, -1, "EQ");
+    FRAMERECT(bmp, 1, 27, 13, 50, 1);               /* the page's box */
+    TEXT(bmp, FONT5, 3, 36, -1, "EQ");
     FRAMERECT(bmp, GX0, GY0, GX1, GY1, 1);
     for (x = GX0 + 2; x < GX1; x += 3)
         FILLRECT(bmp, x, GMID, x, GMID, 1);         /* 0 dB */
@@ -567,56 +567,20 @@ static int page_key(void *view, void *ev)
     return 1;
 }
 
-struct core_mpage digieq_page = {11, name_short, name_long, page_draw, page_key, page_enc, 0, 0};
-
-/* ---- FUNC + CLEAR on the page: the EQ back to its defaults --------------------------------------
- * CLEAR (FUNC + PLAY, key 10) reaches the UI's key dispatch, not the view: on the master pages the stock
- * code clears the pattern's sequence with it. While the master view is the screen's (the UI's current
- * view, brain +0x54 -> +0x48) and shows this page, Digi EQ takes it (core's ev_key) and sets the four
- * bands to their defaults, in the pattern's kit too, with "Master EQ reset!" in the title bar. The
- * GLOBAL FX/MIX setting is left as it is. */
-void digieq_popup(void *view, const char *msg);     /* eq_glue.s: the title pop-up, as the stock shows */
-#define K_PLAY 10                                   /* FUNC + PLAY is CLEAR */
-static unsigned char clr_taken;
-
-static void *cur_view(void *brain)
-{
-    char *ui = brain ? *(char **)((char *)brain + 0x54) : 0;
-    return ui ? *(void **)(ui + 0x48) : 0;
-}
-
-static void eq_reset(void)
+/* the page cleared: FUNC + a held LFO + PLAY (CLEAR), the stock "clear page" (core calls it after the stock's
+ * "CLEAR PAGE EQ" pop-up). The four bands go back to their defaults, in the pattern's kit too; the knobs'
+ * modes (pressed or not) and GLOBAL FX/MIX > MASTER EQ stay as they are. After Modwerk's Digi EQ 1.0.2
+ * (repeat98; reported by bimbom, Modwerk issue #185). */
+static void page_clear(void *view)
 {
     int k;
     defaults();
-    for (k = 0; k < 8; k++)
-        alt[k] = 0;
     for (k = 0; k < 9; k++)
         eacc[k] = 0;
     last = -1;
     commit();
     store(UI_KIT);
+    INVALIDATE(view);
 }
 
-int digieq_key(void *brain, void *ev)
-{
-    int id = *(int32 *)((char *)ev + 12), fl = *(int32 *)((char *)ev + 16);
-    void *v = core_mview;
-    if (id != K_PLAY)
-        return 0;
-    if (!(fl & 1)) {                                /* a release: ours if we took its press */
-        if (!clr_taken)
-            return 0;
-        clr_taken = 0;
-        return 1;
-    }
-    if (fl & 8)                                     /* a repeat */
-        return clr_taken;
-    if (!(fl & 2) || !v || cur_view(brain) != v || core_mpage_shown(v) != &digieq_page)
-        return 0;
-    clr_taken = 1;
-    eq_reset();
-    INVALIDATE(v);
-    digieq_popup(v, "Master EQ reset!");
-    return 1;
-}
+struct core_mpage digieq_page = {11, name_short, name_long, page_draw, page_key, page_enc, 0, 0, page_clear};
