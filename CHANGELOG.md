@@ -3,6 +3,19 @@
 "Unit shows" = the version string displayed on the unit. HW = tested on real hardware by the owner.
 All builds change only the MAIN OS section; bootloader, updater, I/O firmware and metadata stay official.
 
+## Digi TX 0.2: TX KIT, a drum kit as one machine (HW: not yet) and Digi Mono 0.25
+- **TX KIT** (machine id 30, in the FUNC+SRC list): knob B (TYPE) picks the drum - BD9 BD8 kicks, SD9 SD8 snares,
+  LT9 MT9 HT9 and LT8 MT8 HT8 toms - read at each trig, so a p-lock on B plays another drum on that step. After
+  the TX-8 / TX-9 machines of hugz202's AE-analog-rytm-mods (MIT), from their measured pitches, sweeps and decays;
+  the synthesis is our own and fully digital.
+- **The knobs**: A TUNE is the pitch (C4 and 0 play the original's), the AMP envelope the decay (the machine rings
+  as long as the original's longest), AMP and the mixer the level; so no pitch, decay or level knob of its own.
+  C SWT (sweep time, x0.25..x4), D VAR (each hit a little different: pitch, level, snap), E TONE, F DRV (a soft
+  clipper; 0 clean), G SNAP, H CHAR. 0.1 (a test build only) had C PTC, D DEC, F ACC.
+- **Digi Mono 0.25** opens machine ids 30 and 31 to other mods (ids 20..31).
+- Checked: tests/digitx_model.c (each drum's pitch and decay against the measurements; SWT, VAR, DRV never past
+  full scale), tests/digiemu_tx.py (in the firmware: the list, the SRC page, knob B while a pattern plays).
+
 ## Digi EQ 1.1 and Tone+FX 3.2a4: together, on core 4.1 (HW: not yet; needs core 4.1, an elekloader pull request)
 - **The two combine.** Both hooked the same firmware places (the master mix site 0x400721e6 and the master
   view's draw), so a build took one or the other. Core 4.1 (our pull request on elekloader) owns those places

@@ -30,11 +30,11 @@ static void dtx_render(void *st, const uint8_t *p, uint32_t inc, int16_t *out, i
 
 /* ---- the knobs, in Digi Mono's order B C E F G H D ------------------------------------------------- */
 static const int8_t knob_p[DIGIMONO_EXT_KNOBS] = {
-    TX_P_TYPE, TX_P_PTC, TX_P_TONE, TX_P_ACC, TX_P_SNAP, TX_P_CHAR, TX_P_DEC};
-static const uint8_t knob_def[DIGIMONO_EXT_KNOBS] = {0, 64, 64, 100, 40, 64, 64};
-static const char *const knob_sname[DIGIMONO_EXT_KNOBS] = {"TYPE", "PTC", "TONE", "ACC", "SNAP", "CHAR", "DEC"};
+    TX_P_TYPE, TX_P_SWT, TX_P_TONE, TX_P_DRV, TX_P_SNAP, TX_P_CHAR, TX_P_VAR};
+static const uint8_t knob_def[DIGIMONO_EXT_KNOBS] = {0, 64, 64, 0, 40, 64, 0};
+static const char *const knob_sname[DIGIMONO_EXT_KNOBS] = {"TYPE", "SWT", "TONE", "DRV", "SNAP", "CHAR", "VAR"};
 static const char *const knob_lname[DIGIMONO_EXT_KNOBS] = {
-    "Drum", "Pitch", "Tone", "Accent", "Snap", "Character", "Decay"};
+    "Drum", "Sweep Time", "Tone", "Drive", "Snap", "Character", "Variation"};
 
 /* B shows the drum; the others their number */
 static int knob_text(int k, int v, char *buf)
@@ -70,8 +70,8 @@ struct bitmap {
 };
 static const struct bitmap icon = {fw_bitmap_vt, 11, 7, 1, icon_px, icon_mask, 0};
 
-/* Its SRC page, drawn by machine-pages: A TUNE (transposes the drum: C4 plays it as set), B TYPE, C PTC,
- * D DEC, E TONE, F ACC, G SNAP, H CHAR, each a 0..127 knob drawn as BR's, its value text from Digi Mono's
+/* Its SRC page, drawn by machine-pages: A TUNE (the drum's pitch: C4 and 0 play it as the original), B TYPE,
+ * C SWT, D VAR, E TONE, F DRV, G SNAP, H CHAR (no pitch or decay knob: TUNE and the AMP envelope are those), each a 0..127 knob drawn as BR's, its value text from Digi Mono's
  * (B shows the drum). The LFO page names them in the group "TXK". */
 #define P_BR 0x86
 #define KNOB(sn, ln, d, i, f) { .name = sn, .lname = ln, .look = P_BR, .flags = CM_RANGE | CM_DEFAULT | (f), \
@@ -81,10 +81,10 @@ static const struct cm_ui page = {
     .knob = {
         [0] = { .name = "TUNE", .lname = "Tune" },
         [1] = KNOB("TYPE", "Drum", 0, 1, 0),
-        [2] = KNOB("PTC", "Pitch", 64, 2, 0),
-        [3] = KNOB("DEC", "Decay", 64, 3, CM_NOT_SAMPLE),
+        [2] = KNOB("SWT", "Sweep Time", 64, 2, 0),
+        [3] = KNOB("VAR", "Variation", 0, 3, CM_NOT_SAMPLE),
         [4] = KNOB("TONE", "Tone", 64, 4, 0),
-        [5] = KNOB("ACC", "Accent", 100, 5, 0),
+        [5] = KNOB("DRV", "Drive", 0, 5, 0),
         [6] = KNOB("SNAP", "Snap", 40, 6, 0),
         [7] = KNOB("CHAR", "Character", 64, 7, 0),
     },

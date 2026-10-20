@@ -12,23 +12,24 @@ plays another drum on that step, so one track can play kick, snare and toms.
 
 | knob | does |
 |---|---|
-| A TUNE | transposes the drum (C4 plays it as set) |
-| C PTC | pitch |
-| D DEC | decay |
-| E TONE | kicks: sweep depth (BD9) / drive (BD8); snares: noise decay (SD9) / body balance (SD8); toms: bend (9) / drive (8) |
-| F ACC | level |
+| A TUNE | the drum's pitch: C4 and 0 play it at the original's measured pitch (the 808 kick and toms' decays follow it, as on the original) |
+| C SWT | sweep time: how fast the kicks' sweep, the snare's bend and the toms' bend fall (x0.25 at 0, as measured at 64, x4 at 127) |
+| D VAR | variation: each hit a little different - pitch up to +-0.5 semitone, level +-25 %, snap +-50 % at 127 (0: every hit the same) |
+| E TONE | kicks: sweep depth (BD9) / an added sweep (BD8; 0 as the original); snares: noise decay (SD9) / body balance (SD8); toms: bend |
+| F DRV | drive: the drum through a soft clipper, louder and rounder (0: clean) |
 | G SNAP | kicks: click (BD9) / attack step (BD8); snares and toms: noise |
 | H CHAR | BD9 hold, BD8 sigh, snares: the second body's tuning, toms 9: the partial, toms 8: the droop |
 
-**Keep the AMP decay long** (or HOLD up): the machine shapes the sound itself, and Digi Mono stops a voice
-once its AMP envelope is idle.
+There is no pitch, decay or level knob: **TUNE** is the pitch, the **AMP envelope** is the decay (the machine
+rings for as long as the original's longest; a shorter AMP decay cuts it shorter), and AMP / the mixer set
+the level.
 
 ## Where the sounds come from
 
 The drums follow the TX-8 and TX-9 machines of hugz202's
 [AE-analog-rytm-mods](https://github.com/hugz202/AE-analog-rytm-mods) (MIT licence), whose design notes give
 the pitches, sweeps and decay times measured on the originals (`mods/0009-tx-machines/design.md`). On that
-project most of the drums drive the Rytm's analog voices; here every part is synthesised digitally, by our own
+project most of the drums drive that instrument's analog voices; here every part is synthesised digitally, by our own
 code (`tx.c`), from those measurements. No code or data of the originals is used.
 
 Checked: `tests/digitx_model.c` (each drum's pitch and decay against the measurements: the BD9 sweep

@@ -1,11 +1,11 @@
 {
  "id": "digitx",
- "version": "0.1",
+ "version": "0.2",
  "title": "Digi TX",
  "category": "Sound",
  "author": "gdeo607",
  "license": "MIT",
- "description": "TX KIT, a whole drum kit as one machine in the FUNC+SRC list: knob B (TYPE) picks the drum - BD9 and BD8 kicks, SD9 and SD8 snares, LT9 MT9 HT9 and LT8 MT8 HT8 toms, 909- and 808-style - and a p-lock on B plays another drum on that step. C PTC, D DEC, E TONE, F ACC, G SNAP, H CHAR shape it (A TUNE transposes it). After the TX-8 and TX-9 machines of hugz202's AE-analog-rytm-mods (MIT), from their measurements; fully digital synthesis of our own. Keep the AMP decay long: the machine shapes the sound itself. Needs Digi Mono 0.25 or later, which renders its voices, and machine-pages, which draws its SRC page.",
+ "description": "TX KIT, a whole drum kit as one machine in the FUNC+SRC list: knob B (TYPE) picks the drum - BD9 and BD8 kicks, SD9 and SD8 snares, LT9 MT9 HT9 and LT8 MT8 HT8 toms, 909- and 808-style - and a p-lock on B plays another drum on that step. A TUNE sets the pitch (C4 and 0 play the original's) and the AMP envelope the decay; C SWT (sweep time), D VAR (variation), E TONE, F DRV (drive), G SNAP and H CHAR shape it. After the TX-8 and TX-9 machines of hugz202's AE-analog-rytm-mods (MIT), from their measurements; fully digital synthesis of our own. Needs Digi Mono 0.25 or later, which renders its voices, and machine-pages, which draws its SRC page.",
  "device": "digitakt-mk1",
  "os": "1.53",
  "sources": [
